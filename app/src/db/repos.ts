@@ -1,4 +1,5 @@
 import { request, transaction } from "./idb";
+import { AnnotationsRepo, ANNOTATION_STORES } from "./annotations";
 
 export type Book = {
   id: string;
@@ -67,8 +68,13 @@ export class BooksRepo {
   }
 
   remove(id: string) {
-    return transaction(this.db, ["books", "files", "covers", "progress"], "readwrite", async (tx) => {
+    const stores = ["books", "files", "covers", "progress", ...ANNOTATION_STORES];
+    return transaction(this.db, stores, "readwrite", async (tx) => {
       for (const store of ["books", "files", "covers", "progress"]) await request(tx.objectStore(store).delete(id));
+      for (const store of ANNOTATION_STORES) {
+        const keys = await request(tx.objectStore(store).index("bookId").getAllKeys(id));
+        for (const key of keys) await request(tx.objectStore(store).delete(key));
+      }
     });
   }
 
@@ -124,8 +130,13 @@ export class SettingsRepo {
   }
 }
 
-export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo };
+export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo };
 
 export function createRepos(db: IDBDatabase): Repos {
-  return { books: new BooksRepo(db), progress: new ProgressRepo(db), settings: new SettingsRepo(db) };
+  return {
+    books: new BooksRepo(db),
+    progress: new ProgressRepo(db),
+    settings: new SettingsRepo(db),
+    annotations: new AnnotationsRepo(db),
+  };
 }
