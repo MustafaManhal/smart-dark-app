@@ -15,9 +15,11 @@ const book = (id: string, extra: Partial<Book> = {}): Book => ({
 });
 
 test("adds a book with its file and cover, and reads them back", async () => {
-  await repos.books.add(book("a"), new Blob(["pdf"]), new Blob(["jpg"]));
+  await repos.books.add(book("a"), new Blob(["pdf"], { type: "application/pdf" }), new Blob(["jpg"]));
   expect((await repos.books.get("a"))?.title).toBe("Book a");
-  expect(await (await repos.books.file("a"))!.text()).toBe("pdf");
+  const file = (await repos.books.file("a"))!;
+  expect(await file.text()).toBe("pdf");
+  expect(file.type).toBe("application/pdf");
   expect(await (await repos.books.cover("a"))!.text()).toBe("jpg");
   expect((await repos.books.findByHash("h-a"))?.id).toBe("a");
 });

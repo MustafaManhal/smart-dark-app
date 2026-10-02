@@ -1,7 +1,7 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ComponentChildren, ComponentProps } from "preact";
 import { Icon, type IconName } from "./Icon";
 
-type Base = Omit<JSX.HTMLAttributes<HTMLButtonElement>, "icon">;
+type Base = Omit<ComponentProps<"button">, "icon">;
 
 export function Button({ variant = "ghost", children, ...rest }: Base & { variant?: "primary" | "ghost" | "danger"; children: ComponentChildren }) {
   return <button type="button" class={`btn btn-${variant}`} {...rest}>{children}</button>;

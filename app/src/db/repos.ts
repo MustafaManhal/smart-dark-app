@@ -15,14 +15,29 @@ export type Book = {
 
 export type Progress = { bookId: string; page: number; offset: number; updatedAt: number };
 
+// Binary data is stored as { type, data: ArrayBuffer }, not as Blob: WebKit
+// cannot store Blobs in IndexedDB in private/ephemeral contexts.
+type StoredBinary = { type: string; data: ArrayBuffer };
+
+async function toStored(blob: Blob): Promise<StoredBinary> {
+  return { type: blob.type, data: await blob.arrayBuffer() };
+}
+
+function fromStored(value: StoredBinary | undefined): Blob | undefined {
+  return value ? new Blob([value.data], { type: value.type }) : undefined;
+}
+
 export class BooksRepo {
   constructor(private db: IDBDatabase) {}
 
-  add(book: Book, file: Blob, cover: Blob | null) {
+  async add(book: Book, file: Blob, cover: Blob | null) {
+    // Read the bytes before the transaction starts; awaiting inside it would end it.
+    const storedFile = await toStored(file);
+    const storedCover = cover ? await toStored(cover) : null;
     return transaction(this.db, ["books", "files", "covers"], "readwrite", async (tx) => {
       await request(tx.objectStore("books").add(book));
-      await request(tx.objectStore("files").put(file, book.id));
-      if (cover) await request(tx.objectStore("covers").put(cover, book.id));
+      await request(tx.objectStore("files").put(storedFile, book.id));
+      if (storedCover) await request(tx.objectStore("covers").put(storedCover, book.id));
     });
   }
 
@@ -57,12 +72,14 @@ export class BooksRepo {
     });
   }
 
-  file(id: string) {
-    return transaction(this.db, ["files"], "readonly", (tx) => request<Blob | undefined>(tx.objectStore("files").get(id)));
+  async file(id: string) {
+    return fromStored(await transaction(this.db, ["files"], "readonly", (tx) =>
+      request<StoredBinary | undefined>(tx.objectStore("files").get(id))));
   }
 
-  cover(id: string) {
-    return transaction(this.db, ["covers"], "readonly", (tx) => request<Blob | undefined>(tx.objectStore("covers").get(id)));
+  async cover(id: string) {
+    return fromStored(await transaction(this.db, ["covers"], "readonly", (tx) =>
+      request<StoredBinary | undefined>(tx.objectStore("covers").get(id))));
   }
 }
 

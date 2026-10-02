@@ -6,8 +6,8 @@ export function upgrade(db: IDBDatabase, oldVersion: number) {
   if (oldVersion < 1) {
     const books = db.createObjectStore("books", { keyPath: "id" });
     books.createIndex("hash", "hash", { unique: true });
-    db.createObjectStore("files"); // key: bookId, value: Blob
-    db.createObjectStore("covers"); // key: bookId, value: Blob
+    db.createObjectStore("files"); // key: bookId, value: { type, data: ArrayBuffer }
+    db.createObjectStore("covers"); // key: bookId, value: { type, data: ArrayBuffer }
     db.createObjectStore("progress", { keyPath: "bookId" });
     db.createObjectStore("settings"); // key: setting name
   }

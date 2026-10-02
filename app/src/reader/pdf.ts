@@ -55,3 +55,8 @@ async function resolvePage(doc: PDFDocumentProxy, dest: unknown): Promise<number
   } catch {}
   return null;
 }
+
+// pdf.js 6 dropped PDFDocumentProxy.destroy(); closing goes through the loading task.
+export function closePdf(doc: PDFDocumentProxy | null | undefined) {
+  return doc?.loadingTask.destroy().catch(() => {});
+}
