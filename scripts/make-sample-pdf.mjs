@@ -149,7 +149,13 @@ const c2 = add(stream("/Filter /FlateDecode", deflateSync(Buffer.from(p2, "latin
 const link = add("<< /Type /Annot /Subtype /Link /Rect [318 674 452 690] /Border [0 0 0] /A << /S /URI /URI (https://example.com/link) >> >>");
 const page1 = add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${res} /Contents ${c1} 0 R /Annots [${link} 0 R] >>`);
 const page2 = add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${res} /Contents ${c2} 0 R >>`);
-objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+const outlines = add(null);
+const o1 = add(null);
+const o2 = add(null);
+objects[outlines - 1] = `<< /Type /Outlines /First ${o1} 0 R /Last ${o2} 0 R /Count 2 >>`;
+objects[o1 - 1] = `<< /Title (Quarterly report) /Parent ${outlines} 0 R /Next ${o2} 0 R /Dest [${page1} 0 R /Fit] >>`;
+objects[o2 - 1] = `<< /Title (Page two) /Parent ${outlines} 0 R /Prev ${o1} 0 R /Dest [${page2} 0 R /Fit] >>`;
+objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R /Outlines ${outlines} 0 R /PageMode /UseOutlines >>`;
 objects[pagesId - 1] = `<< /Type /Pages /Kids [${page1} 0 R ${page2} 0 R] /Count 2 >>`;
 const info = add("<< /Title (Smart Dark PDF sample) /Producer (smart-dark-pdf build script) >>");
 
