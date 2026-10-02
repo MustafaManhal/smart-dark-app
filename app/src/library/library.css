@@ -6,7 +6,7 @@
 .search { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 42px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
 .search:focus-within { border-color: var(--accent); }
 .search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); }
-.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: transparent; cursor: pointer; white-space: nowrap; color: var(--muted); transition: background 0.15s, color 0.15s; }
 .chip[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: transparent; }
 .sort { display: flex; align-items: center; gap: 8px; color: var(--muted); }
@@ -33,3 +33,4 @@
 .card:hover .card-remove, .card-remove:focus-visible { opacity: 1; }
 @media (hover: none) { .card-remove { opacity: 1; width: 32px; height: 32px; } }
 .sheet-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+@media (min-width: 1024px) { .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 32px 24px; } }
