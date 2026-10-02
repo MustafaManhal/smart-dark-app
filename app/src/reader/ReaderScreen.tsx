@@ -79,14 +79,41 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
 
   // Navigation stays off until pages are laid out, so early taps are not lost.
   const total = ready ? book?.pageCount ?? 0 : 0;
+  const [barsHidden, setBarsHidden] = useState(false);
   const chapter = currentChapter(outline, page, total);
   const chapterPct = chapterProgress(outline, page, total);
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (sheet || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+      const actions: Record<string, () => void> = {
+        ArrowRight: () => go(page + 1), j: () => go(page + 1),
+        ArrowLeft: () => go(page - 1), k: () => go(page - 1),
+        Home: () => go(1), End: () => go(total),
+      };
+      const action = actions[e.key];
+      if (action) {
+        e.preventDefault();
+        action();
+      }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [page, total, sheet]);
+
+  // On touch screens a tap on the page toggles the bars for full-screen reading.
+  const onPageTap = (e: MouseEvent) => {
+    if (!matchMedia("(hover: none)").matches) return;
+    if ((e.target as Element).closest("a, button, input")) return;
+    if (getSelection()?.toString()) return;
+    setBarsHidden((hidden) => !hidden);
+  };
+
   return (
-    <div class="reader" data-style={pageStyle}>
+    <div class={`reader ${barsHidden ? "bars-hidden" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
         <IconButton label="Back to library" icon="back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
@@ -99,7 +126,7 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
 
       {error
         ? <p class="reader-error" role="alert">{error}</p>
-        : <div class="reader-scroll" ref={scroller} tabIndex={0} aria-label="Pages" />}
+        : <div class="reader-scroll" ref={scroller} tabIndex={0} aria-label="Pages" onClick={onPageTap} />}
 
       <footer class="reader-bottom">
         {chapterPct !== null && (

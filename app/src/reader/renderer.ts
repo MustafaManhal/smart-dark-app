@@ -117,8 +117,13 @@ export class Renderer {
     this.schedule();
   }
 
+  // Height hidden under the floating top bar (CSS scroll-padding-top).
+  private inset() {
+    return parseFloat(getComputedStyle(this.container).scrollPaddingTop) || 0;
+  }
+
   position() {
-    const top = this.container.scrollTop;
+    const top = this.container.scrollTop + this.inset();
     let slot = this.slots[0];
     for (const s of this.slots) {
       if (s.div.offsetTop - GAP <= top) slot = s;
@@ -132,12 +137,12 @@ export class Renderer {
   scrollToPage(page: number, offset = 0) {
     const slot = this.slots[Math.min(this.slots.length, Math.max(1, page)) - 1];
     if (!slot) return;
-    this.container.scrollTop = slot.div.offsetTop + offset * slot.div.offsetHeight - (offset ? 0 : GAP);
+    this.container.scrollTop = slot.div.offsetTop + offset * slot.div.offsetHeight - (offset ? 0 : GAP) - this.inset();
     this.onScroll();
   }
 
   private onScroll = () => {
-    const mid = this.container.scrollTop + this.container.clientHeight / 3;
+    const mid = this.container.scrollTop + this.inset() + (this.container.clientHeight - this.inset()) / 3;
     let page = 1;
     for (const s of this.slots) {
       if (s.div.offsetTop <= mid) page = s.number;

@@ -1,4 +1,4 @@
-.reader { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; background: var(--bg); color: var(--text); }
+.reader { position: fixed; inset: 0; background: var(--bg); color: var(--text); --bar-top: calc(53px + var(--safe-top)); --bar-bottom: calc(47px + var(--safe-bottom)); }
 /* Reader chrome follows the page style, not the app theme. */
 .reader[data-style="dark"] {
   color-scheme: dark;
@@ -24,12 +24,13 @@
   --accent-text: #fffaf0;
 }
 .reader-top, .reader-bottom { display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 2; }
-.reader-top { padding-top: calc(6px + var(--safe-top)); border-bottom: 1px solid var(--border); }
-.reader-bottom { position: relative; justify-content: center; padding-bottom: calc(6px + var(--safe-bottom)); border-top: 1px solid var(--border); }
+/* Bars float over the pages so hiding them gives the full screen to reading. */
+.reader-top { position: absolute; inset: 0 0 auto; padding-top: calc(6px + var(--safe-top)); border-bottom: 1px solid var(--border); }
+.reader-bottom { position: absolute; inset: auto 0 0; justify-content: center; padding-bottom: calc(6px + var(--safe-bottom)); border-top: 1px solid var(--border); }
 .reader-title { flex: 1; min-width: 0; display: grid; text-align: center; }
 .reader-title strong, .reader-title span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .reader-title span { font-size: 12px; color: var(--muted); }
-.reader-scroll { position: relative; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; outline: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.reader-scroll { position: absolute; inset: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: calc(var(--bar-top) + 12px) 12px calc(var(--bar-bottom) + 12px); scroll-padding-top: var(--bar-top); outline: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .reader-error { padding: 24px; text-align: center; }
 .page { position: relative; flex: none; background: var(--page-bg, #fff); border-radius: 4px; box-shadow: var(--shadow); --user-unit: 1; --total-scale-factor: calc(var(--scale-factor) * var(--user-unit)); --scale-round-x: 1px; --scale-round-y: 1px; }
 .page canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 4px; }
@@ -47,3 +48,6 @@
 .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .seg label:has(input:checked) { background: var(--text); color: var(--bg); border-color: transparent; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reader-top, .reader-bottom { transition: transform 0.25s var(--ease), opacity 0.25s; }
+.reader.bars-hidden .reader-top { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.reader.bars-hidden .reader-bottom { transform: translateY(100%); opacity: 0; pointer-events: none; }
