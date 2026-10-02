@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Dark PDF Reader",
+  "short_name": "Smart Dark PDF",
+  "version": "1.0.0",
+  "description": "Read PDFs in dark mode that keeps colors and photos intact. Text and pages go dark; no harsh color inversion.",
+  "minimum_chrome_version": "128",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Smart Dark PDF",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["storage", "declarativeNetRequestWithHostAccess"],
+  "optional_host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer/viewer.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "incognito": "split"
+}

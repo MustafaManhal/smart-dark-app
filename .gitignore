@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-e2e/
+*.zip
+test/output/
+.DS_Store
+smart-dark-pdf-*/
+app-dist/
+app/public/pdfjs/
+release/

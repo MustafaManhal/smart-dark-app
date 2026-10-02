@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Dark PDF</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="viewer.css">
+  <script type="module" src="viewer.js"></script>
+</head>
+<body>
+  <header class="toolbar" role="toolbar" aria-label="PDF toolbar">
+    <div class="group grow">
+      <span id="docTitle" class="doc-title" title="">Smart Dark PDF</span>
+    </div>
+
+    <div class="group" aria-label="Pages">
+      <button id="prevPage" class="icon-btn" title="Previous page (K)" aria-label="Previous page">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <input id="pageNumber" class="page-input" type="text" inputmode="numeric" value="1" aria-label="Page number">
+      <span class="muted">/ <span id="pageCount">–</span></span>
+      <button id="nextPage" class="icon-btn" title="Next page (J)" aria-label="Next page">
+        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="group" aria-label="Zoom">
+      <button id="zoomOut" class="icon-btn" title="Zoom out (Ctrl −)" aria-label="Zoom out">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+      </button>
+      <select id="zoomSelect" aria-label="Zoom level">
+        <option value="page-width">Fit width</option>
+        <option value="page-fit">Fit page</option>
+        <option value="0.5">50%</option>
+        <option value="0.75">75%</option>
+        <option value="1">100%</option>
+        <option value="1.25">125%</option>
+        <option value="1.5">150%</option>
+        <option value="2">200%</option>
+        <option value="3">300%</option>
+        <option value="custom" hidden>–</option>
+      </select>
+      <button id="zoomIn" class="icon-btn" title="Zoom in (Ctrl +)" aria-label="Zoom in">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+
+    <div class="group">
+      <button id="toggleDark" class="pill" aria-pressed="true" title="Toggle smart dark mode (D)">
+        <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <span>Smart dark</span>
+      </button>
+      <button id="settingsBtn" class="icon-btn" title="Appearance" aria-label="Appearance settings" aria-expanded="false" aria-controls="settingsPanel">
+        <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+      <button id="openFile" class="icon-btn" title="Open a PDF file (Ctrl O)" aria-label="Open a PDF file">
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      </button>
+      <button id="download" class="icon-btn" title="Download original PDF" aria-label="Download original PDF" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      </button>
+      <button id="openOriginal" class="icon-btn" title="Open in the browser's built-in viewer" aria-label="Open in the built-in viewer" hidden>
+        <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+      </button>
+    </div>
+
+    <div id="settingsPanel" class="panel" hidden role="dialog" aria-label="Appearance">
+      <label class="field">
+        <span>Theme</span>
+        <select id="themeSelect"></select>
+      </label>
+      <label class="field">
+        <span>Images</span>
+        <select id="imageModeSelect"></select>
+      </label>
+      <label class="field">
+        <span>Text contrast</span>
+        <input id="contrastRange" type="range" min="1" max="2.2" step="0.1">
+      </label>
+      <p class="hint">Changes apply to every PDF.</p>
+    </div>
+  </header>
+
+  <input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+
+  <main id="viewerContainer" tabindex="0">
+    <div id="viewer" class="viewer"></div>
+
+    <section id="emptyState" class="message" hidden>
+      <h1>Open a PDF</h1>
+      <p>Drop a PDF here or choose one from your computer. Nothing is uploaded; the file stays on this device.</p>
+      <button id="emptyOpen" class="primary">Choose a PDF</button>
+    </section>
+
+    <section id="errorState" class="message" hidden role="alert">
+      <h1 id="errorTitle">Could not open this PDF</h1>
+      <p id="errorText"></p>
+      <div class="actions">
+        <button id="errorAction" class="primary" hidden></button>
+        <button id="errorSecondary" hidden></button>
+      </div>
+    </section>
+
+    <form id="passwordForm" class="message" hidden>
+      <h1>Password required</h1>
+      <p id="passwordText">This PDF is protected. Enter its password to open it.</p>
+      <input id="passwordInput" type="password" autocomplete="off" aria-label="Password">
+      <div class="actions"><button class="primary" type="submit">Open</button></div>
+    </form>
+
+    <div id="loading" class="loading" hidden><div class="bar"></div></div>
+  </main>
+
+  <div id="dropOverlay" class="drop-overlay" hidden>Drop the PDF to open it</div>
+</body>
+</html>

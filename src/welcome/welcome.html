@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Smart Dark PDF</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="../shared/ui.css">
+  <link rel="stylesheet" href="welcome.css">
+  <script type="module" src="welcome.js"></script>
+</head>
+<body>
+  <main class="welcome">
+    <header>
+      <img src="../icons/icon128.png" alt="" width="64" height="64">
+      <h1>Smart Dark PDF is installed</h1>
+      <p class="lead">Pages turn dark, text turns light, and colors keep their hue. Photos stay as they are. Everything runs on this device.</p>
+    </header>
+
+    <ol class="steps">
+      <li class="step" id="stepAccess">
+        <div>
+          <h2>Open PDF links in dark mode</h2>
+          <p>Chrome asks once whether Smart Dark PDF may read the PDFs you open on websites. It only reads PDF files, and sends nothing anywhere.</p>
+        </div>
+        <button id="grantAccess" class="primary">Allow access</button>
+        <span id="accessDone" class="done" hidden>Allowed</span>
+      </li>
+
+      <li class="step">
+        <div>
+          <h2>Optional: PDFs saved on your computer</h2>
+          <p>To open local files automatically, turn on <strong>Allow access to file URLs</strong> on the extension's settings page. You can always use the <em>Open</em> button or drag a file into the viewer instead.</p>
+        </div>
+        <button id="openSettings">Open extension settings</button>
+      </li>
+
+      <li class="step">
+        <div>
+          <h2>See it in action</h2>
+          <p>A sample page with colored text, a chart, highlights and a photo.</p>
+        </div>
+        <button id="openSample">Open the sample PDF</button>
+      </li>
+    </ol>
+
+    <p class="foot">Tip: press <kbd>D</kbd> in the viewer to switch between smart dark and the original colors.</p>
+  </main>
+</body>
+</html>

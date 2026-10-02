@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Smart Dark PDF</title>
+  <link rel="stylesheet" href="../shared/ui.css">
+  <script type="module" src="popup.js"></script>
+</head>
+<body class="popup">
+  <header class="brand">
+    <img src="../icons/icon32.png" alt="" width="24" height="24">
+    <strong>Smart Dark PDF</strong>
+  </header>
+
+  <label class="row">
+    <span>
+      <span class="label">Smart dark mode</span>
+      <span class="sub">Dark pages, real colors</span>
+    </span>
+    <input id="enabled" type="checkbox" class="switch">
+  </label>
+
+  <label class="row">
+    <span>
+      <span class="label">Open PDFs here automatically</span>
+      <span id="autoOpenSub" class="sub">PDF links open in Smart Dark PDF</span>
+    </span>
+    <input id="autoOpen" type="checkbox" class="switch">
+  </label>
+
+  <div id="accessNote" class="note" hidden>
+    <p>Allow Smart Dark PDF to read PDFs you open on websites. Nothing leaves your device.</p>
+    <button id="grantAccess" class="primary">Allow access</button>
+  </div>
+
+  <label class="field">
+    <span>Theme</span>
+    <select id="theme"></select>
+  </label>
+
+  <label class="field">
+    <span>Images</span>
+    <select id="imageMode"></select>
+  </label>
+
+  <button id="openViewer" class="wide">Open a PDF from this computer</button>
+</body>
+</html>
