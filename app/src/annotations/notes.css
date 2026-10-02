@@ -1,0 +1,61 @@
+/* Notes panel: beside the PDF on wide screens, a bottom sheet on phones. */
+.notes-panel {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  inset: auto 0 0;
+  height: min(72vh, 640px);
+  border-radius: 20px 20px 0 0;
+  padding-bottom: var(--safe-bottom);
+  animation: rise 0.22s var(--ease);
+}
+.panel-backdrop { position: absolute; inset: 0; z-index: 29; background: rgb(0 0 0 / 0.35); animation: fade 0.18s var(--ease); }
+@media (min-width: 960px) {
+  .notes-panel { inset: var(--bar-top) 0 0 auto; width: 380px; height: auto; border-radius: 0; border-top: 0; border-inline-start: 1px solid var(--border); animation: slide-in 0.22s var(--ease); }
+  .panel-backdrop { display: none; }
+  /* The PDF stays visible beside the panel. */
+  .reader.panel-open .reader-scroll { right: 380px; }
+  .reader.panel-open .float-tools { inset-inline-end: 392px; }
+}
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+
+.panel-head { display: flex; align-items: center; gap: 2px; padding: 10px 8px 4px 16px; }
+.panel-head h2 { flex: 1; margin: 0; font-size: 16px; }
+.panel-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
+.panel-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; font-size: 14px; }
+.panel-tabs button[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: transparent; }
+.panel-tabs .count { font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.panel-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 6px 12px; }
+.panel-filters .search { flex: 1 1 160px; height: 36px; }
+.color-filter { display: flex; gap: 6px; }
+.color-filter .swatch { width: 22px; height: 22px; }
+.panel-body { flex: 1; overflow: auto; padding: 6px 12px 16px; overscroll-behavior: contain; }
+.panel-empty { color: var(--muted); padding: 24px 8px; text-align: center; }
+.note-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.note-row { position: relative; }
+.note-card {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 44px 12px 14px;
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--c, var(--accent));
+  border-radius: 12px;
+  background: var(--bg);
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+.note-card:hover { border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, var(--border)); }
+.note-meta { color: var(--muted); font-size: 12px; }
+.note-card blockquote { margin: 0; padding: 4px 8px; border-radius: 6px; background: color-mix(in srgb, var(--c) 26%, transparent); }
+.note-card blockquote.is-plain { background: var(--surface-2); font-size: 14px; }
+.note-text { margin: 0; white-space: pre-wrap; }
+.note-remove { position: absolute; top: 6px; inset-inline-end: 4px; width: 34px; height: 34px; color: var(--muted); }
+.note-remove:hover { color: var(--danger); }

@@ -8,7 +8,12 @@ export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 
 export type Highlight = {
   id: string; bookId: string; page: number; rects: NormRect[]; color: HighlightColor;
-  text: string; note: string; createdAt: number; updatedAt: number;
+  text: string; createdAt: number; updatedAt: number;
+};
+/** A note attached to a passage of text (separate from highlights). */
+export type PassageNote = {
+  id: string; bookId: string; page: number; rects: NormRect[]; text: string; body: string;
+  createdAt: number; updatedAt: number;
 };
 export type Sticky = {
   id: string; bookId: string; page: number; x: number; y: number; color: HighlightColor;
@@ -16,8 +21,8 @@ export type Sticky = {
 };
 export type Bookmark = { id: string; bookId: string; page: number; createdAt: number };
 
-export type BookAnnotations = { highlights: Highlight[]; stickies: Sticky[]; bookmarks: Bookmark[] };
-export const ANNOTATION_STORES = ["highlights", "stickies", "bookmarks"] as const;
+export type BookAnnotations = { highlights: Highlight[]; notes: PassageNote[]; stickies: Sticky[]; bookmarks: Bookmark[] };
+export const ANNOTATION_STORES = ["highlights", "notes", "stickies", "bookmarks"] as const;
 export type AnnotationStore = (typeof ANNOTATION_STORES)[number];
 
 type Draft<T extends { id: string; createdAt: number }> = Omit<T, "id" | "createdAt" | "updatedAt"> & Partial<Pick<T, "id" | "createdAt">>;
@@ -31,19 +36,22 @@ export class AnnotationsRepo {
   listForBook(bookId: string): Promise<BookAnnotations> {
     return transaction(this.db, [...ANNOTATION_STORES], "readonly", async (tx) => {
       const get = <T>(store: AnnotationStore) => request<T[]>(tx.objectStore(store).index("bookId").getAll(bookId));
-      const [highlights, stickies, bookmarks] = await Promise.all([
-        get<Highlight>("highlights"), get<Sticky>("stickies"), get<Bookmark>("bookmarks"),
+      const [highlights, notes, stickies, bookmarks] = await Promise.all([
+        get<Highlight>("highlights"), get<PassageNote>("notes"), get<Sticky>("stickies"), get<Bookmark>("bookmarks"),
       ]);
-      return { highlights: highlights.sort(byPage), stickies: stickies.sort(byPage), bookmarks: bookmarks.sort(byPage) };
+      return {
+        highlights: highlights.sort(byPage), notes: notes.sort(byPage),
+        stickies: stickies.sort(byPage), bookmarks: bookmarks.sort(byPage),
+      };
     });
   }
 
   all(): Promise<BookAnnotations> {
     return transaction(this.db, [...ANNOTATION_STORES], "readonly", async (tx) => {
-      const [highlights, stickies, bookmarks] = await Promise.all(
+      const [highlights, notes, stickies, bookmarks] = await Promise.all(
         ANNOTATION_STORES.map((s) => request<unknown[]>(tx.objectStore(s).getAll())),
       );
-      return { highlights, stickies, bookmarks } as BookAnnotations;
+      return { highlights, notes, stickies, bookmarks } as BookAnnotations;
     });
   }
 
@@ -57,6 +65,11 @@ export class AnnotationsRepo {
   putHighlight(draft: Draft<Highlight>): Promise<Highlight> {
     const now = Date.now();
     return this.put("highlights", { ...draft, id: draft.id ?? crypto.randomUUID(), createdAt: draft.createdAt ?? now, updatedAt: now });
+  }
+
+  putNote(draft: Draft<PassageNote>): Promise<PassageNote> {
+    const now = Date.now();
+    return this.put("notes", { ...draft, id: draft.id ?? crypto.randomUUID(), createdAt: draft.createdAt ?? now, updatedAt: now });
   }
 
   putSticky(draft: Draft<Sticky>): Promise<Sticky> {

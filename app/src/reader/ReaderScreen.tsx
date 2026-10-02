@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { HighlightSheet } from "../annotations/HighlightSheet";
+import { NotesPanel } from "../annotations/NotesPanel";
+import { HighlightPopover, NotePopover, type NoteDraft } from "../annotations/Popovers";
+import type { NoteItem } from "../annotations/noteItems";
 import { clearOverlays, renderOverlays } from "../annotations/Overlays";
 import { SelectionBar } from "../annotations/SelectionBar";
 import { normalizeRects } from "../annotations/geometry";
 import { useAnnotations } from "../annotations/useAnnotations";
-import { HIGHLIGHT_COLORS, type Highlight, type HighlightColor } from "../db/annotations";
+import { HIGHLIGHT_COLORS, type HighlightColor, type NormRect } from "../db/annotations";
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
 import { navigate } from "../router";
@@ -17,12 +19,33 @@ import { CSS_UNITS, Renderer } from "./renderer";
 import "./reader.css";
 import "./textlayer.css";
 import "../annotations/annotations.css";
+import "../annotations/notes.css";
+import "../library/library.css";
 
 const STYLES: [PageStyle, string][] = [["original", "Original"], ["sepia", "Sepia"], ["dark", "Smart dark"]];
 const DARK_THEMES: [DarkTheme, string][] = [["dark", "Dark"], ["dim", "Dim"], ["black", "Black"], ["warm", "Warm"], ["slate", "Slate"]];
 const IMAGE_MODES: [ImageMode, string][] = [["smart", "Smart"], ["keep", "Keep"], ["dim", "Dim"], ["invert", "Darken"]];
 
-type PendingSelection = { page: number; rects: Highlight["rects"]; text: string };
+type Anchor = { left: number; top: number; right: number; bottom: number };
+type PendingSelection = { page: number; rects: NormRect[]; text: string; anchor: Anchor };
+type PopState =
+  | { type: "highlight"; id: string; anchor: Anchor }
+  | { type: "note"; draft: NoteDraft; anchor: Anchor };
+
+/** Screen rectangle covering page-fraction rects on a page element. */
+function anchorFor(pageEl: Element, rects: NormRect[]): Anchor {
+  const box = pageEl.getBoundingClientRect();
+  const left = Math.min(...rects.map((r) => r.x));
+  const top = Math.min(...rects.map((r) => r.y));
+  const right = Math.max(...rects.map((r) => r.x + r.w));
+  const bottom = Math.max(...rects.map((r) => r.y + r.h));
+  return {
+    left: box.left + left * box.width, right: box.left + right * box.width,
+    top: box.top + top * box.height, bottom: box.top + bottom * box.height,
+  };
+}
+const inRects = (rects: NormRect[], x: number, y: number) =>
+  rects.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y - 0.004 && y <= r.y + r.h + 0.004);
 
 const ZOOM_STEP = 1.2;
 
@@ -46,7 +69,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [ready, setReady] = useState(false);
   const annotations = useAnnotations(repos, bookId);
   const [selection, setSelection] = useState<PendingSelection | null>(null);
-  const [openHighlight, setOpenHighlight] = useState<{ h: Highlight; focusNote: boolean } | null>(null);
+  const [popover, setPopover] = useState<PopState | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [focusStickyId, setFocusStickyId] = useState<string | null>(null);
 
@@ -121,6 +145,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       focusStickyId,
       onStickyChange: (s) => annotations.saveSticky(s),
       onStickyDelete: (s) => annotations.removeSticky(s),
+      onNoteOpen: (n, b) => setPopover({ type: "note", draft: n, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } }),
     });
   }, [ready, annotations.data, focusStickyId]);
 
@@ -141,7 +166,9 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         // A selection that runs onto the next page is kept to its first page.
         const rects = normalizeRects([...range.getClientRects()], start.getBoundingClientRect());
         const text = sel.toString().replace(/\s+/g, " ").trim();
-        setSelection(rects.length && text ? { page, rects, text } : null);
+        const b = range.getBoundingClientRect();
+        const anchor = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
+        setSelection(rects.length && text ? { page, rects, text, anchor } : null);
       }, 200);
     };
     document.addEventListener("selectionchange", onChange);
@@ -175,12 +202,36 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor);
   }, [selection, highlightMode]);
 
-  async function highlightSelection(color: HighlightColor, withNote = false) {
+  async function highlightSelection(color: HighlightColor) {
     if (!selection) return;
-    const saved = await annotations.saveHighlight({ bookId, ...selection, color, note: "" });
+    const { page: p, rects, text } = selection;
+    await annotations.saveHighlight({ bookId, page: p, rects, text, color });
     getSelection()?.removeAllRanges();
     setSelection(null);
-    if (withNote) setOpenHighlight({ h: saved, focusNote: true });
+  }
+
+  // A note on the selected passage. Nothing is saved until the note has text.
+  function noteSelection() {
+    if (!selection) return;
+    const { page: p, rects, text, anchor } = selection;
+    setPopover({ type: "note", draft: { page: p, rects, text, body: "" }, anchor });
+    getSelection()?.removeAllRanges();
+    setSelection(null);
+  }
+
+  function jumpTo(entry: NoteItem) {
+    const y = entry.type === "highlight" || entry.type === "note"
+      ? Math.min(...entry.item.rects.map((r) => r.y))
+      : entry.type === "sticky" ? entry.item.y : 0;
+    renderer.current?.scrollToPage(entry.page, Math.max(0, y - 0.04));
+    if (matchMedia("(max-width: 959px)").matches) setPanelOpen(false);
+  }
+
+  function removeEntry(entry: NoteItem) {
+    if (entry.type === "highlight") annotations.removeHighlight(entry.item);
+    else if (entry.type === "note") annotations.removeNote(entry.item);
+    else if (entry.type === "sticky") annotations.removeSticky(entry.item);
+    else annotations.removeBookmark(entry.item);
   }
 
   useEffect(() => {
@@ -193,7 +244,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         else renderer.current?.zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP);
         return;
       }
-      if (sheet || openHighlight || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (sheet || popover || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const actions: Record<string, () => void> = {
         ArrowRight: () => go(page + 1), j: () => go(page + 1),
         ArrowLeft: () => go(page - 1), k: () => go(page - 1),
@@ -207,7 +258,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [page, total, sheet, openHighlight, placing]);
+  }, [page, total, sheet, popover, placing]);
 
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
@@ -229,9 +280,11 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       return;
     }
     if (hit) {
-      const h = annotations.data.highlights.find((x) => x.page === hit.page && x.rects.some((r) =>
-        hit.x >= r.x && hit.x <= r.x + r.w && hit.y >= r.y - 0.004 && hit.y <= r.y + r.h + 0.004));
-      if (h) return setOpenHighlight({ h, focusNote: false });
+      const pageEl = renderer.current!.layers(hit.page)!.page;
+      const n = annotations.data.notes.find((x) => x.page === hit.page && inRects(x.rects, hit.x, hit.y));
+      if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects) });
+      const h = annotations.data.highlights.find((x) => x.page === hit.page && inRects(x.rects, hit.x, hit.y));
+      if (h) return setPopover({ type: "highlight", id: h.id, anchor: anchorFor(pageEl, h.rects) });
     }
     if (matchMedia("(hover: none)").matches) setBarsHidden((hidden) => !hidden);
   };
@@ -244,7 +297,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   return (
-    <div class={`reader ${barsHidden ? "bars-hidden" : ""}`} data-style={pageStyle}>
+    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
         <IconButton label="Back to library" icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
@@ -260,7 +313,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           <IconButton label={bookmarked ? "Remove bookmark" : "Bookmark this page"} icon="bookmark"
             class={bookmarked ? "is-on" : ""} aria-pressed={bookmarked} disabled={!ready}
             onClick={() => annotations.toggleBookmark(page)} />
-          <IconButton label="Notes and highlights" icon="notes" onClick={() => navigate({ name: "notes", bookId })} />
+          <IconButton label="Notes and highlights" icon="notes" class={panelOpen ? "is-on" : ""} aria-pressed={panelOpen}
+            onClick={() => setPanelOpen((v) => !v)} />
           <IconButton label="Contents" icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
           <IconButton label="Appearance" icon="palette" onClick={() => setSheet("appearance")} />
         </div>
@@ -329,18 +383,36 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       {selection && (
         <SelectionBar
           onHighlight={(c) => highlightSelection(c)}
-          onNote={() => highlightSelection("yellow", true)}
+          onNote={noteSelection}
           onCopy={() => { navigator.clipboard?.writeText(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
         />
       )}
 
-      <HighlightSheet
-        highlight={openHighlight ? annotations.data.highlights.find((h) => h.id === openHighlight.h.id) ?? null : null}
-        focusNote={openHighlight?.focusNote ?? false}
-        onSave={(h) => annotations.saveHighlight(h)}
-        onDelete={(h) => { annotations.removeHighlight(h); setOpenHighlight(null); }}
-        onClose={() => setOpenHighlight(null)}
-      />
+      {popover?.type === "highlight" && (() => {
+        const h = annotations.data.highlights.find((x) => x.id === popover.id);
+        return h && (
+          <HighlightPopover highlight={h} anchor={popover.anchor} onClose={() => setPopover(null)}
+            onColor={(c) => annotations.saveHighlight({ ...h, color: c })}
+            onRemove={() => { annotations.removeHighlight(h); setPopover(null); }} />
+        );
+      })()}
+      {popover?.type === "note" && (
+        <NotePopover key={popover.draft.id ?? "new"} note={popover.draft} anchor={popover.anchor} onClose={() => setPopover(null)}
+          onSave={(body) => annotations.saveNote({ bookId, ...popover.draft, body })}
+          onDelete={() => {
+            const n = annotations.data.notes.find((x) => x.id === popover.draft.id);
+            if (n) annotations.removeNote(n);
+            setPopover(null);
+          }} />
+      )}
+
+      {panelOpen && (
+        <>
+          <div class="panel-backdrop" onClick={() => setPanelOpen(false)} />
+          <NotesPanel title={book?.title ?? "Notes"} data={annotations.data}
+            onJump={jumpTo} onRemove={removeEntry} onClose={() => setPanelOpen(false)} />
+        </>
+      )}
 
       <Sheet open={sheet === "goto"} title="Go to page" onClose={() => setSheet(null)}>
         <form class="goto" onSubmit={(e) => { e.preventDefault(); go(Number(pageInput)); setSheet(null); }}>

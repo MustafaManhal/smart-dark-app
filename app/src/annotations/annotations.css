@@ -4,7 +4,6 @@
 .sticky-layer { z-index: 3; }
 .hl { position: absolute; border-radius: 2px; background: color-mix(in srgb, var(--hl) 48%, transparent); mix-blend-mode: multiply; }
 .reader[data-style="dark"] .hl { background: color-mix(in srgb, var(--hl) 34%, transparent); mix-blend-mode: normal; }
-.hl.has-note { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hl) 90%, black); }
 
 .page.is-bookmarked::after {
   content: "";
@@ -68,10 +67,6 @@
   .sel-action { padding: 0 6px; }
 }
 
-.hl-quote { margin: 8px 0 14px; padding: 10px 12px; border-inline-start: 4px solid var(--hl); border-radius: 6px; background: var(--surface-2); max-height: 30vh; overflow: auto; }
-.hl-colors { display: flex; gap: 10px; margin-bottom: 14px; }
-.field-label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; }
-.note-input { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); color: var(--text); resize: vertical; font: inherit; }
 
 
 /* Sticky notes */
@@ -97,3 +92,50 @@
 .sticky-palette button[aria-checked="true"] { outline: 2px solid currentColor; outline-offset: 1px; }
 .sticky.is-collapsed { width: auto; background: none; box-shadow: none; overflow: visible; }
 .sticky-tab { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px 8px 8px 2px; background: var(--note); color: #2a2618; box-shadow: 0 2px 8px rgb(0 0 0 / 0.25); cursor: pointer; }
+
+/* Passage notes: dotted underline plus a small badge after the passage. */
+.pn { position: absolute; border-bottom: 2px dotted var(--accent); }
+.pn-badge {
+  position: absolute;
+  translate: 4px -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px 6px 6px 1px;
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.pn-badge .icon { width: 14px; height: 14px; }
+
+/* Small popups next to a highlight or note. */
+.popover {
+  position: fixed;
+  z-index: 40;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  animation: fade 0.12s var(--ease);
+}
+.pop-row { display: flex; align-items: center; gap: 6px; }
+.pop-colors { display: flex; gap: 6px; }
+.pop-colors .swatch { width: 26px; height: 26px; }
+.pop-sep { width: 1px; height: 22px; background: var(--border); }
+.pop-action { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; }
+.pop-action:hover { background: var(--surface-2); }
+.pop-action.is-danger { color: var(--danger); }
+.pop-note { display: grid; gap: 8px; width: min(340px, calc(100vw - 32px)); }
+.pop-quote { margin: 0; padding: 6px 10px; border-inline-start: 3px solid var(--accent); border-radius: 6px; background: var(--surface-2); max-height: 7.5em; overflow: auto; font-size: 14px; }
+.pop-note textarea { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); resize: vertical; font: 15px/1.4 var(--font); }
+.pop-actions { display: flex; gap: 6px; }
+.pop-actions .grow { flex: 1; }
+.pop-actions .btn { min-height: 34px; padding: 0 12px; }

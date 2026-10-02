@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
-import type { BookAnnotations, Highlight, Sticky } from "../db/annotations";
+import type { BookAnnotations, Bookmark, Highlight, PassageNote, Sticky } from "../db/annotations";
 import type { Repos } from "../db/repos";
 
-const EMPTY: BookAnnotations = { highlights: [], stickies: [], bookmarks: [] };
+const EMPTY: BookAnnotations = { highlights: [], notes: [], stickies: [], bookmarks: [] };
 
 /** Annotation state for one book, kept in sync with IndexedDB. */
 export function useAnnotations(repos: Repos, bookId: string) {
@@ -26,6 +26,19 @@ export function useAnnotations(repos: Repos, bookId: string) {
     async removeHighlight(h: Highlight) {
       await repos.annotations.remove("highlights", h.id);
       setData((d) => ({ ...d, highlights: d.highlights.filter((x) => x.id !== h.id) }));
+    },
+    async saveNote(n: Parameters<Repos["annotations"]["putNote"]>[0]) {
+      const saved = await repos.annotations.putNote(n);
+      replace("notes", saved);
+      return saved;
+    },
+    async removeNote(n: PassageNote) {
+      await repos.annotations.remove("notes", n.id);
+      setData((d) => ({ ...d, notes: d.notes.filter((x) => x.id !== n.id) }));
+    },
+    async removeBookmark(b: Bookmark) {
+      await repos.annotations.remove("bookmarks", b.id);
+      setData((d) => ({ ...d, bookmarks: d.bookmarks.filter((x) => x.id !== b.id) }));
     },
     async saveSticky(s: Parameters<Repos["annotations"]["putSticky"]>[0]) {
       const saved = await repos.annotations.putSticky(s);

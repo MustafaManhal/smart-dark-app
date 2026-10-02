@@ -10,7 +10,7 @@ export function request<T>(req: IDBRequest<T>): Promise<T> {
 export function openDb(name = DB_NAME): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(name, DB_VERSION);
-    req.onupgradeneeded = (event) => upgrade(req.result, event.oldVersion);
+    req.onupgradeneeded = (event) => upgrade(req.result, event.oldVersion, req.transaction!);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
     req.onblocked = () => reject(new Error("Database upgrade blocked by another open tab"));
