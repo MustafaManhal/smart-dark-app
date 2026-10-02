@@ -8,6 +8,7 @@
   line-height: 1;
   letter-spacing: normal;
   word-spacing: normal;
+  -webkit-text-size-adjust: none;
   text-size-adjust: none;
   forced-color-adjust: none;
   transform-origin: 0 0;
@@ -19,6 +20,7 @@
 }
 
 .textLayer :is(span, br) {
+  -webkit-text-size-adjust: none; /* pdf.js #14243: iOS inflates spans after a tap */
   color: transparent;
   position: absolute;
   white-space: pre;

@@ -10,8 +10,12 @@ export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageM
 const MAX_CANVAS_PIXELS = 16_777_216;
 const AHEAD = 1200; // px beyond the viewport to render ahead
 const KEEP = 4000; // px beyond which rendered pages are released
-const GAP = 12;
 const MAX_FIT_WIDTH = 900;
+export const MIN_SCALE = 0.25;
+export const MAX_SCALE = 5;
+/** pdf.js scale 1 is 72 dpi; "100%" in PDF apps means 96 dpi. */
+export const CSS_UNITS = 96 / 72;
+const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
 export function pageBackground(o: RenderOptions) {
   if (o.pageStyle === "original") return "#ffffff";
@@ -29,9 +33,16 @@ class PageSlot {
   task: ReturnType<PDFPageProxy["render"]> | null = null;
   textLayer: InstanceType<typeof pdfjs.TextLayer> | null = null;
 
+  // Overlays live for the whole session; canvas and text layer come and go.
+  highlightLayer = document.createElement("div");
+  stickyLayer = document.createElement("div");
+
   constructor(public number: number, public w: number, public h: number) {
     this.div.className = "page";
     this.div.dataset.page = String(number);
+    this.highlightLayer.className = "hl-layer";
+    this.stickyLayer.className = "sticky-layer";
+    this.div.append(this.highlightLayer, this.stickyLayer);
   }
 
   size(scale: number) {
@@ -61,12 +72,32 @@ export class Renderer {
   private styleKey = "";
   private current = 1;
   private resizeObserver: ResizeObserver;
+  private mode: "fit" | "page" | "manual" = "fit";
+  private content = document.createElement("div");
+  private pointers = new Map<number, { x: number; y: number }>();
+  private pinch: { dist: number; scale: number; cx: number; cy: number; k: number } | null = null;
+  private wheelZoom = { factor: 1, x: 0, y: 0, queued: false };
   onPageChange: (page: number) => void = () => {};
+  onScaleChange: (scale: number, mode: "fit" | "page" | "manual") => void = () => {};
+  /** Whole-book reading position, 0 at the top of page 1 and 1 at the very end. */
+  onProgress: (fraction: number) => void = () => {};
 
   constructor(private container: HTMLElement, private doc: PDFDocumentProxy, private opts: RenderOptions) {
+    this.content.className = "pages";
+    this.container.append(this.content);
     this.container.addEventListener("scroll", this.onScroll, { passive: true });
+    this.container.addEventListener("wheel", this.onWheel, { passive: false });
+    this.container.addEventListener("pointerdown", this.onPointerDown);
+    this.container.addEventListener("pointermove", this.onPointerMove);
+    for (const t of ["pointerup", "pointercancel", "pointerleave"] as const) this.container.addEventListener(t, this.onPointerUp);
+    // iOS Safari: stop its own page zoom; we zoom the pages ourselves.
+    this.container.addEventListener("gesturestart", (e) => e.preventDefault());
     this.resizeObserver = new ResizeObserver(() => this.fit());
     this.setOptions(opts);
+  }
+
+  get scaleValue() {
+    return this.scale;
   }
 
   get pageCount() {
@@ -80,10 +111,27 @@ export class Renderer {
       const slot = new PageSlot(i, vp.width, vp.height);
       if (i === 1) slot.page = first;
       this.slots.push(slot);
-      this.container.append(slot.div);
+      this.content.append(slot.div);
     }
     this.fit();
     this.resizeObserver.observe(this.container);
+  }
+
+  /** Overlay containers for page `number` (1-based). */
+  layers(number: number) {
+    const slot = this.slots[number - 1];
+    return slot ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer } : null;
+  }
+
+  /** Which page is under a viewport point, and where on it (page fractions). */
+  hitTest(clientX: number, clientY: number) {
+    for (const s of this.slots) {
+      const r = s.div.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+        return { page: s.number, x: (clientX - r.left) / r.width, y: (clientY - r.top) / r.height, box: r };
+      }
+    }
+    return null;
   }
 
   setOptions(opts: RenderOptions) {
@@ -96,17 +144,64 @@ export class Renderer {
     this.schedule();
   }
 
-  private fit() {
-    // Comfortable reading width on big screens; full width on phones.
+  /** Scale that fits the page width (capped at a comfortable reading width). */
+  fitScale() {
     const width = Math.min(this.container.clientWidth - 24, MAX_FIT_WIDTH);
-    if (width <= 0 || !this.slots.length) return;
-    const next = Math.max(0.5, Math.min(2.5, width / this.slots[0].w));
+    return this.slots.length && width > 0 ? clampScale(Math.min(2.5, width / this.slots[0].w)) : 1;
+  }
+
+  private pageScale() {
+    const s = this.slots[0];
+    const width = this.container.clientWidth - 24;
+    const height = this.container.clientHeight - this.inset() - this.gap() - 12;
+    return s ? clampScale(Math.min(width / s.w, height / s.h)) : 1;
+  }
+
+  private fit() {
+    if (this.mode === "manual" || !this.slots.length || this.container.clientWidth <= 24) return;
+    const next = this.mode === "page" ? this.pageScale() : this.fitScale();
     if (Math.abs(next - this.scale) < 0.001 && this.slots[0].div.style.width) return;
     this.applyScale(next);
   }
 
-  setScale(scale: number) {
-    this.applyScale(Math.max(0.5, Math.min(4, scale)));
+  /** Back to fit-width mode (follows window size again). */
+  fitWidth() {
+    this.mode = "fit";
+    this.zoomTo(this.fitScale(), undefined, "fit");
+  }
+
+  /** Whole page visible (follows window size until the user zooms). */
+  fitPage() {
+    if (!this.slots.length) return;
+    this.zoomTo(this.pageScale(), undefined, "page");
+    this.scrollToPage(this.current);
+  }
+
+  /**
+   * Zoom so that the point under (clientX, clientY) stays where it is.
+   * Without a focal point, the middle of the visible area is kept.
+   */
+  zoomTo(scale: number, focal?: { clientX: number; clientY: number }, mode: "fit" | "page" | "manual" = "manual") {
+    if (!this.slots.length) return;
+    this.mode = mode;
+    const next = clampScale(scale);
+    const box = this.container.getBoundingClientRect();
+    const fx = focal ? focal.clientX - box.left : this.container.clientWidth / 2;
+    const fy = focal ? focal.clientY - box.top : (this.container.clientHeight + this.inset()) / 2;
+    const hit = this.hitTest(box.left + fx, box.top + fy);
+    if (!hit) return this.applyScale(next);
+    this.scale = next;
+    for (const s of this.slots) s.size(next);
+    const slot = this.slots[hit.page - 1].div;
+    this.container.scrollTop = slot.offsetTop + hit.y * slot.offsetHeight - fy;
+    this.container.scrollLeft = slot.offsetLeft + hit.x * slot.offsetWidth - fx;
+    this.onScroll();
+    this.onScaleChange(next, this.mode);
+    this.schedule();
+  }
+
+  zoomBy(factor: number, focal?: { clientX: number; clientY: number }) {
+    this.zoomTo(this.scale * factor, focal);
   }
 
   private applyScale(scale: number) {
@@ -114,19 +209,75 @@ export class Renderer {
     this.scale = scale;
     for (const s of this.slots) s.size(this.scale);
     this.scrollToPage(anchor.page, anchor.offset);
+    this.onScaleChange(scale, this.mode);
     this.schedule();
   }
+
+  // Ctrl/Cmd + wheel, which is also what a trackpad pinch sends on desktop.
+  private onWheel = (e: WheelEvent) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const z = this.wheelZoom;
+    z.factor *= Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025));
+    z.x = e.clientX;
+    z.y = e.clientY;
+    if (z.queued) return;
+    z.queued = true;
+    requestAnimationFrame(() => {
+      z.queued = false;
+      const factor = z.factor;
+      z.factor = 1;
+      this.zoomBy(factor, { clientX: z.x, clientY: z.y });
+    });
+  };
+
+  // Two-finger pinch on touch screens: preview with a CSS transform, re-render at the end.
+  private onPointerDown = (e: PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.pointers.size === 2) {
+      const [a, b] = [...this.pointers.values()];
+      const content = this.content.getBoundingClientRect();
+      const cx = (a.x + b.x) / 2;
+      const cy = (a.y + b.y) / 2;
+      this.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, scale: this.scale, cx, cy, k: 1 };
+      this.content.style.transformOrigin = `${cx - content.left}px ${cy - content.top}px`;
+    }
+  };
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.pointers.has(e.pointerId)) return;
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!this.pinch || this.pointers.size < 2) return;
+    const [a, b] = [...this.pointers.values()];
+    const k = clampScale(this.pinch.scale * (Math.hypot(a.x - b.x, a.y - b.y) / this.pinch.dist)) / this.pinch.scale;
+    this.pinch.k = k;
+    this.content.style.transform = `scale(${k})`;
+  };
+
+  private onPointerUp = (e: PointerEvent) => {
+    if (!this.pointers.delete(e.pointerId) || !this.pinch || this.pointers.size >= 2) return;
+    const { scale, k, cx, cy } = this.pinch;
+    this.pinch = null;
+    this.content.style.transform = "";
+    if (Math.abs(k - 1) > 0.01) this.zoomTo(scale * k, { clientX: cx, clientY: cy });
+  };
 
   // Height hidden under the floating top bar (CSS scroll-padding-top).
   private inset() {
     return parseFloat(getComputedStyle(this.container).scrollPaddingTop) || 0;
   }
 
+  // Space kept above a page when jumping to it: the same as above page 1.
+  private gap() {
+    return Math.max(0, (parseFloat(getComputedStyle(this.container).paddingTop) || 0) - this.inset());
+  }
+
   position() {
     const top = this.container.scrollTop + this.inset();
     let slot = this.slots[0];
     for (const s of this.slots) {
-      if (s.div.offsetTop - GAP <= top) slot = s;
+      if (s.div.offsetTop - this.gap() <= top) slot = s;
       else break;
     }
     if (!slot) return { page: 1, offset: 0 };
@@ -137,7 +288,7 @@ export class Renderer {
   scrollToPage(page: number, offset = 0) {
     const slot = this.slots[Math.min(this.slots.length, Math.max(1, page)) - 1];
     if (!slot) return;
-    this.container.scrollTop = slot.div.offsetTop + offset * slot.div.offsetHeight - (offset ? 0 : GAP) - this.inset();
+    this.container.scrollTop = slot.div.offsetTop + offset * slot.div.offsetHeight - (offset ? 0 : this.gap()) - this.inset();
     this.onScroll();
   }
 
@@ -152,6 +303,8 @@ export class Renderer {
       this.current = page;
       this.onPageChange(page);
     }
+    const max = this.container.scrollHeight - this.container.clientHeight;
+    this.onProgress(max > 0 ? Math.min(1, Math.max(0, this.container.scrollTop / max)) : 1);
     this.schedule();
   };
 
@@ -255,6 +408,8 @@ export class Renderer {
   destroy() {
     this.resizeObserver.disconnect();
     this.container.removeEventListener("scroll", this.onScroll);
+    this.container.removeEventListener("wheel", this.onWheel);
+    this.content.remove();
     for (const s of this.slots) {
       s.release();
       s.textLayer?.cancel();

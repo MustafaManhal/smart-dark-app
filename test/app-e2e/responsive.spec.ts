@@ -37,9 +37,11 @@ for (const width of WIDTHS) {
     await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
     await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
     await noHorizontalOverflow(page, "reader");
-    for (const name of ["Back to library", "Contents", "Appearance", "Previous page", "Next page"]) {
-      await expect(page.getByRole("button", { name })).toBeInViewport();
+    const tools = ["Back to library", "Highlight text", "Add sticky note", "Bookmark this page", "Notes and highlights", "Contents", "Appearance"];
+    for (const name of [...tools, "Zoom in", "Zoom out", "Fit width", "Fit page"]) {
+      await expect(page.getByRole("button", { name, exact: true })).toBeInViewport();
     }
+    await expect(page.getByRole("button", { name: /Go to page/ })).toBeInViewport();
     await page.screenshot({ path: `test/output/responsive/reader-${width}.png` });
 
     await page.getByRole("button", { name: "Appearance" }).click();

@@ -1,29 +1,54 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { HighlightSheet } from "../annotations/HighlightSheet";
+import { clearOverlays, renderOverlays } from "../annotations/Overlays";
+import { SelectionBar } from "../annotations/SelectionBar";
+import { normalizeRects } from "../annotations/geometry";
+import { useAnnotations } from "../annotations/useAnnotations";
+import { HIGHLIGHT_COLORS, type Highlight, type HighlightColor } from "../db/annotations";
+import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
 import { navigate } from "../router";
 import { saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
-import { IconButton } from "../ui/Button";
+import { Button, IconButton } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
-import { chapterProgress, currentChapter } from "./chapters";
+import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, type OutlineItem, type PDFDocumentProxy } from "./pdf";
-import { Renderer } from "./renderer";
+import { CSS_UNITS, Renderer } from "./renderer";
 import "./reader.css";
 import "./textlayer.css";
+import "../annotations/annotations.css";
 
 const STYLES: [PageStyle, string][] = [["original", "Original"], ["sepia", "Sepia"], ["dark", "Smart dark"]];
 const DARK_THEMES: [DarkTheme, string][] = [["dark", "Dark"], ["dim", "Dim"], ["black", "Black"], ["warm", "Warm"], ["slate", "Slate"]];
 const IMAGE_MODES: [ImageMode, string][] = [["smart", "Smart"], ["keep", "Keep"], ["dim", "Dim"], ["invert", "Darken"]];
 
-export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }) {
+type PendingSelection = { page: number; rects: Highlight["rects"]; text: string };
+
+const ZOOM_STEP = 1.2;
+
+const isTyping = (t: EventTarget | null) =>
+  t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
+
+export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookId: string; startPage?: number }) {
   const scroller = useRef<HTMLDivElement>(null);
   const renderer = useRef<Renderer | null>(null);
   const [book, setBook] = useState<Book | null>(null);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
-  const [sheet, setSheet] = useState<"toc" | "appearance" | null>(null);
+  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | null>(null);
+  const [zoom, setZoom] = useState<{ scale: number; mode: "fit" | "page" | "manual" }>({ scale: 1, mode: "fit" });
+  const [zoomMenu, setZoomMenu] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [penColor, setPenColor] = useState<HighlightColor>("yellow");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
+  const annotations = useAnnotations(repos, bookId);
+  const [selection, setSelection] = useState<PendingSelection | null>(null);
+  const [openHighlight, setOpenHighlight] = useState<{ h: Highlight; focusNote: boolean } | null>(null);
+  const [placing, setPlacing] = useState(false);
+  const [focusStickyId, setFocusStickyId] = useState<string | null>(null);
 
   useEffect(() => {
     let doc: PDFDocumentProxy | null = null;
@@ -47,8 +72,11 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
         setPage(p);
         setPageInput(String(p));
       };
+      r.onScaleChange = (scale, mode) => setZoom({ scale, mode });
+      r.onProgress = setProgress;
       await r.init();
-      if (saved) r.scrollToPage(saved.page, saved.offset);
+      if (startPage) r.scrollToPage(startPage);
+      else if (saved) r.scrollToPage(saved.page, saved.offset);
       setReady(true);
       const pages = doc.numPages;
       scroller.current.addEventListener("scroll", () => {
@@ -64,6 +92,7 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
     return () => {
       cancelled = true;
       clearTimeout(saveTimer);
+      if (renderer.current) clearOverlays(renderer.current);
       renderer.current?.destroy();
       renderer.current = null;
       closePdf(doc);
@@ -81,14 +110,90 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
   const total = ready ? book?.pageCount ?? 0 : 0;
   const [barsHidden, setBarsHidden] = useState(false);
   const chapter = currentChapter(outline, page, total);
-  const chapterPct = chapterProgress(outline, page, total);
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
   };
 
+  // Draw highlights, sticky notes and bookmark ribbons whenever they change.
+  useEffect(() => {
+    if (!ready || !renderer.current) return;
+    renderOverlays(renderer.current, annotations.data, {
+      focusStickyId,
+      onStickyChange: (s) => annotations.saveSticky(s),
+      onStickyDelete: (s) => annotations.removeSticky(s),
+    });
+  }, [ready, annotations.data, focusStickyId]);
+
+  // Watch the text selection (debounced: iOS fires this while the handles move).
+  useEffect(() => {
+    let timer = 0;
+    const onChange = () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const sel = getSelection();
+        const r = renderer.current;
+        if (!sel || sel.isCollapsed || !sel.rangeCount || !r) return setSelection(null);
+        const range = sel.getRangeAt(0);
+        const start = (range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement)
+          ?.closest<HTMLElement>(".page");
+        if (!start || !scroller.current?.contains(start)) return setSelection(null);
+        const page = Number(start.dataset.page);
+        // A selection that runs onto the next page is kept to its first page.
+        const rects = normalizeRects([...range.getClientRects()], start.getBoundingClientRect());
+        const text = sel.toString().replace(/\s+/g, " ").trim();
+        setSelection(rects.length && text ? { page, rects, text } : null);
+      }, 200);
+    };
+    document.addEventListener("selectionchange", onChange);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("selectionchange", onChange);
+    };
+  }, []);
+
+  // Highlight mode: releasing the mouse or finger over a selection highlights it at
+  // once. Waiting for the release stops a pause mid-drag from saving half a selection.
+  const pointerDown = useRef(false);
+  useEffect(() => {
+    if (!highlightMode) return;
+    const down = () => (pointerDown.current = true);
+    const up = () => {
+      pointerDown.current = false;
+      setTimeout(() => document.dispatchEvent(new Event("selectionchange")), 0);
+    };
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("pointerup", up);
+    document.addEventListener("pointercancel", up);
+    return () => {
+      document.removeEventListener("pointerdown", down);
+      document.removeEventListener("pointerup", up);
+      document.removeEventListener("pointercancel", up);
+    };
+  }, [highlightMode]);
+
+  useEffect(() => {
+    if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor);
+  }, [selection, highlightMode]);
+
+  async function highlightSelection(color: HighlightColor, withNote = false) {
+    if (!selection) return;
+    const saved = await annotations.saveHighlight({ bookId, ...selection, color, note: "" });
+    getSelection()?.removeAllRanges();
+    setSelection(null);
+    if (withNote) setOpenHighlight({ h: saved, focusNote: true });
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (sheet || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Escape" && placing) return setPlacing(false);
+      // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
+      if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === "0") renderer.current?.fitWidth();
+        else renderer.current?.zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP);
+        return;
+      }
+      if (sheet || openHighlight || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const actions: Record<string, () => void> = {
         ArrowRight: () => go(page + 1), j: () => go(page + 1),
         ArrowLeft: () => go(page - 1), k: () => go(page - 1),
@@ -102,49 +207,150 @@ export function ReaderScreen({ repos, bookId }: { repos: Repos; bookId: string }
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [page, total, sheet]);
+  }, [page, total, sheet, openHighlight, placing]);
 
-  // On touch screens a tap on the page toggles the bars for full-screen reading.
-  const onPageTap = (e: MouseEvent) => {
-    if (!matchMedia("(hover: none)").matches) return;
-    if ((e.target as Element).closest("a, button, input")) return;
+  // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
+  const onPageTap = async (e: MouseEvent) => {
+    const target = e.target as Element;
+    if (target.closest("a, button, input, textarea, .sticky")) return;
     if (getSelection()?.toString()) return;
-    setBarsHidden((hidden) => !hidden);
+    const hit = renderer.current?.hitTest(e.clientX, e.clientY);
+    if (placing) {
+      setPlacing(false);
+      if (!hit) return;
+      const noteW = 220 / hit.box.width;
+      const noteH = 150 / hit.box.height;
+      const created = await annotations.saveSticky({
+        bookId, page: hit.page, color: "yellow", text: "", collapsed: false,
+        x: Math.min(Math.max(0, hit.x - noteW / 2), Math.max(0, 1 - noteW)),
+        y: Math.min(Math.max(0, hit.y - 0.02), Math.max(0, 1 - noteH)),
+      });
+      setFocusStickyId(created.id);
+      return;
+    }
+    if (hit) {
+      const h = annotations.data.highlights.find((x) => x.page === hit.page && x.rects.some((r) =>
+        hit.x >= r.x && hit.x <= r.x + r.w && hit.y >= r.y - 0.004 && hit.y <= r.y + r.h + 0.004));
+      if (h) return setOpenHighlight({ h, focusNote: false });
+    }
+    if (matchMedia("(hover: none)").matches) setBarsHidden((hidden) => !hidden);
   };
+
+  const bookmarked = annotations.data.bookmarks.some((b) => b.page === page);
+
+  const zoomPercent = Math.round((zoom.scale / CSS_UNITS) * 100);
+
+  const chapterStarts = total > 1 ? outline.filter((o) => o.depth === 0 && o.page > 1).map((o) => (o.page - 1) / total) : [];
+  const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   return (
     <div class={`reader ${barsHidden ? "bars-hidden" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
-        <IconButton label="Back to library" icon="back" onClick={() => navigate({ name: "library" })} />
+        <IconButton label="Back to library" icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
           <strong>{book?.title ?? ""}</strong>
           {chapter && <span>{chapter.item.title}</span>}
         </div>
-        <IconButton label="Contents" icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
-        <IconButton label="Appearance" icon="palette" onClick={() => setSheet("appearance")} />
+        <div class="tools" role="toolbar" aria-label="Reading tools">
+          <IconButton label="Highlight text" icon="highlighter" class={highlightMode ? "is-on" : ""}
+            aria-pressed={highlightMode} disabled={!ready}
+            onClick={() => { setHighlightMode((v) => !v); setPlacing(false); }} />
+          <IconButton label="Add sticky note" icon="sticky" class={placing ? "is-on" : ""}
+            aria-pressed={placing} disabled={!ready} onClick={() => { setPlacing((v) => !v); setHighlightMode(false); }} />
+          <IconButton label={bookmarked ? "Remove bookmark" : "Bookmark this page"} icon="bookmark"
+            class={bookmarked ? "is-on" : ""} aria-pressed={bookmarked} disabled={!ready}
+            onClick={() => annotations.toggleBookmark(page)} />
+          <IconButton label="Notes and highlights" icon="notes" onClick={() => navigate({ name: "notes", bookId })} />
+          <IconButton label="Contents" icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
+          <IconButton label="Appearance" icon="palette" onClick={() => setSheet("appearance")} />
+        </div>
+        <div class="book-progress" role="progressbar" aria-label="Book progress"
+          aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+          <span class="book-progress-fill" style={{ width: `${progress * 100}%` }} />
+          {chapterStarts.map((x) => <span class="book-progress-tick" style={{ left: `${x * 100}%` }} />)}
+        </div>
       </header>
+
+      {highlightMode && (
+        <div class="mode-hint" role="status">
+          <span>Select text to highlight</span>
+          <div class="mode-colors" role="radiogroup" aria-label="Highlight color">
+            {HIGHLIGHT_COLORS.map((c) => (
+              <button type="button" role="radio" aria-checked={penColor === c} aria-label={COLOR_LABEL[c]}
+                class="swatch" style={{ background: COLOR_HEX[c] }} onClick={() => setPenColor(c)} />
+            ))}
+          </div>
+          <button type="button" class="mode-done" onClick={() => setHighlightMode(false)}>Done</button>
+        </div>
+      )}
+
+      <div class="float-tools">
+        <button type="button" class="page-pill" disabled={!ready} onClick={() => setSheet("goto")}
+          aria-label={`Page ${page} of ${total}. Go to page`}>
+          <span class="page-now">{page}</span><span class="page-total">/ {total}</span>
+        </button>
+        <div class="zoom-pill" role="group" aria-label="Zoom">
+          <IconButton label="Zoom out" icon="minus" disabled={!ready} onClick={() => renderer.current?.zoomBy(1 / ZOOM_STEP)} />
+          <button type="button" class="zoom-value" disabled={!ready} aria-haspopup="menu" aria-expanded={zoomMenu}
+            aria-label={`Zoom ${zoomPercent}%. Zoom options`} onClick={() => setZoomMenu((v) => !v)}>
+            {zoomPercent}%
+          </button>
+          <IconButton label="Zoom in" icon="plus" disabled={!ready} onClick={() => renderer.current?.zoomBy(ZOOM_STEP)} />
+          <span class="pill-sep" aria-hidden="true" />
+          <IconButton label="Fit width" icon="fitWidth" class={zoom.mode === "fit" ? "is-on" : ""}
+            aria-pressed={zoom.mode === "fit"} disabled={!ready} onClick={() => renderer.current?.fitWidth()} />
+          <IconButton label="Fit page" icon="fitPage" class={zoom.mode === "page" ? "is-on" : ""}
+            aria-pressed={zoom.mode === "page"} disabled={!ready} onClick={() => renderer.current?.fitPage()} />
+        </div>
+        {zoomMenu && (
+          <div class="zoom-menu" role="menu" aria-label="Zoom options">
+            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitWidth(); setZoomMenu(false); }}>Fit width</button>
+            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitPage(); setZoomMenu(false); }}>Fit page</button>
+            <hr />
+            {ZOOM_PRESETS.map((z) => (
+              <button type="button" role="menuitem" aria-current={Math.abs(zoom.scale / CSS_UNITS - z) < 0.005 ? "true" : undefined}
+                onClick={() => { renderer.current?.zoomTo(z * CSS_UNITS); setZoomMenu(false); }}>{Math.round(z * 100)}%</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {placing && (
+        <div class="place-hint" role="status">
+          Tap the page where the note should go
+          <button type="button" onClick={() => setPlacing(false)}>Cancel</button>
+        </div>
+      )}
 
       {error
         ? <p class="reader-error" role="alert">{error}</p>
-        : <div class="reader-scroll" ref={scroller} tabIndex={0} aria-label="Pages" onClick={onPageTap} />}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""}`} ref={scroller} tabIndex={0} aria-label="Pages" onClick={onPageTap} />}
 
-      <footer class="reader-bottom">
-        {chapterPct !== null && (
-          <span class="chapter-progress" role="progressbar" aria-label="Chapter progress"
-            aria-valuenow={Math.round(chapterPct * 100)} aria-valuemin={0} aria-valuemax={100}>
-            <span style={{ width: `${chapterPct * 100}%` }} />
-          </span>
-        )}
-        <IconButton label="Previous page" icon="chevronLeft" onClick={() => go(page - 1)} disabled={page <= 1} />
-        <label class="page-field">
-          <input aria-label="Page number" inputMode="numeric" value={pageInput}
-            onInput={(e) => setPageInput(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && go(Number(pageInput))}
-            onBlur={() => setPageInput(String(page))} />
+      {selection && (
+        <SelectionBar
+          onHighlight={(c) => highlightSelection(c)}
+          onNote={() => highlightSelection("yellow", true)}
+          onCopy={() => { navigator.clipboard?.writeText(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
+        />
+      )}
+
+      <HighlightSheet
+        highlight={openHighlight ? annotations.data.highlights.find((h) => h.id === openHighlight.h.id) ?? null : null}
+        focusNote={openHighlight?.focusNote ?? false}
+        onSave={(h) => annotations.saveHighlight(h)}
+        onDelete={(h) => { annotations.removeHighlight(h); setOpenHighlight(null); }}
+        onClose={() => setOpenHighlight(null)}
+      />
+
+      <Sheet open={sheet === "goto"} title="Go to page" onClose={() => setSheet(null)}>
+        <form class="goto" onSubmit={(e) => { e.preventDefault(); go(Number(pageInput)); setSheet(null); }}>
+          <input aria-label="Page number" inputMode="numeric" autoFocus value={pageInput}
+            onFocus={(e) => e.currentTarget.select()}
+            onInput={(e) => setPageInput(e.currentTarget.value)} />
           <span>of {total}</span>
-        </label>
-        <IconButton label="Next page" icon="chevronRight" onClick={() => go(page + 1)} disabled={page >= total} />
-      </footer>
+          <Button variant="primary" type="submit">Go</Button>
+        </form>
+      </Sheet>
 
       <Sheet open={sheet === "toc"} title="Contents" onClose={() => setSheet(null)}>
         <ol class="toc">
