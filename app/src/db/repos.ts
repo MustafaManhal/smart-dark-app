@@ -128,6 +128,14 @@ export class SettingsRepo {
       await request(tx.objectStore("settings").put(value, key));
     });
   }
+
+  all(): Promise<Record<string, unknown>> {
+    return transaction(this.db, ["settings"], "readonly", async (tx) => {
+      const store = tx.objectStore("settings");
+      const [keys, values] = await Promise.all([request(store.getAllKeys()), request(store.getAll())]);
+      return Object.fromEntries(keys.map((k, i) => [String(k), values[i]]));
+    });
+  }
 }
 
 export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo };

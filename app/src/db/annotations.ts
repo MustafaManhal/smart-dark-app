@@ -84,6 +84,15 @@ export class AnnotationsRepo {
     });
   }
 
+  /** Which of these ids already exist in the store. */
+  existing(store: AnnotationStore, ids: string[]): Promise<Set<string>> {
+    return transaction(this.db, [store], "readonly", async (tx) => {
+      const found = new Set<string>();
+      for (const id of ids) if ((await request(tx.objectStore(store).count(id))) > 0) found.add(id);
+      return found;
+    });
+  }
+
   remove(store: AnnotationStore, id: string) {
     return transaction(this.db, [store], "readwrite", async (tx) => {
       await request(tx.objectStore(store).delete(id));

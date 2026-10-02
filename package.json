@@ -32,6 +32,7 @@
   "private": true,
   "dependencies": {
     "@preact/signals": "^2.11.3",
+    "fflate": "^0.8.3",
     "preact": "^10.29.8"
   }
 }

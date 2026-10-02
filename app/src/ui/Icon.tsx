@@ -23,6 +23,7 @@ const PATHS = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   notes: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  backup: "M4 7h16v3H4zM5 10v9h14v-9M10 14h4",
   upload: "M12 20V9M7 14l5-5 5 5M5 4h14",
   check: "M5 12l4 4 10-10",
   collapse: "M6 15l6-6 6 6",
