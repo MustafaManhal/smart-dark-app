@@ -166,6 +166,42 @@ export function createColorMapper(theme = THEMES.dark, { contrast = 1.5 } = {}) 
   };
 }
 
+export const TINTS = {
+  sepia: { label: "Sepia", paper: [244, 236, 216], ink: [70, 52, 36] },
+};
+
+/**
+ * Light page styles (sepia): no inversion. Lightness is squeezed into the
+ * ink..paper range and neutrals take the tint, so white paper becomes warm
+ * paper and black text becomes brown ink; colors keep hue and chroma.
+ */
+export function createTintMapper(tint = TINTS.sepia) {
+  const paper = rgbToOklab(...tint.paper);
+  const ink = rgbToOklab(...tint.ink);
+  const cache = new Map();
+
+  function map(r, g, b) {
+    const [L, A, B] = rgbToOklab(r, g, b);
+    const C = Math.hypot(A, B);
+    const outL = ink[0] + (paper[0] - ink[0]) * L;
+    const na = ink[1] + (paper[1] - ink[1]) * L;
+    const nb = ink[2] + (paper[2] - ink[2]) * L;
+    const colorful = smoothstep(0.008, 0.06, C);
+    return pack(oklabToRgb(outL, A * colorful + na * (1 - colorful), B * colorful + nb * (1 - colorful)));
+  }
+
+  return function mapColor(r, g, b) {
+    const key = (r << 16) | (g << 8) | b;
+    let v = cache.get(key);
+    if (v === undefined) {
+      if (cache.size > 500000) cache.clear();
+      v = map(r, g, b);
+      cache.set(key, v);
+    }
+    return v;
+  };
+}
+
 const pack = ([r, g, b]) => (b << 16) | (g << 8) | r;
 
 const MIN_CONTRAST = 4.6; // WCAG AA is 4.5; small margin for 8-bit rounding

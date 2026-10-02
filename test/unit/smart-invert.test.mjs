@@ -8,6 +8,8 @@ import {
   classifyRegion,
   processPage,
   refineRect,
+  createTintMapper,
+  TINTS,
 } from "../../src/viewer/smart-invert.js";
 
 const unpack = (v) => [v & 255, (v >> 8) & 255, (v >> 16) & 255];
@@ -132,4 +134,21 @@ test("refineRect grows into image pixels but stops at white paper", () => {
   const px = new Uint32Array(img.data.buffer);
   const r = refineRect(px, 20, 20, { left: 6, top: 6, right: 15, bottom: 15 });
   assert.deepEqual(r, { left: 5, top: 5, right: 15, bottom: 15 });
+});
+
+test("sepia: paper and ink map to the tint colors", () => {
+  const map = createTintMapper(TINTS.sepia);
+  assert.deepEqual(unpack(map(255, 255, 255)), TINTS.sepia.paper);
+  assert.deepEqual(unpack(map(0, 0, 0)), TINTS.sepia.ink);
+});
+
+test("sepia: colors keep their hue and do not invert", () => {
+  const map = createTintMapper(TINTS.sepia);
+  for (const rgb of [[204, 0, 0], [0, 0, 255], [0, 128, 0]]) {
+    const out = unpack(map(...rgb));
+    assert.ok(hueDelta(hue(rgb), hue(out)) < 10, `${rgb} -> ${out}`);
+    const [Lin] = rgbToOklab(...rgb);
+    const [Lout] = rgbToOklab(...out);
+    assert.ok(Math.abs(Lin - Lout) < 0.2, "lightness should stay close in a light theme");
+  }
 });
