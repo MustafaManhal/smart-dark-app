@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { t } from "../i18n/i18n";
 import { HIGHLIGHT_COLORS, type Sticky } from "../db/annotations";
 import { IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -67,7 +68,7 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   if (note.collapsed) {
     return (
       <div ref={root} class="sticky is-collapsed" style={style}>
-        <button type="button" class="sticky-tab" aria-label={`Open sticky note: ${text || "empty"}`}
+        <button type="button" class="sticky-tab" aria-label={t("Open sticky note: {text}", { text: text || t("empty") })}
           onClick={() => save({ collapsed: false })}>
           <Icon name="sticky" size={18} />
         </button>
@@ -76,23 +77,23 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   }
 
   return (
-    <div ref={root} class="sticky" style={style} role="group" aria-label="Sticky note">
-      <div class="sticky-head" onPointerDown={startDrag} title="Drag to move">
-        <button type="button" class="sticky-dot" aria-label="Note color" aria-expanded={palette}
+    <div ref={root} class="sticky" style={style} role="group" aria-label={t("Sticky note")}>
+      <div class="sticky-head" onPointerDown={startDrag} title={t("Drag to move")}>
+        <button type="button" class="sticky-dot" aria-label={t("Note color")} aria-expanded={palette}
           onClick={() => setPalette((v) => !v)} />
         <span class="sticky-grip" aria-hidden="true" />
-        <IconButton label="Collapse note" icon="collapse" onClick={() => save({ collapsed: true })} />
-        <IconButton label="Delete note" icon="trash" onClick={() => onDelete(note)} />
+        <IconButton label={t("Collapse note")} icon="collapse" onClick={() => save({ collapsed: true })} />
+        <IconButton label={t("Delete note")} icon="trash" onClick={() => onDelete(note)} />
       </div>
       {palette && (
-        <div class="sticky-palette" role="radiogroup" aria-label="Note color">
+        <div class="sticky-palette" role="radiogroup" aria-label={t("Note color")}>
           {HIGHLIGHT_COLORS.map((c) => (
-            <button type="button" role="radio" aria-checked={c === note.color} aria-label={COLOR_LABEL[c]}
+            <button type="button" role="radio" aria-checked={c === note.color} aria-label={t(COLOR_LABEL[c])}
               style={{ background: COLOR_HEX[c] }} onClick={() => { setPalette(false); save({ color: c }); }} />
           ))}
         </div>
       )}
-      <textarea ref={area} aria-label="Sticky note text" placeholder="Write a note" value={text}
+      <textarea ref={area} aria-label={t("Sticky note text")} placeholder={t("Write a note")} value={text}
         onInput={(e) => onType(e.currentTarget.value)}
         onBlur={() => { clearTimeout(saveTimer.current); if (text !== note.text) save({}); }} />
     </div>

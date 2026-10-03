@@ -84,6 +84,13 @@ export class BooksRepo {
       request<StoredBinary | undefined>(tx.objectStore("files").get(id))));
   }
 
+  async setCover(id: string, cover: Blob) {
+    const stored = await toStored(cover);
+    return transaction(this.db, ["covers"], "readwrite", async (tx) => {
+      await request(tx.objectStore("covers").put(stored, id));
+    });
+  }
+
   async cover(id: string) {
     return fromStored(await transaction(this.db, ["covers"], "readonly", (tx) =>
       request<StoredBinary | undefined>(tx.objectStore("covers").get(id))));

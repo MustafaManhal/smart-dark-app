@@ -27,6 +27,7 @@ const PATHS = {
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   upload: "M12 20V9M7 14l5-5 5 5M5 4h14",
   check: "M5 12l4 4 10-10",
+  edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   headphones: "M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v6H5a1 1 0 0 1-1-1zM20 15h-3v6h2a1 1 0 0 0 1-1z",
   play: "M8 5v14l11-7z",
   pause: "M6.5 5h3v14h-3zM14.5 5h3v14h-3z",
@@ -39,9 +40,12 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
+// Icons that point "forward/back" mirror in right-to-left languages.
+const FLIP = new Set<string>(["back", "chevronLeft", "chevronRight", "skipBack", "skipForward"]);
+
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return (
-    <svg class="icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+    <svg class={FLIP.has(name) ? "icon icon-flip" : "icon"} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
       fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
       <path d={PATHS[name]} />
     </svg>

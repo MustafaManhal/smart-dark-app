@@ -1,4 +1,5 @@
 import { useRef, useState } from "preact/hooks";
+import { t } from "../i18n/i18n";
 import type { Repos } from "../db/repos";
 import { saveFile } from "../platform/saveFile";
 import { Button } from "../ui/Button";
@@ -21,27 +22,28 @@ export function BackupSheet({ repos, open, onClose, onRestored }: {
 
   async function prepare() {
     setBusy(true);
-    setStatus("Preparing your backup…");
+    setStatus(t("Preparing your backup…"));
     try {
       setFile(await createBackup(repos));
       setStatus("");
     } catch {
-      setStatus("The backup could not be created.");
+      setStatus(t("The backup could not be created."));
     }
     setBusy(false);
   }
 
   async function restore(chosen: File) {
     setBusy(true);
-    setStatus("Restoring…");
+    setStatus(t("Restoring…"));
     try {
       const r = await restoreBackup(repos, new Uint8Array(await chosen.arrayBuffer()));
-      const books = r.booksAdded === 1 ? "1 book" : `${r.booksAdded} books`;
-      const notes = r.annotationsAdded === 1 ? "1 highlight or note" : `${r.annotationsAdded} highlights and notes`;
-      setStatus(`Restored ${books} and ${notes}.${r.booksAlreadyThere ? ` ${r.booksAlreadyThere} already in your library were kept.` : ""}`);
+      const books = r.booksAdded === 1 ? t("1 book") : t("{n} books", { n: r.booksAdded });
+      const notes = r.annotationsAdded === 1 ? t("1 highlight or note") : t("{n} highlights and notes", { n: r.annotationsAdded });
+      const kept = r.booksAlreadyThere ? " " + t("{n} already in your library were kept.", { n: r.booksAlreadyThere }) : "";
+      setStatus(t("Restored {books} and {notes}.", { books, notes }) + kept);
       onRestored();
     } catch (error) {
-      setStatus((error as Error).message || "The backup could not be restored.");
+      setStatus(t((error as Error).message || "The backup could not be restored."));
     }
     setBusy(false);
   }
@@ -53,22 +55,22 @@ export function BackupSheet({ repos, open, onClose, onRestored }: {
   };
 
   return (
-    <Sheet open={open} title="Back up and restore" onClose={close}>
+    <Sheet open={open} title={t("Back up and restore")} onClose={close}>
       <div class="backup">
         <section>
-          <h3>Back up</h3>
-          <p>One file with every book, your reading progress, highlights, notes and settings. Keep it in Files, iCloud Drive or on your computer.</p>
+          <h3>{t("Back up")}</h3>
+          <p>{t("One file with every book, your reading progress, highlights, notes and settings. Keep it in Files, iCloud Drive or on your computer.")}</p>
           {file ? (
             // A second tap, so the iPhone share sheet gets a fresh user gesture.
-            <Button variant="primary" onClick={() => saveFile(file)}><Icon name="download" size={18} /> Save backup ({mb(file.size)})</Button>
+            <Button variant="primary" onClick={() => saveFile(file)}><Icon name="download" size={18} /> {t("Save backup")} ({mb(file.size)})</Button>
           ) : (
-            <Button variant="primary" onClick={prepare} disabled={busy}>Create backup</Button>
+            <Button variant="primary" onClick={prepare} disabled={busy}>{t("Create backup")}</Button>
           )}
         </section>
         <section>
-          <h3>Restore</h3>
-          <p>Adds the books and notes from a backup. Nothing already in your library is removed.</p>
-          <Button onClick={() => input.current?.click()} disabled={busy}><Icon name="upload" size={18} /> Choose backup file</Button>
+          <h3>{t("Restore")}</h3>
+          <p>{t("Adds the books and notes from a backup. Nothing already in your library is removed.")}</p>
+          <Button onClick={() => input.current?.click()} disabled={busy}><Icon name="upload" size={18} /> {t("Choose backup file")}</Button>
           <input ref={input} type="file" accept=".zip,application/zip" hidden
             onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) restore(f); e.currentTarget.value = ""; }} />
         </section>

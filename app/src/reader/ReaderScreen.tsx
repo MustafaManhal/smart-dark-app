@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { t } from "../i18n/i18n";
 import { NotesPanel } from "../annotations/NotesPanel";
 import { HighlightPopover, NotePopover, type NoteDraft } from "../annotations/Popovers";
 import type { NoteItem } from "../annotations/noteItems";
@@ -333,69 +334,69 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   return (
     <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
-        <IconButton label="Back to library" icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
+        <IconButton label={t("Back to library")} icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
           <strong>{book?.title ?? ""}</strong>
           {chapter && <span>{chapter.item.title}</span>}
         </div>
-        <div class="tools" role="toolbar" aria-label="Reading tools">
-          <IconButton label="Highlight text" icon="highlighter" class={highlightMode ? "is-on" : ""}
+        <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
+          <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
             aria-pressed={highlightMode} disabled={!ready}
             onClick={() => { setHighlightMode((v) => !v); setPlacing(false); }} />
-          <IconButton label="Add sticky note" icon="sticky" class={placing ? "is-on" : ""}
+          <IconButton label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
             aria-pressed={placing} disabled={!ready} onClick={() => { setPlacing((v) => !v); setHighlightMode(false); }} />
-          <IconButton label={bookmarked ? "Remove bookmark" : "Bookmark this page"} icon="bookmark"
+          <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
             class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
             onClick={() => annotations.toggleBookmark(page)} />
-          <IconButton label="Read aloud" icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
+          <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
             disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : (readAloud.show(), readAloud.toggle(page)))} />
-          <IconButton label="Notes and highlights" icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
+          <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
             onClick={() => setPanelOpen((v) => !v)} />
-          <IconButton label="Contents" icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
-          <IconButton label="Appearance" icon="palette" onClick={() => setSheet("appearance")} />
+          <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
+          <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
         </div>
-        <div class="book-progress" role="progressbar" aria-label="Book progress"
+        <div class="book-progress" role="progressbar" aria-label={t("Book progress")}
           aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           <span class="book-progress-fill" style={{ width: `${progress * 100}%` }} />
-          {chapterStarts.map((x) => <span class="book-progress-tick" style={{ left: `${x * 100}%` }} />)}
+          {chapterStarts.map((x) => <span class="book-progress-tick" style={{ insetInlineStart: `${x * 100}%` }} />)}
         </div>
       </header>
 
       {highlightMode && (
         <div class="mode-hint" role="status">
-          <span>Select text to highlight</span>
-          <div class="mode-colors" role="radiogroup" aria-label="Highlight color">
+          <span>{t("Select text to highlight")}</span>
+          <div class="mode-colors" role="radiogroup" aria-label={t("Highlight color")}>
             {HIGHLIGHT_COLORS.map((c) => (
-              <button type="button" role="radio" aria-checked={penColor === c} aria-label={COLOR_LABEL[c]}
+              <button type="button" role="radio" aria-checked={penColor === c} aria-label={t(COLOR_LABEL[c])}
                 class="swatch" style={{ background: COLOR_HEX[c] }} onClick={() => setPenColor(c)} />
             ))}
           </div>
-          <button type="button" class="mode-done" onClick={() => setHighlightMode(false)}>Done</button>
+          <button type="button" class="mode-done" onClick={() => setHighlightMode(false)}>{t("Done")}</button>
         </div>
       )}
 
       <div class="float-tools">
         <button type="button" class="page-pill" disabled={!ready} onClick={() => setSheet("goto")}
-          aria-label={`Page ${page} of ${total}. Go to page`}>
+          aria-label={t("Page {page} of {total}. Go to page", { page, total })}>
           <span class="page-now">{page}</span><span class="page-total">/ {total}</span>
         </button>
-        <div class="zoom-pill" role="group" aria-label="Zoom">
-          <IconButton label="Zoom out" icon="minus" disabled={!ready} onClick={() => renderer.current?.zoomBy(1 / ZOOM_STEP)} />
+        <div class="zoom-pill" role="group" aria-label={t("Zoom")}>
+          <IconButton label={t("Zoom out")} icon="minus" disabled={!ready} onClick={() => renderer.current?.zoomBy(1 / ZOOM_STEP)} />
           <button type="button" class="zoom-value" disabled={!ready} aria-haspopup="menu" aria-expanded={zoomMenu}
-            aria-label={`Zoom ${zoomPercent}%. Zoom options`} onClick={() => setZoomMenu((v) => !v)}>
+            aria-label={t("Zoom {n}%. Zoom options", { n: zoomPercent })} onClick={() => setZoomMenu((v) => !v)}>
             {zoomPercent}%
           </button>
-          <IconButton label="Zoom in" icon="plus" disabled={!ready} onClick={() => renderer.current?.zoomBy(ZOOM_STEP)} />
+          <IconButton label={t("Zoom in")} icon="plus" disabled={!ready} onClick={() => renderer.current?.zoomBy(ZOOM_STEP)} />
           <span class="pill-sep" aria-hidden="true" />
-          <IconButton label="Fit width" icon="fitWidth" class={zoom.mode === "fit" ? "is-on" : ""}
+          <IconButton label={t("Fit width")} icon="fitWidth" class={zoom.mode === "fit" ? "is-on" : ""}
             aria-pressed={zoom.mode === "fit"} disabled={!ready} onClick={() => renderer.current?.fitWidth()} />
-          <IconButton label="Fit page" icon="fitPage" class={zoom.mode === "page" ? "is-on" : ""}
+          <IconButton label={t("Fit page")} icon="fitPage" class={zoom.mode === "page" ? "is-on" : ""}
             aria-pressed={zoom.mode === "page"} disabled={!ready} onClick={() => renderer.current?.fitPage()} />
         </div>
         {zoomMenu && (
-          <div class="zoom-menu" role="menu" aria-label="Zoom options">
-            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitWidth(); setZoomMenu(false); }}>Fit width</button>
-            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitPage(); setZoomMenu(false); }}>Fit page</button>
+          <div class="zoom-menu" role="menu" aria-label={t("Zoom options")}>
+            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitWidth(); setZoomMenu(false); }}>{t("Fit width")}</button>
+            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitPage(); setZoomMenu(false); }}>{t("Fit page")}</button>
             <hr />
             {ZOOM_PRESETS.map((z) => (
               <button type="button" role="menuitem" aria-current={Math.abs(zoom.scale / CSS_UNITS - z) < 0.005 ? "true" : undefined}
@@ -407,14 +408,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
 
       {placing && (
         <div class="place-hint" role="status">
-          Tap the page where the note should go
-          <button type="button" onClick={() => setPlacing(false)}>Cancel</button>
+          {t("Tap the page where the note should go")}
+          <button type="button" onClick={() => setPlacing(false)}>{t("Cancel")}</button>
         </div>
       )}
 
       {error
-        ? <p class="reader-error" role="alert">{error}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""}`} ref={scroller} tabIndex={0} aria-label="Pages" onClick={onPageTap} />}
+        ? <p class="reader-error" role="alert">{t(error)}</p>
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""}`} ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} />}
 
       <ReadAloudBar ra={readAloud} page={page} />
 
@@ -447,22 +448,22 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       {panelOpen && (
         <>
           <div class="panel-backdrop" onClick={() => setPanelOpen(false)} />
-          <NotesPanel title={book?.title ?? "Notes"} data={annotations.data}
+          <NotesPanel title={book?.title ?? t("Notes")} data={annotations.data}
             onJump={jumpTo} onRemove={removeEntry} onClose={() => setPanelOpen(false)} />
         </>
       )}
 
-      <Sheet open={sheet === "goto"} title="Go to page" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === "goto"} title={t("Go to page")} onClose={() => setSheet(null)}>
         <form class="goto" onSubmit={(e) => { e.preventDefault(); go(Number(pageInput)); setSheet(null); }}>
-          <input aria-label="Page number" inputMode="numeric" autoFocus value={pageInput}
+          <input aria-label={t("Page number")} inputMode="numeric" autoFocus value={pageInput}
             onFocus={(e) => e.currentTarget.select()}
             onInput={(e) => setPageInput(e.currentTarget.value)} />
           <span>of {total}</span>
-          <Button variant="primary" type="submit">Go</Button>
+          <Button variant="primary" type="submit">{t("Go")}</Button>
         </form>
       </Sheet>
 
-      <Sheet open={sheet === "toc"} title="Contents" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === "toc"} title={t("Contents")} onClose={() => setSheet(null)}>
         <ol class="toc">
           {outline.map((item) => (
             <li style={{ paddingInlineStart: `${item.depth * 16}px` }}>
@@ -475,28 +476,28 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         </ol>
       </Sheet>
 
-      <Sheet open={sheet === "appearance"} title="Appearance" onClose={() => setSheet(null)}>
+      <Sheet open={sheet === "appearance"} title={t("Appearance")} onClose={() => setSheet(null)}>
         <fieldset class="seg">
-          <legend>Page</legend>
+          <legend>{t("Page")}</legend>
           {STYLES.map(([value, label]) => (
             <label><input type="radio" name="pageStyle" checked={pageStyle === value}
-              onChange={() => saveSetting("pageStyle", value)} />{label}</label>
+              onChange={() => saveSetting("pageStyle", value)} />{t(label)}</label>
           ))}
         </fieldset>
         {pageStyle === "dark" && (
           <>
             <fieldset class="seg">
-              <legend>Dark theme</legend>
+              <legend>{t("Dark theme")}</legend>
               {DARK_THEMES.map(([value, label]) => (
                 <label><input type="radio" name="darkTheme" checked={darkTheme === value}
-                  onChange={() => saveSetting("darkTheme", value)} />{label}</label>
+                  onChange={() => saveSetting("darkTheme", value)} />{t(label)}</label>
               ))}
             </fieldset>
             <fieldset class="seg">
-              <legend>Images</legend>
+              <legend>{t("Images")}</legend>
               {IMAGE_MODES.map(([value, label]) => (
                 <label><input type="radio" name="imageMode" checked={imageMode === value}
-                  onChange={() => saveSetting("imageMode", value)} />{label}</label>
+                  onChange={() => saveSetting("imageMode", value)} />{t(label)}</label>
               ))}
             </fieldset>
           </>

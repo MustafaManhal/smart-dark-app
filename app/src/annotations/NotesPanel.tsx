@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { t } from "../i18n/i18n";
 import { HIGHLIGHT_COLORS, type BookAnnotations, type HighlightColor } from "../db/annotations";
 import { safeFileName, saveFile } from "../platform/saveFile";
 import { IconButton } from "../ui/Button";
@@ -36,17 +37,17 @@ export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
   };
 
   return (
-    <aside class="notes-panel" aria-label="Notes and highlights">
+    <aside class="notes-panel" aria-label={t("Notes and highlights")}>
       <header class="panel-head">
-        <h2>Notes and highlights</h2>
-        <IconButton label="Export notes" icon="download" onClick={() => saveFile(exportFile)}
+        <h2>{t("Notes and highlights")}</h2>
+        <IconButton label={t("Export notes")} icon="download" onClick={() => saveFile(exportFile)}
           disabled={!(n.highlights + n.notes + n.sticky + n.bookmarks)} />
-        <IconButton label="Close panel" icon="close" onClick={onClose} />
+        <IconButton label={t("Close panel")} icon="close" onClick={onClose} />
       </header>
-      <div class="panel-tabs" role="tablist" aria-label="Kind">
+      <div class="panel-tabs" role="tablist" aria-label={t("Kind")}>
         {TABS.map(([k, label]) => (
           <button type="button" role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setColor(null); }}>
-            {label} <span class="count">{n[k]}</span>
+            {t(label)} <span class="count">{n[k]}</span>
           </button>
         ))}
       </div>
@@ -54,12 +55,12 @@ export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
         <div class="panel-filters">
           <label class="search">
             <Icon name="search" size={16} />
-            <input type="search" placeholder="Search" aria-label="Search notes" value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
+            <input type="search" placeholder={t("Search")} aria-label={t("Search notes")} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
           </label>
           {(kind === "highlights" || kind === "sticky") && (
-            <div class="color-filter" role="radiogroup" aria-label="Color">
+            <div class="color-filter" role="radiogroup" aria-label={t("Color")}>
               {HIGHLIGHT_COLORS.map((c) => (
-                <button type="button" role="radio" class="swatch" aria-checked={color === c} aria-label={`Only ${COLOR_LABEL[c].toLowerCase()}`}
+                <button type="button" role="radio" class="swatch" aria-checked={color === c} aria-label={t(`Only ${COLOR_LABEL[c].toLowerCase()}`)}
                   style={{ background: COLOR_HEX[c] }} onClick={() => setColor(color === c ? null : c)} />
               ))}
             </div>
@@ -67,14 +68,14 @@ export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
         </div>
       )}
       <div class="panel-body">
-        {empty && <p class="panel-empty">{emptyText[kind]}</p>}
-        {!empty && !items.length && <p class="panel-empty">Nothing matches.</p>}
-        <ul class="note-list" aria-label={TABS.find(([k]) => k === kind)![1]}>
+        {empty && <p class="panel-empty">{t(emptyText[kind])}</p>}
+        {!empty && !items.length && <p class="panel-empty">{t("Nothing matches.")}</p>}
+        <ul class="note-list" aria-label={t(TABS.find(([k]) => k === kind)![1])}>
           {items.map((entry) => (
             <li key={entry.id} class="note-row">
               <button type="button" class={`note-card is-${entry.type}`} onClick={() => onJump(entry)}
                 style={"color" in entry.item ? { "--c": COLOR_HEX[entry.item.color] } : undefined}>
-                <span class="note-meta">Page {entry.page}</span>
+                <span class="note-meta">{t("Page {page}", { page: entry.page })}</span>
                 {entry.type === "highlight" && <blockquote>{entry.item.text}</blockquote>}
                 {entry.type === "note" && (
                   <>
@@ -83,9 +84,9 @@ export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
                   </>
                 )}
                 {entry.type === "sticky" && <p class="note-text">{entry.item.text || "Empty sticky note"}</p>}
-                {entry.type === "bookmark" && <p class="note-text">Bookmarked page</p>}
+                {entry.type === "bookmark" && <p class="note-text">{t("Bookmarked page")}</p>}
               </button>
-              <IconButton label={`Remove ${entry.type === "sticky" ? "sticky note" : entry.type} on page ${entry.page}`} icon="trash"
+              <IconButton label={t(`Remove ${entry.type === "sticky" ? "sticky note" : entry.type} on page {page}`, { page: entry.page })} icon="trash"
                 class="note-remove" onClick={() => onRemove(entry)} />
             </li>
           ))}

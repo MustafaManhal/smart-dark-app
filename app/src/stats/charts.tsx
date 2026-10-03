@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { locale, t } from "../i18n/i18n";
 import { dayKey, shiftDay, type DayTotal, type Goal } from "./compute";
 
-const fmtDay = (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+const fmtDay = (ts: number) => new Date(ts).toLocaleDateString(locale(), { weekday: "short", month: "short", day: "numeric" });
 const minutes = (ms: number) => Math.round(ms / 60_000);
 const valueOf = (d: DayTotal | undefined, unit: Goal["unit"]) => (unit === "minutes" ? minutes(d?.ms ?? 0) : d?.pages ?? 0);
-const unitLabel = (v: number, unit: Goal["unit"]) => (unit === "minutes" ? `${v} min` : `${v} ${v === 1 ? "page" : "pages"}`);
+const unitLabel = (v: number, unit: Goal["unit"]) =>
+  unit === "minutes" ? t("{n} min", { n: v }) : t(v === 1 ? "1 page" : "{n} pages", { n: v });
 
 type Tip = { x: number; y: number; title: string; value: string } | null;
 
@@ -37,7 +39,7 @@ export function DaysChart({ days, goal, unit, now }: { days: Map<string, DayTota
       <div class="days-plot">
         {goalValue > 0 && (
           <div class="goal-line" style={{ bottom: `${(goalValue / max) * 100}%` }}>
-            <span>Goal {unitLabel(goalValue, unit)}</span>
+            <span>{t("Goal")} {unitLabel(goalValue, unit)}</span>
           </div>
         )}
         {items.map((i) => (
@@ -48,7 +50,7 @@ export function DaysChart({ days, goal, unit, now }: { days: Map<string, DayTota
         ))}
       </div>
       <div class="days-axis" aria-hidden="true">
-        {items.map((i, n) => <span>{n === 13 ? "Today" : (13 - n) % 2 === 1 ? "" : new Date(i.t).toLocaleDateString(undefined, { day: "numeric" })}</span>)}
+        {items.map((i, n) => <span>{n === 13 ? t("Today") : (13 - n) % 2 === 1 ? "" : new Date(i.t).toLocaleDateString(locale(), { day: "numeric" })}</span>)}
       </div>
       <Tooltip tip={tip} />
     </div>
@@ -81,7 +83,7 @@ export function Heatmap({ days, unit, now }: { days: Map<string, DayTotal>; unit
     const first = cells[w * 7].t;
     const m = new Date(first).getMonth();
     if (w === 0 || new Date(cells[(w - 1) * 7].t).getMonth() !== m) {
-      months.push({ col: w, label: new Date(first).toLocaleDateString(undefined, { month: "short" }) });
+      months.push({ col: w, label: new Date(first).toLocaleDateString(locale(), { month: "short" }) });
     }
   }
   const show = (e: Event, c: (typeof cells)[number]) => {
@@ -95,7 +97,7 @@ export function Heatmap({ days, unit, now }: { days: Map<string, DayTotal>; unit
         <div class="heat-months" style={{ gridTemplateColumns: `repeat(${weeks}, var(--cell))` }} aria-hidden="true">
           {months.map((m) => <span style={{ gridColumn: `${m.col + 1} / span 3` }}>{m.label}</span>)}
         </div>
-        <div class="heat-grid" role="grid" aria-label={`Reading per day, last ${weeks} weeks`}>
+        <div class="heat-grid" role="grid" aria-label={t("Reading per day, last {n} weeks", { n: weeks })}>
           {cells.map((c) => (
             <button type="button" class={`heat-cell l${level(c.v)} ${c.future ? "is-future" : ""}`} tabIndex={c.future ? -1 : 0}
               aria-label={c.future ? undefined : `${fmtDay(c.t)}: ${unitLabel(c.v, unit)}`} disabled={c.future}
@@ -104,7 +106,7 @@ export function Heatmap({ days, unit, now }: { days: Map<string, DayTotal>; unit
         </div>
       </div>
       <div class="heat-legend" aria-hidden="true">
-        Less {[0, 1, 2, 3, 4].map((l) => <span class={`heat-cell l${l}`} />)} More
+        {t("Less")} {[0, 1, 2, 3, 4].map((l) => <span class={`heat-cell l${l}`} />)} {t("More")}
       </div>
       <Tooltip tip={tip} />
     </div>

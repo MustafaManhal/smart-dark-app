@@ -39,3 +39,31 @@
 .backup p { margin: 0 0 10px; color: var(--muted); }
 .backup-status { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text) !important; }
 .lib-reminder { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 6px 6px 14px; margin-bottom: 16px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.card-actions { position: absolute; top: 6px; inset-inline-end: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+.card:hover .card-actions, .card-actions:focus-within { opacity: 1; }
+@media (hover: none) { .card-actions { opacity: 1; } }
+.card-actions .icon-btn { width: 32px; height: 32px; background: rgb(0 0 0 / 0.5); color: #fff; }
+.card-actions .icon-btn:hover:not(:disabled) { background: rgb(0 0 0 / 0.7); }
+.details { display: grid; gap: 4px; }
+.details-cover { width: 96px; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 6px; }
+.details .field { display: grid; gap: 6px; margin: 6px 0; }
+.details .field span { color: var(--muted); font-size: 13px; }
+.details .field input, .lookup-row input { height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.lookup { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.lookup-row { display: flex; gap: 8px; }
+.lookup-row input { flex: 1; min-width: 0; }
+.lookup-consent p { margin: 0 0 8px; }
+.matches { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; max-height: 40vh; overflow: auto; }
+.match { display: flex; gap: 10px; width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); text-align: start; cursor: pointer; color: inherit; font: inherit; }
+.match:hover { border-color: var(--accent); }
+.match img, .match-nocover { flex: none; width: 40px; height: 60px; border-radius: 4px; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+.match-text { display: grid; gap: 2px; min-width: 0; }
+.match-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-text span { color: var(--muted); font-size: 13px; }
+.match-source { font-size: 11px !important; }
+/* Narrow screens: title on its own row, actions below it. */
+@media (max-width: 480px) {
+  .lib-head { flex-wrap: wrap; row-gap: 8px; }
+  .lib-head h1 { flex-basis: 100%; }
+  .lib-head .btn { margin-inline-start: auto; }
+}

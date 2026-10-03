@@ -1,4 +1,5 @@
-import { signal, type Signal } from "@preact/signals";
+import { effect, signal, type Signal } from "@preact/signals";
+import { languageSetting, type Language } from "./i18n/i18n";
 import type { SettingsRepo } from "./db/repos";
 
 export type PageStyle = "original" | "sepia" | "dark";
@@ -19,6 +20,8 @@ const defaults = {
   goalValue: 0, // 0 = no daily goal
   reminderOn: false,
   reminderTime: "19:00",
+  language: "system" as Language,
+  lookupOn: false, // online book details lookup is opt-in
 };
 
 type Settings = typeof defaults;
@@ -39,3 +42,8 @@ export function saveSetting<K extends keyof Settings>(key: K, value: Settings[K]
   settings[key].value = value;
   repo?.set(key, value);
 }
+
+// The i18n module keeps its own signal so it has no dependency on storage.
+effect(() => {
+  languageSetting.value = settings.language.value;
+});

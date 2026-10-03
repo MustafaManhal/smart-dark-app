@@ -1,3 +1,4 @@
+import { t } from "../i18n/i18n";
 import { effect } from "@preact/signals";
 import type { Repos } from "../db/repos";
 import { settings } from "../settings";
@@ -18,10 +19,11 @@ export async function dueReminder(repos: Repos, now = Date.now()): Promise<strin
   const goal = currentGoal();
   const today = dailyTotals(await repos.sessions.all()).get(dayKey(now));
   if (goalMet(today, goal)) return null;
-  if (goal.value <= 0) return "You have not read today yet.";
+  if (goal.value <= 0) return t("You have not read today yet.");
   const done = goal.unit === "minutes" ? Math.floor((today?.ms ?? 0) / 60_000) : today?.pages ?? 0;
   const left = goal.value - done;
-  return goal.unit === "minutes" ? `${left} min left for today's goal.` : `${left} ${left === 1 ? "page" : "pages"} left for today's goal.`;
+  if (goal.unit === "minutes") return t("{n} min left for today's goal.", { n: left });
+  return t(left === 1 ? "1 page left for today's goal." : "{n} pages left for today's goal.", { n: left });
 }
 
 /**
@@ -42,7 +44,7 @@ export function startReminders(repos: Repos) {
       if (at <= now) at += 86_400_000;
       timer = window.setTimeout(async () => {
         const text = await dueReminder(repos);
-        if (text && Notification.permission === "granted") new Notification("Time to read", { body: text, tag: "daily-reading" });
+        if (text && Notification.permission === "granted") new Notification(t("Time to read"), { body: text, tag: "daily-reading" });
         schedule();
       }, Math.min(at - now, 2_147_000_000));
     };

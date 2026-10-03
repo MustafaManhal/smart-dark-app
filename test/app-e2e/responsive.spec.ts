@@ -56,5 +56,10 @@ for (const width of WIDTHS) {
     await expect(page.getByRole("heading", { name: "Reading stats" })).toBeVisible();
     await noHorizontalOverflow(page, "stats");
     await page.screenshot({ path: `test/output/responsive/stats-${width}.png`, fullPage: true });
+
+    await page.getByRole("button", { name: "Back to library" }).click();
+    await page.getByRole("button", { name: "Settings" }).click();
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await noHorizontalOverflow(page, "settings");
   });
 }

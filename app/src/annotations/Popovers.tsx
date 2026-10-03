@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { t } from "../i18n/i18n";
 import { HIGHLIGHT_COLORS, type Highlight, type HighlightColor, type NormRect } from "../db/annotations";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -16,16 +17,16 @@ export function HighlightPopover({ highlight, anchor, onColor, onRemove, onClose
   onClose: () => void;
 }) {
   return (
-    <Popover anchor={anchor} label="Highlight" onClose={onClose}>
+    <Popover anchor={anchor} label={t("Highlight")} onClose={onClose}>
       <div class="pop-row">
-        <div class="pop-colors" role="radiogroup" aria-label="Highlight color">
+        <div class="pop-colors" role="radiogroup" aria-label={t("Highlight color")}>
           {HIGHLIGHT_COLORS.map((c) => (
-            <button type="button" role="radio" class="swatch" aria-checked={c === highlight.color} aria-label={COLOR_LABEL[c]}
+            <button type="button" role="radio" class="swatch" aria-checked={c === highlight.color} aria-label={t(COLOR_LABEL[c])}
               style={{ background: COLOR_HEX[c] }} onClick={() => onColor(c)} />
           ))}
         </div>
         <span class="pop-sep" />
-        <button type="button" class="pop-action" aria-label="Copy text"
+        <button type="button" class="pop-action" aria-label={t("Copy text")}
           onClick={() => { navigator.clipboard?.writeText(highlight.text); onClose(); }}>
           <Icon name="copy" size={18} />
         </button>
@@ -58,16 +59,16 @@ export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
     onClose();
   };
   return (
-    <Popover anchor={anchor} label="Note" onClose={close}>
+    <Popover anchor={anchor} label={t("Note")} onClose={close}>
       <div class="pop-note">
         <blockquote class="pop-quote">{note.text}</blockquote>
-        <textarea ref={area} aria-label="Note text" rows={4} placeholder="Write your note" value={body}
+        <textarea ref={area} aria-label={t("Note text")} rows={4} placeholder={t("Write your note")} value={body}
           onInput={(e) => setBody(e.currentTarget.value)} />
         <div class="pop-actions">
-          {note.id && <Button variant="danger" onClick={onDelete}>Delete</Button>}
+          {note.id && <Button variant="danger" onClick={onDelete}>{t("Delete")}</Button>}
           <span class="grow" />
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!body.trim()} onClick={() => { onSave(body); onClose(); }}>Save</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
+          <Button variant="primary" disabled={!body.trim()} onClick={() => { onSave(body); onClose(); }}>{t("Save")}</Button>
         </div>
       </div>
     </Popover>

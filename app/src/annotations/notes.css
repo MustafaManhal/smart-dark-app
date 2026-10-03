@@ -16,13 +16,13 @@
 }
 .panel-backdrop { position: absolute; inset: 0; z-index: 29; background: rgb(0 0 0 / 0.35); animation: fade 0.18s var(--ease); }
 @media (min-width: 960px) {
-  .notes-panel { inset: var(--bar-top) 0 0 auto; width: 380px; height: auto; border-radius: 0; border-top: 0; border-inline-start: 1px solid var(--border); animation: slide-in 0.22s var(--ease); }
+  .notes-panel { inset-block: var(--bar-top) 0; inset-inline: auto 0; width: 380px; height: auto; border-radius: 0; border-top: 0; border-inline-start: 1px solid var(--border); animation: slide-in 0.22s var(--ease); }
   .panel-backdrop { display: none; }
   /* The PDF stays visible beside the panel. */
-  .reader.panel-open .reader-scroll { right: 380px; }
+  .reader.panel-open .reader-scroll { inset-inline-end: 380px; }
   .reader.panel-open .float-tools { inset-inline-end: 392px; }
 }
-@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+@keyframes slide-in { from { opacity: 0; } }
 
 .panel-head { display: flex; align-items: center; gap: 2px; padding: 10px 8px 4px 16px; }
 .panel-head h2 { flex: 1; margin: 0; font-size: 16px; }

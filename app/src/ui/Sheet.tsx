@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { t } from "../i18n/i18n";
 import { useEffect } from "preact/hooks";
 import { IconButton } from "./Button";
 
@@ -16,7 +17,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
       <section class="sheet" role="dialog" aria-modal="true" aria-label={title}>
         <header class="sheet-head">
           <h2>{title}</h2>
-          <IconButton label="Close" icon="close" onClick={onClose} />
+          <IconButton label={t("Close")} icon="close" onClick={onClose} />
         </header>
         <div class="sheet-body">{children}</div>
       </section>
