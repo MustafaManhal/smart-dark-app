@@ -34,6 +34,16 @@ export default defineConfig({
         // Everything the reader needs offline, including the pdf.js worker,
         // character maps (.bcmap), standard fonts and image decoders (.wasm).
         globPatterns: ["**/*.{js,mjs,css,html,png,svg,wasm,bcmap,pfb,ttf,icc,webmanifest}"],
+        // Character maps (~170 small files) are only needed by some CJK PDFs. Precaching
+        // them made the first install take ~40 s on a phone, so they are cached on first use.
+        globIgnores: ["pdfjs/cmaps/**"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes("/pdfjs/cmaps/"),
+            handler: "CacheFirst",
+            options: { cacheName: "pdfjs-cmaps", expiration: { maxEntries: 250 } },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: "index.html",
         cleanupOutdatedCaches: true,

@@ -27,10 +27,28 @@ test("service worker takes control and caches everything the reader needs", asyn
     }
     return urls;
   });
-  for (const needed of ["/index.html", "/pdfjs/pdf.worker.mjs", "/pdfjs/wasm/openjpeg.wasm", "/pdfjs/standard_fonts/LiberationSans-Regular.ttf", "/pdfjs/cmaps/UniJIS-UTF16-H.bcmap"]) {
+  for (const needed of ["/index.html", "/pdfjs/pdf.worker.mjs", "/pdfjs/wasm/openjpeg.wasm", "/pdfjs/standard_fonts/LiberationSans-Regular.ttf"]) {
     expect(cached, needed).toContain(needed);
   }
   expect(cached.some((u) => /\/assets\/index-.*\.js$/.test(u))).toBe(true);
+  // Small install: character maps are cached on first use instead.
+  expect(cached.filter((u) => u.includes("/cmaps/"))).toEqual([]);
+  expect(cached.length).toBeLessThan(60);
+});
+
+test("character maps are cached the first time a PDF needs them", async ({ page }) => {
+  await page.goto("./");
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((r) => navigator.serviceWorker.addEventListener("controllerchange", r, { once: true }));
+    }
+    await fetch("./pdfjs/cmaps/UniJIS-UTF16-H.bcmap");
+  });
+  await expect.poll(() => page.evaluate(async () => {
+    const c = await caches.open("pdfjs-cmaps");
+    return (await c.keys()).map((r) => new URL(r.url).pathname);
+  })).toContain("/pdfjs/cmaps/UniJIS-UTF16-H.bcmap");
 });
 
 // Playwright's WebKit puts its offline emulation in front of the service worker,
