@@ -293,6 +293,14 @@ export const AR: Record<string, string> = {
   "Version {v} is available.": "الإصدار {v} متاح.",
   "Download": "تنزيل",
 
+  "Install the app": "تثبيت التطبيق",
+  "Install Smart Dark on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.":
+    "ثبّت Smart Dark على جهاز iPhone: انقر «مشاركة» ثم «إضافة إلى الشاشة الرئيسية». يفتح بملء الشاشة ويعمل دون اتصال.",
+  "Dismiss": "إخفاء",
+  "Using {used} MB.": "المساحة المستخدمة {used} ميغابايت.",
+  "Stored permanently: the browser will not clear it to save space.": "محفوظة بشكل دائم: لن يحذفها المتصفح لتوفير المساحة.",
+  "The browser may clear it if the device runs out of space. Keep a backup.": "قد يحذفها المتصفح إذا امتلأت مساحة الجهاز. احتفظ بنسخة احتياطية.",
+
   // Shared
   "Close": "إغلاق",
 };

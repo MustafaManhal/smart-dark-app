@@ -20,6 +20,9 @@ test("desktop app starts on the library with a strict security policy", async ()
   expect(csp).toContain("default-src 'self'");
   expect(await win.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe("undefined");
   expect(await win.evaluate(() => typeof (window as unknown as { desktop?: unknown }).desktop)).toBe("object");
+  // The desktop app serves its files locally; service workers are not even available on app://.
+  await win.waitForTimeout(500);
+  expect(await win.evaluate(() => navigator.serviceWorker?.controller ?? null)).toBeNull();
   if (process.platform === "darwin") {
     // Room for the window buttons: nothing clickable in the top 28px.
     await expect(win.locator("html")).toHaveAttribute("data-platform", "darwin");

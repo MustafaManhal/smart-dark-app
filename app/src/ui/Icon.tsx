@@ -27,6 +27,7 @@ const PATHS = {
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   upload: "M12 20V9M7 14l5-5 5 5M5 4h14",
   check: "M5 12l4 4 10-10",
+  share: "M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1",
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   headphones: "M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v6H5a1 1 0 0 1-1-1zM20 15h-3v6h2a1 1 0 0 0 1-1z",
   play: "M8 5v14l11-7z",

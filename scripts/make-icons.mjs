@@ -19,11 +19,15 @@ const LINES = [
   { y: 0.64, x1: 0.66, light: [22, 150, 70], dark: [96, 205, 128] },
 ];
 
-// Returns [r,g,b,a] for a point in unit space.
-function sample(x, y) {
-  if (!roundRect(x, y, 0.02, 0.02, 0.98, 0.98, 0.22)) return [0, 0, 0, 0];
+const TILE = [24, 27, 36, 255];
+
+// Returns [r,g,b,a] for a point in unit space. `square`: the tile fills the
+// whole image with no rounding (iOS and Android apply their own mask).
+function sample(x, y, square = false) {
+  if (square && (x < 0 || x > 1 || y < 0 || y > 1)) return TILE;
+  if (!square && !roundRect(x, y, 0.02, 0.02, 0.98, 0.98, 0.22)) return [0, 0, 0, 0];
   const page = roundRect(x, y, 0.2, 0.13, 0.8, 0.87, 0.06);
-  if (!page) return [24, 27, 36, 255]; // tile
+  if (!page) return TILE;
   const darkSide = x >= 0.5;
   for (const line of LINES) {
     if (Math.abs(y - line.y) <= 0.035 && x >= 0.3 && x <= line.x1) {
@@ -35,7 +39,7 @@ function sample(x, y) {
 
 // Chrome Web Store asks for 96x96 artwork inside the 128x128 icon (16px
 // transparent padding), so the large icon gets an inset.
-function draw(size, inset = 0) {
+function draw(size, inset = 0, square = false) {
   const ss = 4;
   const span = 1 - 2 * inset;
   const rgba = new Uint8Array(size * size * 4);
@@ -46,7 +50,7 @@ function draw(size, inset = 0) {
         for (let sx = 0; sx < ss; sx++) {
           const u = ((px + (sx + 0.5) / ss) / size - inset) / span;
           const v = ((py + (sy + 0.5) / ss) / size - inset) / span;
-          const [cr, cg, cb, ca] = sample(u, v);
+          const [cr, cg, cb, ca] = sample(u, v, square);
           r += cr * ca; g += cg * ca; b += cb * ca; a += ca;
         }
       }
@@ -68,4 +72,14 @@ for (const size of [16, 32, 48, 128]) {
 // Desktop app icon (macOS/Windows): 1024px with the macOS grid margin (~10%).
 mkdirSync(new URL("../build/", import.meta.url), { recursive: true });
 writeFileSync(new URL("../build/icon.png", import.meta.url), encodePng(1024, 1024, draw(1024, 100 / 1024)));
-console.log("icons written to src/icons/ and build/icon.png");
+// Web app (PWA) icons.
+const web = new URL("../app/public/icons/", import.meta.url);
+mkdirSync(web, { recursive: true });
+writeFileSync(new URL("icon-192.png", web), encodePng(192, 192, draw(192)));
+writeFileSync(new URL("icon-512.png", web), encodePng(512, 512, draw(512)));
+// Maskable: opaque, artwork inside the central 80% safe zone.
+writeFileSync(new URL("maskable-512.png", web), encodePng(512, 512, draw(512, 0.14, true), { alpha: false }));
+// iOS home screen: opaque square, iOS rounds the corners itself.
+writeFileSync(new URL("apple-touch-icon.png", web), encodePng(180, 180, draw(180, 0.08, true), { alpha: false }));
+writeFileSync(new URL("favicon-32.png", web), encodePng(32, 32, draw(32)));
+console.log("icons written to src/icons/, build/icon.png and app/public/icons/");

@@ -53,13 +53,19 @@ test("edit a book's details by hand", async ({ page }) => {
   await expect(page.getByRole("list", { name: "Books" })).toContainText("Finance team");
 });
 
-test("find book details online after opting in (network mocked)", async ({ page }) => {
+test.describe("online lookup", () => {
+  // Playwright's WebKit cannot route requests once a service worker is active;
+  // the worker has its own tests, so it is off here to guarantee the mocks.
+  test.use({ serviceWorkers: "block" });
+
+test("find book details online after opting in (network mocked)", async ({ page, context }) => {
   const ol = readFileSync("test/app/fixtures/openlibrary-hobbit.json", "utf8");
   const cover = readFileSync("src/icons/icon128.png");
   const requests: string[] = [];
-  await page.route("https://openlibrary.org/**", (r) => { requests.push(r.request().url()); r.fulfill({ body: ol, contentType: "application/json", headers: { "access-control-allow-origin": "*" } }); });
-  await page.route("https://www.googleapis.com/**", (r) => { requests.push(r.request().url()); r.fulfill({ status: 429, body: "{}", headers: { "access-control-allow-origin": "*" } }); });
-  await page.route("https://covers.openlibrary.org/**", (r) => r.fulfill({ body: cover, contentType: "image/png", headers: { "access-control-allow-origin": "*" } }));
+  // context.route also sees requests that pass through the service worker.
+  await context.route("https://openlibrary.org/**", (r) => { requests.push(r.request().url()); r.fulfill({ body: ol, contentType: "application/json", headers: { "access-control-allow-origin": "*" } }); });
+  await context.route("https://www.googleapis.com/**", (r) => { requests.push(r.request().url()); r.fulfill({ status: 429, body: "{}", headers: { "access-control-allow-origin": "*" } }); });
+  await context.route("https://covers.openlibrary.org/**", (r) => r.fulfill({ body: cover, contentType: "image/png", headers: { "access-control-allow-origin": "*" } }));
 
   await openSample(page);
   await page.getByRole("button", { name: "Back to library" }).click();
@@ -80,4 +86,5 @@ test("find book details online after opting in (network mocked)", async ({ page 
   const card = page.getByRole("list", { name: "Books" }).getByRole("listitem");
   await expect(card).toContainText("The Hobbit");
   await expect(card.locator("img")).toHaveJSProperty("naturalWidth", 128);
+});
 });

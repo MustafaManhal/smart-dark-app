@@ -67,3 +67,6 @@
   .lib-head h1 { flex-basis: 100%; }
   .lib-head .btn { margin-inline-start: auto; }
 }
+.lib-install { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 14px; margin-bottom: 16px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.lib-install p { flex: 1; margin: 0; font-size: 14px; }
+.lib-install .icon { color: var(--accent); flex: none; }

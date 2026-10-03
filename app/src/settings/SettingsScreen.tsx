@@ -4,6 +4,8 @@ import type { Repos } from "../db/repos";
 import { t } from "../i18n/i18n";
 import { navigate } from "../router";
 import { desktop, type UpdateResult } from "../platform/desktop";
+import { refreshStorageInfo, storageInfo } from "../platform/pwa";
+import { useEffect } from "preact/hooks";
 import { saveSetting, settings, type AppTheme, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -25,6 +27,10 @@ function Choice<T extends string | number>({ name, legend, value, options, onPic
 export function SettingsScreen({ repos }: { repos: Repos }) {
   const [backupOpen, setBackupOpen] = useState(false);
   const [update, setUpdate] = useState<UpdateResult | "checking" | "error" | null>(null);
+  useEffect(() => {
+    refreshStorageInfo();
+  }, []);
+  const mb = (b: number) => (b / 1048576).toFixed(b < 10485760 ? 1 : 0);
   const s = settings;
   return (
     <div class="settings">
@@ -90,6 +96,14 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
       <section class="card">
         <h2>{t("Your data")}</h2>
         <p class="muted">{t("Books, notes and reading history are stored only on this device.")}</p>
+        {storageInfo.value && (
+          <p class="muted small">
+            {t("Using {used} MB.", { used: mb(storageInfo.value.used) })}{" "}
+            {storageInfo.value.persisted
+              ? t("Stored permanently: the browser will not clear it to save space.")
+              : t("The browser may clear it if the device runs out of space. Keep a backup.")}
+          </p>
+        )}
         <Button onClick={() => setBackupOpen(true)}><Icon name="backup" size={18} /> {t("Back up and restore")}</Button>
       </section>
 

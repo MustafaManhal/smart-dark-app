@@ -8,6 +8,7 @@ import { Sheet } from "../ui/Sheet";
 import { BackupSheet } from "../backup/BackupSheet";
 import { BookDetailsSheet } from "./BookDetailsSheet";
 import { dueReminder } from "../stats/reminders";
+import { isIosBrowser } from "../platform/pwa";
 import { makeCover } from "./cover";
 import { filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
 import { importPdf, ImportError } from "./importer";
@@ -30,6 +31,13 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
   const [backupOpen, setBackupOpen] = useState(false);
   const [reminder, setReminder] = useState<string | null>(null);
   const [editing, setEditing] = useState<Book | null>(null);
+  const [installHint, setInstallHint] = useState(() => {
+    try {
+      return isIosBrowser() && localStorage.getItem("installHintDismissed") !== "1";
+    } catch {
+      return isIosBrowser();
+    }
+  });
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function reload() {
@@ -118,6 +126,16 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         </div>
       )}
 
+      {installHint && (
+        <div class="lib-install" role="note" aria-label={t("Install the app")}>
+          <Icon name="share" size={22} />
+          <p>{t("Install Smart Dark on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.")}</p>
+          <IconButton label={t("Dismiss")} icon="close" onClick={() => {
+            setInstallHint(false);
+            try { localStorage.setItem("installHintDismissed", "1"); } catch {}
+          }} />
+        </div>
+      )}
       {reminder && (
         <div class="lib-reminder" role="status">
           <span>{t("Time to read:")} {reminder}</span>

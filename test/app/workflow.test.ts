@@ -20,3 +20,10 @@ test("electron-builder config: ad-hoc mac signing, PDF association, installers",
   expect(cfg.win.target.map((t: { target: string }) => t.target)).toContain("nsis");
   expect(cfg.directories.output).toBe("release"); // never the extension's dist/
 });
+
+test("pages workflow publishes the built web app", () => {
+  const wf = parse(readFileSync(".github/workflows/pages.yml", "utf8"));
+  const steps = wf.jobs.deploy.steps;
+  expect(steps.find((s: { uses?: string }) => s.uses?.startsWith("actions/upload-pages-artifact")).with.path).toBe("app-dist");
+  expect(wf.permissions).toMatchObject({ pages: "write", "id-token": "write" });
+});

@@ -53,6 +53,17 @@ install time because automated browsers cannot click Chrome's permission prompt.
 "Open in built-in viewer" asks the service worker for a session rule that lets that one URL through, then
 removes it after a few seconds.
 
+## iPhone app (installable web app)
+
+The same app runs on iPhone from Safari and installs to the Home Screen; it then opens full screen and works
+offline. Your books and notes stay on the phone.
+
+1. Publish it: push to GitHub, then in the repository Settings → Pages choose "GitHub Actions". The workflow
+   `.github/workflows/pages.yml` builds and deploys it.
+2. On the iPhone, open the Pages address in Safari, tap **Share → Add to Home Screen**.
+3. Add PDFs with the **Add PDF** button (iOS does not let web apps open files from the Files app directly).
+   Use **Back up and restore** in the library to keep a copy of everything in Files or iCloud Drive.
+
 ## Desktop app (macOS and Windows)
 
 ```sh
