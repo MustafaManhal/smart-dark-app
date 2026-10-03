@@ -285,6 +285,14 @@ export const AR: Record<string, string> = {
   "Matches": "النتائج",
   "Book details could not be reached. Check your connection.": "تعذّر الوصول إلى خدمة تفاصيل الكتب. تحقّق من اتصالك.",
 
+  "Updates": "التحديثات",
+  "Check for updates": "التحقق من التحديثات",
+  "Could not check for updates. Try again later.": "تعذّر التحقق من التحديثات. حاول لاحقًا.",
+  "Update checks are not set up for this build.": "التحقق من التحديثات غير مفعّل في هذا الإصدار.",
+  "You have the latest version ({v}).": "لديك أحدث إصدار ({v}).",
+  "Version {v} is available.": "الإصدار {v} متاح.",
+  "Download": "تنزيل",
+
   // Shared
   "Close": "إغلاق",
 };

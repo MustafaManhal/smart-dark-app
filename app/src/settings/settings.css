@@ -14,3 +14,4 @@
 .settings .seg label:has(input:checked) { background: var(--text); color: var(--bg); border-color: transparent; }
 .settings .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .about p { margin: 6px 0; }
+.settings .link { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }

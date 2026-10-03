@@ -1,0 +1,48 @@
+appId: com.smartdarkreader.app
+productName: Smart Dark Reader
+artifactName: Smart-Dark-Reader-${version}-${os}-${arch}.${ext}
+copyright: Copyright © 2026 Mustafa Manhal
+directories:
+  output: release
+  buildResources: build
+files:
+  - desktop/**
+  - app-dist/**
+  - package.json
+  - "!**/*.map"
+  - "!node_modules/**"
+fileAssociations:
+  - ext: pdf
+    name: PDF Document
+    description: PDF Document
+    mimeType: application/pdf
+    role: Viewer
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  # Ad-hoc signature: without a paid Apple Developer ID the app is not
+  # notarized, but an ad-hoc signed app gets the "Open Anyway" path in
+  # System Settings instead of "damaged". Hardened runtime must be off for it.
+  identity: "-"
+  hardenedRuntime: false
+  gatekeeperAssess: false
+dmg:
+  title: Smart Dark Reader
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+linux:
+  target: [AppImage]
+  category: Office

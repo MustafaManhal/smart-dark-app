@@ -12,7 +12,11 @@
     "app:dev": "npm run app:assets && vite",
     "app:build": "npm run app:assets && tsc -p tsconfig.json && vite build",
     "app:test": "vitest run",
-    "app:e2e": "playwright test"
+    "app:e2e": "playwright test",
+    "desktop": "npm run app:build && electron .",
+    "desktop:e2e": "npm run app:build && playwright test --config playwright.desktop.config.ts",
+    "desktop:mac": "npm run app:build && electron-builder --mac --publish never",
+    "desktop:win": "npm run app:build && electron-builder --win --publish never"
   },
   "license": "MIT",
   "devDependencies": {
@@ -26,7 +30,8 @@
     "puppeteer-core": "^25.12.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
   },
   "type": "module",
   "private": true,
@@ -34,5 +39,13 @@
     "@preact/signals": "^2.11.3",
     "fflate": "^0.8.3",
     "preact": "^10.29.8"
+  },
+  "main": "desktop/main.mjs",
+  "description": "Smart Dark Reader: a PDF reader with a dark mode that keeps colors",
+  "author": {
+    "name": "Mustafa Manhal"
+  },
+  "desktop": {
+    "updateRepo": ""
   }
 }

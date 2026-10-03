@@ -3,6 +3,7 @@ import { BackupSheet } from "../backup/BackupSheet";
 import type { Repos } from "../db/repos";
 import { t } from "../i18n/i18n";
 import { navigate } from "../router";
+import { desktop, type UpdateResult } from "../platform/desktop";
 import { saveSetting, settings, type AppTheme, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -23,6 +24,7 @@ function Choice<T extends string | number>({ name, legend, value, options, onPic
 
 export function SettingsScreen({ repos }: { repos: Repos }) {
   const [backupOpen, setBackupOpen] = useState(false);
+  const [update, setUpdate] = useState<UpdateResult | "checking" | "error" | null>(null);
   const s = settings;
   return (
     <div class="settings">
@@ -90,6 +92,29 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <p class="muted">{t("Books, notes and reading history are stored only on this device.")}</p>
         <Button onClick={() => setBackupOpen(true)}><Icon name="backup" size={18} /> {t("Back up and restore")}</Button>
       </section>
+
+      {desktop && (
+        <section class="card">
+          <h2>{t("Updates")}</h2>
+          <Button onClick={async () => {
+            setUpdate("checking");
+            setUpdate(await desktop!.checkForUpdates().catch(() => "error" as const));
+          }} disabled={update === "checking"}>{t("Check for updates")}</Button>
+          {update && update !== "checking" && (
+            <p class="muted small" role="status">
+              {update === "error" && t("Could not check for updates. Try again later.")}
+              {update !== "error" && update.status === "off" && t("Update checks are not set up for this build.")}
+              {update !== "error" && update.status === "current" && t("You have the latest version ({v}).", { v: update.current })}
+              {update !== "error" && update.status === "available" && (
+                <>
+                  {t("Version {v} is available.", { v: update.latest })}{" "}
+                  <button type="button" class="link" onClick={() => desktop!.openExternal(update.url)}>{t("Download")}</button>
+                </>
+              )}
+            </p>
+          )}
+        </section>
+      )}
 
       <section class="card about">
         <h2>{t("About")}</h2>

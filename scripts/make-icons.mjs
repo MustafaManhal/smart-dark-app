@@ -65,4 +65,7 @@ function draw(size, inset = 0) {
 for (const size of [16, 32, 48, 128]) {
   writeFileSync(new URL(`icon${size}.png`, OUT), encodePng(size, size, draw(size, size === 128 ? 16 / 128 : 0)));
 }
-console.log("icons written to src/icons/");
+// Desktop app icon (macOS/Windows): 1024px with the macOS grid margin (~10%).
+mkdirSync(new URL("../build/", import.meta.url), { recursive: true });
+writeFileSync(new URL("../build/icon.png", import.meta.url), encodePng(1024, 1024, draw(1024, 100 / 1024)));
+console.log("icons written to src/icons/ and build/icon.png");

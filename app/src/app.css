@@ -119,3 +119,18 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 [dir="rtl"] .icon-flip { transform: scaleX(-1); }
+
+/* Desktop app on macOS: the window buttons sit over the top-left corner
+   (hidden-inset title bar), so the layout starts below them and the strip
+   they sit in drags the window. */
+:root[data-platform="darwin"] { --safe-top: 28px; }
+:root[data-platform="darwin"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: 28px;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+:root[data-platform="darwin"] .reader-top { -webkit-app-region: drag; }
+:root[data-platform="darwin"] .reader-top :is(button, input, a) { -webkit-app-region: no-drag; }

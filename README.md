@@ -53,6 +53,19 @@ install time because automated browsers cannot click Chrome's permission prompt.
 "Open in built-in viewer" asks the service worker for a session rule that lets that one URL through, then
 removes it after a few seconds.
 
+## Desktop app (macOS and Windows)
+
+```sh
+npm run desktop        # build the app and start it
+npm run desktop:mac    # release/Smart-Dark-Reader-<version>-mac-arm64.dmg and -x64.dmg
+npm run desktop:win    # Windows zip; the installer is built by .github/workflows/desktop.yml
+npm run desktop:e2e    # Electron end-to-end tests
+```
+
+First launch on macOS (the app is not notarized, which needs a paid Apple Developer ID): open the app once,
+then go to System Settings → Privacy & Security and click **Open Anyway**. On Windows, SmartScreen may say
+"Windows protected your PC": click **More info → Run anyway**.
+
 ## Publishing
 
 See `docs/STORE_LISTING.md` for every dashboard field, permission justifications and reviewer notes. The
