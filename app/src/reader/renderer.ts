@@ -36,13 +36,22 @@ class PageSlot {
   // Overlays live for the whole session; canvas and text layer come and go.
   highlightLayer = document.createElement("div");
   stickyLayer = document.createElement("div");
+  speechLayer = document.createElement("div");
+  textReady: Promise<void>;
+  private markTextReady!: () => void;
 
   constructor(public number: number, public w: number, public h: number) {
     this.div.className = "page";
     this.div.dataset.page = String(number);
     this.highlightLayer.className = "hl-layer";
     this.stickyLayer.className = "sticky-layer";
-    this.div.append(this.highlightLayer, this.stickyLayer);
+    this.speechLayer.className = "speech-layer";
+    this.div.append(this.highlightLayer, this.speechLayer, this.stickyLayer);
+    this.textReady = new Promise((resolve) => (this.markTextReady = resolve));
+  }
+
+  textIsReady() {
+    this.markTextReady();
   }
 
   size(scale: number) {
@@ -120,7 +129,33 @@ export class Renderer {
   /** Overlay containers for page `number` (1-based). */
   layers(number: number) {
     const slot = this.slots[number - 1];
-    return slot ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer } : null;
+    return slot ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer, speech: slot.speechLayer } : null;
+  }
+
+  /**
+   * The text layer of a page, once it exists. Scrolls the page into view if it
+   * has not been rendered yet (pages are rendered lazily near the viewport).
+   */
+  async textLayerOf(number: number): Promise<HTMLElement | null> {
+    const slot = this.slots[number - 1];
+    if (!slot) return null;
+    if (!slot.textDiv) this.scrollToPage(number);
+    await Promise.race([slot.textReady, new Promise((r) => setTimeout(r, 8000))]);
+    return slot.textDiv;
+  }
+
+  /** Screen y where the visible reading area starts (below the top bar). */
+  visibleTop() {
+    return this.container.getBoundingClientRect().top + this.inset();
+  }
+
+  /** Scroll just enough to show a viewport rectangle (used to follow read-aloud). */
+  reveal(rect: { top: number; bottom: number }) {
+    const box = this.container.getBoundingClientRect();
+    const top = box.top + this.inset() + 24;
+    const bottom = box.bottom - 120;
+    if (rect.top < top) this.container.scrollTop -= top - rect.top + 40;
+    else if (rect.bottom > bottom) this.container.scrollTop += rect.bottom - bottom + 80;
   }
 
   /** Which page is under a viewport point, and where on it (page fractions). */
@@ -403,6 +438,7 @@ export class Renderer {
       viewport,
     });
     await slot.textLayer.render().catch(() => {});
+    slot.textIsReady();
   }
 
   destroy() {

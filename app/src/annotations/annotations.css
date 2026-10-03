@@ -17,7 +17,7 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
 }
 .icon-btn.is-on { color: var(--accent); }
-.icon-btn.is-on .icon path { fill: currentColor; }
+.icon-btn.is-on.fill-on .icon path { fill: currentColor; }
 
 .reader-scroll.is-placing .page { cursor: crosshair; }
 .place-hint {

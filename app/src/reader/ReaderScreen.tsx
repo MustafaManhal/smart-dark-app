@@ -6,6 +6,8 @@ import { clearOverlays, renderOverlays } from "../annotations/Overlays";
 import { SelectionBar } from "../annotations/SelectionBar";
 import { normalizeRects } from "../annotations/geometry";
 import { useAnnotations } from "../annotations/useAnnotations";
+import { ReadAloudBar } from "../readaloud/ReadAloudBar";
+import { useReadAloud } from "../readaloud/useReadAloud";
 import { HIGHLIGHT_COLORS, type HighlightColor, type NormRect } from "../db/annotations";
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
@@ -133,6 +135,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   // Navigation stays off until pages are laid out, so early taps are not lost.
   const total = ready ? book?.pageCount ?? 0 : 0;
   const [barsHidden, setBarsHidden] = useState(false);
+  const readAloud = useReadAloud(renderer, outline, book?.pageCount ?? 0);
   const chapter = currentChapter(outline, page, total);
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
@@ -297,7 +300,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   return (
-    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""}`} data-style={pageStyle}>
+    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
         <IconButton label="Back to library" icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
@@ -311,9 +314,11 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           <IconButton label="Add sticky note" icon="sticky" class={placing ? "is-on" : ""}
             aria-pressed={placing} disabled={!ready} onClick={() => { setPlacing((v) => !v); setHighlightMode(false); }} />
           <IconButton label={bookmarked ? "Remove bookmark" : "Bookmark this page"} icon="bookmark"
-            class={bookmarked ? "is-on" : ""} aria-pressed={bookmarked} disabled={!ready}
+            class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
             onClick={() => annotations.toggleBookmark(page)} />
-          <IconButton label="Notes and highlights" icon="notes" class={panelOpen ? "is-on" : ""} aria-pressed={panelOpen}
+          <IconButton label="Read aloud" icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
+            disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : (readAloud.show(), readAloud.toggle(page)))} />
+          <IconButton label="Notes and highlights" icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
             onClick={() => setPanelOpen((v) => !v)} />
           <IconButton label="Contents" icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
           <IconButton label="Appearance" icon="palette" onClick={() => setSheet("appearance")} />
@@ -379,6 +384,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       {error
         ? <p class="reader-error" role="alert">{error}</p>
         : <div class={`reader-scroll ${placing ? "is-placing" : ""}`} ref={scroller} tabIndex={0} aria-label="Pages" onClick={onPageTap} />}
+
+      <ReadAloudBar ra={readAloud} page={page} />
 
       {selection && (
         <SelectionBar

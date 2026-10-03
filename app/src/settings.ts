@@ -11,6 +11,10 @@ const defaults = {
   darkTheme: "dark" as DarkTheme,
   imageMode: "smart" as ImageMode,
   appTheme: "system" as AppTheme,
+  readRate: 1,
+  readPitch: 1,
+  readVoices: {} as Record<string, string>, // language -> voiceURI
+  readAutoPage: true,
 };
 
 type Settings = typeof defaults;
