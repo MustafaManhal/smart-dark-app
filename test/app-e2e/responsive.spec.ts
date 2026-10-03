@@ -10,7 +10,7 @@ async function noHorizontalOverflow(page: Page, where: string) {
     const vw = document.documentElement.clientWidth;
     const offenders: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
-      if (el.closest(".page, .chips, .reader-scroll")) continue; // pages and chip rows scroll on purpose
+      if (el.closest(".page, .chips, .reader-scroll, .heat-scroll")) continue; // these scroll sideways on purpose
       const r = el.getBoundingClientRect();
       if (r.width && (r.right > vw + 1 || r.left < -1)) offenders.push(`${el.tagName.toLowerCase()}.${el.className}`);
     }
@@ -49,5 +49,12 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(400); // let the sheet finish sliding in
     await noHorizontalOverflow(page, "appearance sheet");
     await page.screenshot({ path: `test/output/responsive/appearance-${width}.png` });
+    await page.keyboard.press("Escape");
+
+    await page.getByRole("button", { name: "Back to library" }).click();
+    await page.getByRole("button", { name: "Reading stats" }).click();
+    await expect(page.getByRole("heading", { name: "Reading stats" })).toBeVisible();
+    await noHorizontalOverflow(page, "stats");
+    await page.screenshot({ path: `test/output/responsive/stats-${width}.png`, fullPage: true });
   });
 }

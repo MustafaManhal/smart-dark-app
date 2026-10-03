@@ -5,6 +5,7 @@ import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
 import { BackupSheet } from "../backup/BackupSheet";
+import { dueReminder } from "../stats/reminders";
 import { makeCover } from "./cover";
 import { filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
 import { importPdf, ImportError } from "./importer";
@@ -25,6 +26,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
   const [toDelete, setToDelete] = useState<Book | null>(null);
   const [dragging, setDragging] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [reminder, setReminder] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function reload() {
@@ -44,6 +46,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
 
   useEffect(() => {
     reload();
+    dueReminder(repos).then(setReminder);
   }, []);
 
   async function importFiles(files: FileList | File[]) {
@@ -79,6 +82,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     >
       <header class="lib-head">
         <h1>Your library</h1>
+        <IconButton label="Reading stats" icon="chart" onClick={() => navigate({ name: "stats" })} />
         <IconButton label="Back up and restore" icon="backup" class="lib-backup" onClick={() => setBackupOpen(true)} />
         <Button variant="primary" onClick={pick} disabled={busy}>
           <Icon name="plus" size={18} /> {busy ? "Importing" : "Add PDF"}
@@ -108,6 +112,12 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         </div>
       )}
 
+      {reminder && (
+        <div class="lib-reminder" role="status">
+          <span>Time to read: {reminder}</span>
+          <IconButton label="Dismiss reminder" icon="close" onClick={() => setReminder(null)} />
+        </div>
+      )}
       {message && <p class="lib-message" role="status">{message}</p>}
 
       {books && books.length === 0 && (

@@ -1,6 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
 import { ANNOTATION_STORES, type BookAnnotations } from "../db/annotations";
 import type { Book, Progress, Repos } from "../db/repos";
+import type { Session } from "../db/sessions";
 
 const FORMAT = "smart-dark-reader-backup";
 const VERSION = 1;
@@ -12,6 +13,7 @@ type BackupManifest = {
   books: Book[];
   progress: Progress[];
   annotations: BookAnnotations;
+  sessions?: Session[];
   settings: Record<string, unknown>;
   covers: Record<string, string>; // bookId -> mime type
 };
@@ -21,8 +23,8 @@ type BackupManifest = {
  * PDFs are already compressed, so the zip only stores them (fast, no CPU spike).
  */
 export async function createBackup(repos: Repos, { now = Date.now } = {}): Promise<File> {
-  const [books, progress, annotations, settings] = await Promise.all([
-    repos.books.all(), repos.progress.all(), repos.annotations.all(), repos.settings.all(),
+  const [books, progress, annotations, settings, sessions] = await Promise.all([
+    repos.books.all(), repos.progress.all(), repos.annotations.all(), repos.settings.all(), repos.sessions.all(),
   ]);
   const entries: Zippable = {};
   const covers: Record<string, string> = {};
@@ -35,7 +37,7 @@ export async function createBackup(repos: Repos, { now = Date.now } = {}): Promi
       covers[book.id] = cover.type || "image/jpeg";
     }
   }
-  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books, progress, annotations, settings, covers };
+  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books, progress, annotations, sessions, settings, covers };
   entries["backup.json"] = strToU8(JSON.stringify(manifest));
   const date = new Date(now()).toISOString().slice(0, 10);
   return new File([zipSync(entries) as Uint8Array<ArrayBuffer>], `smart-dark-reader-backup-${date}.zip`, { type: "application/zip" });
@@ -109,6 +111,12 @@ export async function restoreBackup(repos: Repos, zipBytes: Uint8Array): Promise
     await repos.annotations.restore(store, fresh);
     summary.annotationsAdded += fresh.length;
   }
+
+  // Reading history: sessions of books that are in the library now, skipping ones already there.
+  const known = new Set((await repos.sessions.all()).map((x) => x.id));
+  await repos.sessions.restore((manifest.sessions ?? [])
+    .filter((x) => !known.has(x.id) && idMap.has(x.bookId))
+    .map((x) => ({ ...x, bookId: idMap.get(x.bookId)! })));
 
   for (const [key, value] of Object.entries(manifest.settings ?? {})) await repos.settings.set(key, value);
   return summary;

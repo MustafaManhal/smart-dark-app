@@ -15,6 +15,10 @@ const defaults = {
   readPitch: 1,
   readVoices: {} as Record<string, string>, // language -> voiceURI
   readAutoPage: true,
+  goalUnit: "minutes" as "minutes" | "pages",
+  goalValue: 0, // 0 = no daily goal
+  reminderOn: false,
+  reminderTime: "19:00",
 };
 
 type Settings = typeof defaults;

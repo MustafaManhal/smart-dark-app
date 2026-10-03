@@ -19,6 +19,7 @@ async function seeded(name: string) {
   await repos.annotations.putSticky({ id: "s1", bookId: "b1", page: 2, x: 0.1, y: 0.2, color: "pink", text: "sticky", collapsed: false });
   await repos.annotations.toggleBookmark("b1", 2);
   await repos.settings.set("pageStyle", "sepia");
+  await repos.sessions.save({ id: "x1", bookId: "b1", start: 10, end: 70_010, activeMs: 70_000, pages: [1, 2] });
   return repos;
 }
 
@@ -39,6 +40,7 @@ test("a backup restores everything into an empty library", async () => {
   expect([a.highlights.length, a.notes.length, a.stickies.length, a.bookmarks.length]).toEqual([1, 1, 1, 1]);
   expect(a.notes[0].body).toBe("note body");
   expect(await target.settings.get("pageStyle", "dark")).toBe("sepia");
+  expect(await target.sessions.all()).toEqual([{ id: "x1", bookId: "b1", start: 10, end: 70_010, activeMs: 70_000, pages: [1, 2] }]);
 });
 
 test("restoring into a library that has the book keeps it and merges new annotations", async () => {

@@ -1,5 +1,6 @@
 import { request, transaction } from "./idb";
 import { AnnotationsRepo, ANNOTATION_STORES } from "./annotations";
+import { SessionsRepo } from "./sessions";
 
 export type Book = {
   id: string;
@@ -138,7 +139,7 @@ export class SettingsRepo {
   }
 }
 
-export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo };
+export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo; sessions: SessionsRepo };
 
 export function createRepos(db: IDBDatabase): Repos {
   return {
@@ -146,5 +147,6 @@ export function createRepos(db: IDBDatabase): Repos {
     progress: new ProgressRepo(db),
     settings: new SettingsRepo(db),
     annotations: new AnnotationsRepo(db),
+    sessions: new SessionsRepo(db),
   };
 }

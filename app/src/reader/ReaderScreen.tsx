@@ -7,6 +7,7 @@ import { SelectionBar } from "../annotations/SelectionBar";
 import { normalizeRects } from "../annotations/geometry";
 import { useAnnotations } from "../annotations/useAnnotations";
 import { ReadAloudBar } from "../readaloud/ReadAloudBar";
+import { ReadingTracker } from "../stats/tracker";
 import { useReadAloud } from "../readaloud/useReadAloud";
 import { HIGHLIGHT_COLORS, type HighlightColor, type NormRect } from "../db/annotations";
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
@@ -140,6 +141,36 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
   };
+
+  // Reading time for goals and stats: counts only while active and visible.
+  const tracker = useRef<ReadingTracker | null>(null);
+  useEffect(() => {
+    if (!ready || !scroller.current) return;
+    const t = new ReadingTracker(repos.sessions, bookId);
+    tracker.current = t;
+    t.setPage(page);
+    t.activity();
+    const onActivity = () => t.activity();
+    const onVisibility = () => t.setVisible(document.visibilityState === "visible");
+    const el = scroller.current;
+    el.addEventListener("scroll", onActivity, { passive: true });
+    addEventListener("pointerdown", onActivity);
+    addEventListener("keydown", onActivity);
+    document.addEventListener("visibilitychange", onVisibility);
+    const timer = setInterval(() => t.tick(), 5000);
+    return () => {
+      clearInterval(timer);
+      t.tick();
+      t.flush();
+      el.removeEventListener("scroll", onActivity);
+      removeEventListener("pointerdown", onActivity);
+      removeEventListener("keydown", onActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
+      tracker.current = null;
+    };
+  }, [ready, bookId]);
+  useEffect(() => tracker.current?.setPage(page), [page]);
+  useEffect(() => tracker.current?.setPlaying(readAloud.state === "playing"), [readAloud.state]);
 
   // Draw highlights, sticky notes and bookmark ribbons whenever they change.
   useEffect(() => {
