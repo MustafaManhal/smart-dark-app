@@ -21,9 +21,13 @@ test("electron-builder config: ad-hoc mac signing, PDF association, installers",
   expect(cfg.directories.output).toBe("release"); // never the extension's dist/
 });
 
-test("pages workflow publishes the built web app", () => {
-  const wf = parse(readFileSync(".github/workflows/pages.yml", "utf8"));
-  const steps = wf.jobs.deploy.steps;
-  expect(steps.find((s: { uses?: string }) => s.uses?.startsWith("actions/upload-pages-artifact")).with.path).toBe("app-dist");
-  expect(wf.permissions).toMatchObject({ pages: "write", "id-token": "write" });
+test("vercel.json builds the web app, keeps the service worker fresh and sends a CSP", () => {
+  const v = JSON.parse(readFileSync("vercel.json", "utf8"));
+  expect(v).toMatchObject({ buildCommand: "npm run app:build", outputDirectory: "app-dist" });
+  const sw = v.headers.find((h: { source: string }) => h.source === "/sw.js");
+  expect(sw.headers[0].value).toContain("max-age=0");
+  const all = v.headers.find((h: { source: string }) => h.source === "/(.*)");
+  const csp = all.headers.find((h: { key: string }) => h.key === "Content-Security-Policy").value;
+  expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval'");
+  expect(csp).toContain("frame-ancestors 'none'");
 });

@@ -8,7 +8,8 @@ export default defineConfig({
   // never against a dev server someone has open on 5199.
   use: { baseURL: "http://localhost:5198/" },
   webServer: {
-    command: "npm run app:build && npx vite preview --port 5198 --strictPort",
+    // Production build behind the same headers Vercel sends (vercel.json), CSP included.
+    command: "npm run app:build && node scripts/serve-app.mjs 5198",
     url: "http://localhost:5198/",
     reuseExistingServer: false,
   },

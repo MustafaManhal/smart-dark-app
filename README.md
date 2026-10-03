@@ -58,9 +58,10 @@ removes it after a few seconds.
 The same app runs on iPhone from Safari and installs to the Home Screen; it then opens full screen and works
 offline. Your books and notes stay on the phone.
 
-1. Publish it: push to GitHub, then in the repository Settings → Pages choose "GitHub Actions". The workflow
-   `.github/workflows/pages.yml` builds and deploys it.
-2. On the iPhone, open the Pages address in Safari, tap **Share → Add to Home Screen**.
+1. Publish it on Vercel (free Hobby plan, works with a private repo): in the Vercel dashboard choose
+   **Add New → Project**, import this repository, and deploy. `vercel.json` sets the build, the output folder
+   and the security headers. Every push to `main` deploys again.
+2. On the iPhone, open the Vercel address in Safari, tap **Share → Add to Home Screen**.
 3. Add PDFs with the **Add PDF** button (iOS does not let web apps open files from the Files app directly).
    Use **Back up and restore** in the library to keep a copy of everything in Files or iCloud Drive.
 
