@@ -12,7 +12,10 @@ const pkg = JSON.parse(await readFile(join(here, "..", "package.json"), "utf8"))
 const UPDATE_REPO = pkg.desktop?.updateRepo ?? ""; // "owner/repo" on GitHub, empty = updates off
 
 // Content Security Policy for the app: only its own files, plus the opt-in book
-// lookup services and the update check.
+// lookup services, the update check, and Hugging Face for the natural-voice
+// model (weights only; every script is the app's own).
+// Tests of the natural voices read the speech model from a local server instead of Hugging Face.
+const TEST_ORIGIN = /^http:\/\/localhost:\d+$/.test(process.env.SMART_DARK_TEST_ORIGIN ?? "") ? ` ${process.env.SMART_DARK_TEST_ORIGIN}` : "";
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
@@ -20,7 +23,7 @@ const CSP = [
   "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-  "connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com",
+  "connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
   "object-src 'none'",
   "base-uri 'none'",
   "frame-ancestors 'none'",
@@ -202,6 +205,9 @@ app.whenReady().then(async () => {
     const headers = new Headers(res.headers);
     if (file.endsWith(".html")) headers.set("Content-Security-Policy", CSP);
     if (file.endsWith(".mjs")) headers.set("Content-Type", "text/javascript");
+    // Cross-origin isolation, as on the web (vercel.json): the natural voices need threads.
+    headers.set("Cross-Origin-Opener-Policy", "same-origin");
+    headers.set("Cross-Origin-Embedder-Policy", "credentialless");
     return new Response(res.body, { status: res.status, headers });
   });
 

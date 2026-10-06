@@ -22,8 +22,10 @@ const defaults = {
   zoomScale: 1,
   readRate: 1,
   readPitch: 1,
-  readVoices: {} as Record<string, string>, // language -> voiceURI
+  readVoices: {} as Record<string, string>, // language -> voiceURI, or "natural:<id>" for a natural voice
   readAutoPage: true,
+  readSmart: true, // leave out page numbers, running headers, links and footnote marks
+  naturalDownloaded: false, // the natural-voice model has been downloaded on this device
   goalUnit: "minutes" as "minutes" | "pages",
   goalValue: 0, // 0 = no daily goal
   reminderOn: false,

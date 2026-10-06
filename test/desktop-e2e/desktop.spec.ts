@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication } from "@playwright/test";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -64,4 +64,55 @@ test("links open in the system browser, not inside the app", async () => {
   await win.evaluate(() => window.open("https://example.com/page", "_blank"));
   await expect.poll(() => app.evaluate(() => (globalThis as unknown as { opened: string[] }).opened)).toEqual(["https://example.com/page"]);
   expect(win.url()).toBe("app://bundle/index.html");
+});
+
+// The speech model (326 MB) is read from a local copy served by scripts/serve-app.mjs.
+const MODEL = "node_modules/.cache/smart-dark-tts/model/onnx/model.onnx";
+
+test("natural voices speak in the desktop app", async () => {
+  test.skip(!existsSync(MODEL), `needs the speech model at ${MODEL}`);
+  test.setTimeout(180_000);
+  await app.close();
+  const profile = mkdtempSync(join(tmpdir(), "sdr-"));
+  app = await electron.launch({
+    args: [".", `--user-data-dir=${profile}`], cwd: resolve("."),
+    env: { ...process.env, SMART_DARK_TEST_ORIGIN: "http://localhost:5198" } as Record<string, string>,
+  });
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+  expect(await win.evaluate(() => crossOriginIsolated)).toBe(true); // threads for the voice engine
+  await win.evaluate(() => {
+    const w = window as unknown as { __smartDarkModelHost: string; __clips: { seconds: number; peak: number }[] };
+    w.__smartDarkModelHost = "http://localhost:5198/__model/";
+    // The device voices would speak out loud on the test machine: keep them quiet.
+    Object.defineProperty(window, "speechSynthesis", { configurable: true, value: { speaking: false, speak() {}, cancel() {}, getVoices: () => [] } });
+    // Count the audio clips the natural voice plays, with their length and loudness.
+    w.__clips = [];
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      const data = this.buffer!.getChannelData(0);
+      let peak = 0;
+      for (let i = 0; i < data.length; i += 11) peak = Math.max(peak, Math.abs(data[i]));
+      w.__clips.push({ seconds: this.buffer!.duration, peak });
+      this.disconnect(); // silent on the test machine
+      return start.apply(this, args);
+    };
+  });
+  await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("src/sample/sample.pdf"));
+  await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
+
+  await win.getByRole("button", { name: "Read aloud", exact: true }).click();
+  await win.getByRole("button", { name: "Read aloud settings" }).click();
+  const sheet = win.getByRole("dialog", { name: "Read aloud" });
+  await sheet.getByRole("button", { name: "Download natural voices (326 MB)" }).click();
+  const natural = sheet.getByRole("list", { name: "Natural voices" });
+  await expect(natural.getByRole("listitem")).toHaveCount(28, { timeout: 90_000 });
+  await expect(natural.getByRole("radio", { name: /Heart/ })).toBeChecked();
+
+  const clips = () => win.evaluate(() => (window as unknown as { __clips: { seconds: number; peak: number }[] }).__clips);
+  await natural.getByRole("button", { name: "Hear George" }).click();
+  await expect.poll(async () => (await clips()).length, { timeout: 60_000 }).toBeGreaterThanOrEqual(1);
+  expect((await clips())[0].seconds).toBeGreaterThan(1.5);
+  expect((await clips())[0].peak).toBeGreaterThan(0.1); // speech, not silence
+  await win.screenshot({ path: "test/output/desktop-natural-voices.png" });
 });

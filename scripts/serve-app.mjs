@@ -18,16 +18,22 @@ const types = {
   ".ttf": "font/ttf", ".icc": "application/octet-stream",
 };
 
+// Tests of the natural voices read the speech model from a local copy, so they need no network:
+// /__model/<repo>/resolve/main/<file> is node_modules/.cache/smart-dark-tts/model/<file>.
+const modelRoot = fileURLToPath(new URL("../node_modules/.cache/smart-dark-tts/model/", import.meta.url));
+
 createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
-  let file = normalize(join(root, path === "/" ? "/index.html" : path));
-  if (!file.startsWith(root)) return res.writeHead(403).end();
+  const model = path.startsWith("/__model/") ? path.split("/resolve/main/")[1] : null;
+  let file = model ? normalize(join(modelRoot, model)) : normalize(join(root, path === "/" ? "/index.html" : path));
+  if (!file.startsWith(model ? modelRoot : root)) return res.writeHead(403).end();
   try {
     if (!statSync(file).isFile()) throw new Error();
   } catch {
     return res.writeHead(404).end("Not found");
   }
   for (const rule of rules) if (rule.re.test(path)) for (const h of rule.headers) res.setHeader(h.key, h.value);
+  if (model) res.setHeader("Access-Control-Allow-Origin", "*"); // the desktop app (app://) reads it across origins, as it does from Hugging Face
   res.setHeader("Content-Type", types[extname(file)] ?? "application/octet-stream");
   createReadStream(file).pipe(res);
 }).listen(port, () => console.log(`serving app-dist on http://localhost:${port}`));

@@ -91,6 +91,11 @@ privacy policy (`docs/PRIVACY.md`) must be hosted at a public URL before submitt
 
 ## License
 
+Read aloud in the app can use natural voices on computers. They run on the device with
+[HeadTTS](https://github.com/met4citizen/HeadTTS) (MIT), the Kokoro model and voices (Apache-2.0),
+transformers.js (Apache-2.0), ONNX Runtime (MIT) and a pronunciation dictionary from the CMU dictionary
+(BSD). No eSpeak or other GPL code is used. See `docs/plans/2026-10-07-read-aloud-voices.md`.
+
 MIT, see `LICENSE`. Bundled PDF.js is Apache-2.0; its license ships in `lib/pdfjs/LICENSE`. The slider
 ranges and the color matrices for brightness, contrast, sepia and grayscale follow
 [Dark Reader](https://github.com/darkreader/darkreader) (MIT).

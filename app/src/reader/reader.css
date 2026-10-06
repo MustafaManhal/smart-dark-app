@@ -187,6 +187,26 @@
 .zoom-pill .icon-btn.is-on { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
 /* Read aloud */
+.speed-step { display: inline-flex; align-items: center; }
+.speed-step .icon-btn { width: 32px; height: 32px; }
+.speed-step .icon { width: 16px; height: 16px; }
+.speed-now { min-width: 42px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.read-speed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; }
+.voices h3 { margin: 12px 0 4px; font-size: 15px; }
+.voices h4 { margin: 12px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.voice-list { list-style: none; margin: 0; padding: 0; max-height: 264px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+.voice-row { display: flex; align-items: center; gap: 4px; padding-inline: 10px 4px; }
+.voice-row + .voice-row { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.voice-row label { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; padding: 10px 0; cursor: pointer; }
+.voice-row input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); align-self: center; }
+.voice-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-detail { flex: none; color: var(--muted); font-size: 12px; }
+.voice-row .icon-btn { width: 36px; height: 36px; }
+.voice-row .icon-btn.is-busy { color: var(--accent); }
+.voice-note { margin: 8px 0; color: var(--muted); font-size: 13px; }
+.voice-note.is-error { color: var(--danger); }
+.voice-load { display: grid; gap: 6px; margin: 8px 0; font-size: 13px; color: var(--muted); }
+.voice-load progress { width: 100%; height: 6px; accent-color: var(--accent); }
 .speech-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .spoken { position: absolute; border-radius: 3px; background: color-mix(in srgb, var(--accent) 30%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); }
 .read-bar {

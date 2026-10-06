@@ -8,7 +8,7 @@
     "assets": "node scripts/make-icons.mjs && node scripts/make-sample-pdf.mjs",
     "e2e": "node scripts/build.mjs --e2e && node test/e2e/e2e.mjs",
     "store-assets": "node scripts/build.mjs --e2e && node scripts/store-assets.mjs",
-    "app:assets": "node scripts/copy-pdfjs-assets.mjs",
+    "app:assets": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-tts-assets.mjs",
     "app:dev": "npm run app:assets && vite",
     "app:build": "npm run app:assets && tsc -p tsconfig.json && vite build",
     "app:test": "vitest run",
@@ -20,6 +20,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@huggingface/transformers": "^4.3.1",
     "@playwright/test": "1.63",
     "@preact/preset-vite": "^2.10.6",
     "electron": "^44.5.1",

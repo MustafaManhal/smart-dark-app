@@ -3,10 +3,13 @@ import { normalizeRects, rectToCss } from "../annotations/geometry";
 import { currentChapter } from "../reader/chapters";
 import type { OutlineItem } from "../reader/pdf";
 import type { Renderer } from "../reader/renderer";
-import { settings } from "../settings";
-import { rangeFor, readPageText, type PageText } from "./pageText";
-import { loadVoices, Speaker, type SpeakerState, type Voice } from "./speaker";
+import { saveSetting, settings } from "../settings";
+import { loadNatural, NATURAL_PREFIX, naturalId, naturalSupported, unloadNatural } from "./neural";
+import { pageLines, rangeFor, readPageText, type PageText } from "./pageText";
+import { blankSkipped, skippedLines, speechText, type EdgeMemory } from "./smart";
+import { loadVoices, Speaker, stopPreview, type SpeakerState, type Voice } from "./speaker";
 import { detectLanguage, splitSentences, type Sentence } from "./text";
+import { bestVoice } from "./voices";
 
 export type SleepTimer = { kind: "off" } | { kind: "minutes"; minutes: number; until: number } | { kind: "chapter"; endPage: number };
 
@@ -26,6 +29,8 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
   const [lang, setLang] = useState("en");
   const [sleep, setSleep] = useState<SleepTimer>({ kind: "off" });
   const [notice, setNotice] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const edges = useRef<EdgeMemory>(new Map()); // headers and footers seen so far in this book
   const [unsupported] = useState(() => !globalThis.speechSynthesis);
   const page = useRef(1);
   const text = useRef<PageText | null>(null);
@@ -55,7 +60,12 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
   }
 
   if (!speaker.current) {
-    speaker.current = new Speaker({ onSentence: (i) => mark(i), onState: setState });
+    speaker.current = new Speaker({
+      onSentence: (i) => mark(i),
+      onState: setState,
+      onWaiting: setWaiting,
+      onFallback: () => setNotice("The natural voice could not start. Reading with a device voice."),
+    });
   }
 
   // Ask the voices once.
@@ -95,23 +105,40 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
     return () => clearTimeout(t);
   }, [sleep]);
 
-  // Stop when leaving the reader.
-  useEffect(() => () => speaker.current?.stop(), []);
+  // Stop when leaving the reader, and give back the memory of the natural voices.
+  useEffect(() => () => {
+    speaker.current?.stop();
+    stopPreview();
+    unloadNatural();
+  }, []);
 
-  const options = () => ({
-    rate: settings.readRate.value,
-    pitch: settings.readPitch.value,
-    voiceURI: settings.readVoices.value[lang] ?? null,
-    lang,
-  });
+  /** The chosen voice for a language. A natural voice only counts where they can run. */
+  const voiceFor = (language: string) => {
+    const chosen = settings.readVoices.value[language] ?? null;
+    return naturalId(chosen) && !naturalSupported() ? null : chosen;
+  };
+  const options = (language = lang) => {
+    // With no choice (or when a natural voice fails) the best device voice reads, not the system default.
+    speaker.current!.fallbackVoiceURI = bestVoice(voices, language, navigator.language)?.uri ?? null;
+    return { rate: settings.readRate.value, pitch: settings.readPitch.value, voiceURI: voiceFor(language), lang: language };
+  };
 
   async function loadPage(n: number) {
     const layer = await renderer.current?.textLayerOf(n);
     text.current = layer ? readPageText(layer) : { text: "", pieces: [] };
     page.current = n;
-    const detected = detectLanguage(text.current.text, lang);
+    let source = text.current.text;
+    const smart = settings.readSmart.value;
+    if (smart && layer) {
+      // Page numbers, running headers and the like are blanked, so sentence positions stay true.
+      const lines = pageLines(text.current, layer);
+      source = blankSkipped(source, lines, skippedLines(lines, n, edges.current));
+    }
+    const detected = detectLanguage(source, lang);
     setLang(detected);
-    sentences.current = splitSentences(text.current.text, detected);
+    sentences.current = splitSentences(source, detected)
+      .map((s) => (smart ? { ...s, say: speechText(s.text, detected) } : s))
+      .filter((s) => s.say !== "");
     return detected;
   }
 
@@ -134,7 +161,7 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
       const detected = await loadPage(current);
       if (sentences.current.length) {
         const from = at === "visible" ? firstVisibleSentence() : 0;
-        speaker.current!.play(sentences.current, from, { ...options(), lang: detected, voiceURI: settings.readVoices.value[detected] ?? null });
+        speaker.current!.play(sentences.current, from, options(detected));
         return;
       }
       if (!settings.readAutoPage.value) break;
@@ -166,6 +193,7 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
     lang,
     sleep,
     notice,
+    waiting,
     unsupported,
     show() {
       setOpen(true);
@@ -183,6 +211,7 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
       speaker.current?.skip(delta);
     },
     close() {
+      stopPreview();
       speaker.current?.stop();
       clearMark();
       setOpen(false);
@@ -191,6 +220,22 @@ export function useReadAloud(renderer: { current: Renderer | null }, outline: Ou
     },
     applyOptions() {
       speaker.current?.setOptions(options());
+    },
+    pause() {
+      speaker.current?.pause();
+    },
+    /** Downloads the natural voices (once) and starts using the first one for English. */
+    async downloadNatural() {
+      try {
+        await loadNatural();
+      } catch {
+        return; // the picker shows the error and a way to try again
+      }
+      saveSetting("naturalDownloaded", true);
+      if (!naturalId(settings.readVoices.value.en)) {
+        saveSetting("readVoices", { ...settings.readVoices.value, en: `${NATURAL_PREFIX}af_heart` });
+        speaker.current?.setOptions(options());
+      }
     },
     setSleep(kind: "off" | 15 | 30 | 60 | "chapter", currentPage: number) {
       if (kind === "off") setSleep({ kind: "off" });

@@ -10,6 +10,7 @@ import { saveSetting, settings, type AppTheme, type DarkTheme, type ImageMode, t
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { AdjustControls } from "../reader/AdjustControls";
+import { SpeedStepper } from "../readaloud/VoicePicker";
 import "./settings.css";
 
 function Choice<T extends string | number>({ name, legend, value, options, onPick }: {
@@ -72,9 +73,15 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
 
       <section class="card">
         <h2>{t("Read aloud")}</h2>
-        <Choice<number> name="readRate" legend={t("Speed")} value={s.readRate.value}
-          options={[[0.75, "0.75×"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [2, "2×"]]}
-          onPick={(v) => saveSetting("readRate", v)} />
+        <div class="read-speed-row">
+          <span>{t("Speed")}</span>
+          <SpeedStepper />
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked={s.readSmart.value} onChange={(e) => saveSetting("readSmart", e.currentTarget.checked)} />
+          {t("Smart reading: skip page numbers, headers, links and footnote marks")}
+        </label>
+        <p class="muted small">{t("Voices are chosen in the reader: open read aloud, then its settings.")}</p>
         <label class="toggle">
           <input type="checkbox" checked={s.readAutoPage.value} onChange={(e) => saveSetting("readAutoPage", e.currentTarget.checked)} />
           {t("Continue to the next page")}

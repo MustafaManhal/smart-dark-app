@@ -1,4 +1,5 @@
-export type Sentence = { text: string; start: number; end: number };
+/** `say` is what is spoken when it differs from the text on the page (see smart.ts). */
+export type Sentence = { text: string; start: number; end: number; say?: string };
 
 const MAX_LEN = 220; // short utterances avoid Chrome's ~15 s cut-off
 

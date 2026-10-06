@@ -26,6 +26,16 @@ Your display preferences: theme, image handling, contrast, and whether PDFs open
 - **declarativeNetRequestWithHostAccess:** lets the extension send PDF links to its viewer instead of the built-in one. It acts only on PDF responses.
 - **storage:** saves the preferences listed above.
 
+## The reader app (web, iPhone, desktop)
+
+The app keeps books, notes and reading history on your device only.
+
+- **Book details lookup** is off until you turn it on. When you search, the text you type is sent to Open
+  Library and Google Books.
+- **Natural voices for read aloud** are an optional download on computers. The speech model (about 326 MB)
+  comes from Hugging Face, which sees your internet address as with any download. The speech is made on
+  your device. The text that is read is not sent anywhere.
+
 ## Contact
 
 Questions about this policy: [your contact email]
