@@ -14,6 +14,8 @@ import {
   createAdjuster,
   createPlainMapper,
   adjustColor,
+  textRectsFromItems,
+  textWeights,
 } from "../../src/viewer/smart-invert.js";
 
 const unpack = (v) => [v & 255, (v >> 8) & 255, (v >> 16) & 255];
@@ -231,4 +233,92 @@ test("adjust: photos are not adjusted", () => {
   const i = (5 * 40 + 30) * 4;
   assert.deepEqual([...img.data.slice(i, i + 3)], [200, 90, 30]);
   assert.notDeepEqual([...img.data.slice(0, 3)], THEMES.dark.bg);
+});
+
+// A 60x24 white page with a black "glyph" block at x 20..23, y 8..15, a
+// yellow band behind x 30..59 with a second block at x 40..43, and one gray
+// anti-aliased pixel at (24, 10).
+function textPage() {
+  return fakePage(60, 24, (x, y) => {
+    const inRows = y >= 8 && y < 16;
+    if (inRows && ((x >= 20 && x < 24) || (x >= 40 && x < 44))) return [0, 0, 0];
+    if (x === 24 && y === 10) return [128, 128, 128];
+    if (x >= 30 && y >= 4 && y < 20) return [255, 240, 80];
+    return [255, 255, 255];
+  });
+}
+const lineRect = [{ left: 2, top: 4, right: 58, bottom: 20 }];
+
+test("text rectangles follow the pdf.js text items", () => {
+  // A4 page at scale 2 on a canvas with twice as many pixels.
+  const viewport = { transform: [2, 0, 0, -2, 0, 1684], scale: 2, width: 1190, height: 1684 };
+  const items = [
+    { str: "Hello", transform: [10, 0, 0, 10, 100, 700], width: 50, height: 10 },
+    { str: "   ", transform: [10, 0, 0, 10, 100, 600], width: 20, height: 10 },
+    { str: "", transform: [10, 0, 0, 10, 0, 0], width: 0, height: 0 },
+    { type: "beginMarkedContent" },
+  ];
+  const rects = textRectsFromItems(items, viewport, 2380, 3368);
+  assert.equal(rects.length, 1);
+  // Baseline at y = (842 - 700) * 2 = 284 viewport px; the font is 20 px high.
+  // Ascent 0.95, descent 0.3, one pixel of margin, then doubled for the canvas.
+  assert.deepEqual(rects[0], { left: 399, top: 529, right: 601, bottom: 581 });
+});
+
+test("text weights: ink is 255, paper and a highlight band behind the text are 0", () => {
+  const img = textPage();
+  const px = new Uint32Array(img.data.buffer);
+  const w = textWeights(px, 60, 24, lineRect);
+  const at = (x, y) => w[y * 60 + x];
+  assert.equal(at(21, 10), 255, "ink on white");
+  assert.equal(at(41, 10), 255, "ink on the band");
+  assert.equal(at(10, 10), 0, "white paper");
+  assert.equal(at(50, 10), 0, "yellow band");
+  assert.equal(at(31, 10), 0, "band right after its edge");
+  assert.ok(at(24, 10) > 90 && at(24, 10) < 160, `anti-aliased edge: ${at(24, 10)}`);
+  assert.equal(at(21, 2), 0, "outside the text rectangle");
+});
+
+test("text weights: photos and empty rectangles have no text", () => {
+  const img = textPage();
+  const px = new Uint32Array(img.data.buffer);
+  const mask = new Uint8Array(60 * 24).fill(1);
+  assert.ok(textWeights(px, 60, 24, lineRect, mask).every((v) => v === 0));
+  const blank = [{ left: 2, top: 0, right: 18, bottom: 4 }];
+  assert.ok(textWeights(px, 60, 24, blank).every((v) => v === 0));
+});
+
+test("processPage with mapText adjusts text only", () => {
+  const img = textPage();
+  const half = createAdjuster({ brightness: 50 });
+  const mapColor = createColorMapper(THEMES.dark);
+  const mapText = createColorMapper(THEMES.dark, { adjust: half });
+  processPage(img, { mapColor, mapText, textRects: lineRect });
+  const at = (x, y) => [...img.data.slice((y * 60 + x) * 4, (y * 60 + x) * 4 + 3)];
+  assert.deepEqual(at(10, 10), THEMES.dark.bg, "paper keeps the theme background");
+  assert.deepEqual(at(21, 10), THEMES.dark.fg.map((c) => Math.round(c / 2)), "ink is dimmed");
+  assert.deepEqual(at(50, 10), unpack(mapColor(255, 240, 80)), "the band keeps its mapped color");
+  assert.deepEqual(at(41, 10), THEMES.dark.fg.map((c) => Math.round(c / 2)), "ink on the band is dimmed");
+  // Without text rectangles nothing is adjusted.
+  const plain = textPage();
+  processPage(plain, { mapColor, mapText, textRects: [] });
+  assert.deepEqual([...plain.data.slice((10 * 60 + 21) * 4, (10 * 60 + 21) * 4 + 3)], THEMES.dark.fg);
+});
+
+test("anti-aliased letter edges get their share of the change, without a color fringe", () => {
+  // White page, red ink at x 20..23, one half-covered edge pixel at x 24.
+  const img = fakePage(60, 24, (x, y) => {
+    if (y >= 8 && y < 16 && x >= 20 && x < 24) return [255, 0, 0];
+    if (y >= 8 && y < 16 && x === 24) return [255, 128, 128];
+    return [255, 255, 255];
+  });
+  const mapColor = createPlainMapper();
+  const mapText = createPlainMapper(createAdjuster({ grayscale: 100 }));
+  processPage(img, { mapColor, mapText, textRects: lineRect });
+  const at = (x, y) => [...img.data.slice((y * 60 + x) * 4, (y * 60 + x) * 4 + 3)];
+  assert.deepEqual(at(21, 10), [54, 54, 54], "solid ink is gray");
+  const edge = at(24, 10);
+  assert.ok(Math.max(...edge) - Math.min(...edge) <= 2, `edge should be gray: ${edge}`);
+  assert.ok(edge[0] > 140 && edge[0] < 170, `edge should sit between ink and paper: ${edge}`);
+  assert.deepEqual(at(26, 10), [255, 255, 255], "paper next to the letter is untouched");
 });

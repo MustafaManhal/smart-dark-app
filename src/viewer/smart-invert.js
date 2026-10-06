@@ -101,7 +101,9 @@ export const ADJUST_RANGES = {
 /** @typedef {(r:number, g:number, b:number) => number[]} Adjuster */
 
 /**
- * Build a color adjuster from percent values (see ADJUST_RANGES).
+ * Build a color adjuster from percent values (see ADJUST_RANGES). Viewers
+ * use it for text only: one mapper without it for the page and one with it
+ * for the ink (`mapText` in processPage).
  * The matrices and their order (brightness, then contrast, grayscale, sepia)
  * follow Dark Reader's createFilterMatrix (MIT, Dark Reader Ltd.).
  * @param {{brightness?:number, contrast?:number, sepia?:number, grayscale?:number}} [values]
@@ -382,18 +384,209 @@ export function refineRect(px32, width, height, rect, maxGrow = 2) {
   return out;
 }
 
+// ---------- text regions ----------
+
+const ASCENT = 0.95; // of the font size, above the baseline
+const DESCENT = 0.3; // below it
+
+/**
+ * Pixel rectangles of the text runs on a page.
+ * @param {Array<any>} items `items` of pdf.js `getTextContent()`
+ * @param {{transform:number[], scale:number, width:number, height:number}} viewport the viewport the page was drawn with
+ * @param {number} width canvas width in pixels
+ * @param {number} height canvas height in pixels
+ */
+export function textRectsFromItems(items, viewport, width, height) {
+  const rects = [];
+  const [va, vb, vc, vd, ve, vf] = viewport.transform;
+  const sx = width / viewport.width;
+  const sy = height / viewport.height;
+  for (const item of items) {
+    if (!item.transform || !item.width || !item.str?.trim()) continue;
+    const [a, b, c, d, e, f] = item.transform;
+    // viewport.transform x item.transform: text space -> viewport pixels
+    const ta = va * a + vc * b, tb = vb * a + vd * b;
+    const size = Math.hypot(va * c + vc * d, vb * c + vd * d);
+    const x = va * e + vc * f + ve, y = vb * e + vd * f + vf; // start of the baseline
+    const len = Math.hypot(ta, tb) || 1;
+    const ux = ta / len, uy = tb / len; // reading direction
+    const nx = uy, ny = -ux; // "up" on screen
+    const run = item.width * viewport.scale;
+    const xs = [], ys = [];
+    for (const k of [ASCENT * size, -DESCENT * size]) {
+      for (const along of [0, run]) {
+        xs.push(x + nx * k + ux * along);
+        ys.push(y + ny * k + uy * along);
+      }
+    }
+    const left = Math.max(0, Math.floor(Math.min(...xs) * sx) - 1);
+    const top = Math.max(0, Math.floor(Math.min(...ys) * sy) - 1);
+    const right = Math.min(width, Math.ceil(Math.max(...xs) * sx) + 1);
+    const bottom = Math.min(height, Math.ceil(Math.max(...ys) * sy) + 1);
+    if (right - left >= 2 && bottom - top >= 2) rects.push({ left, top, right, bottom });
+  }
+  return rects;
+}
+
+const NOISE = 12; // color distance ignored as background noise (scans, JPEG)
+const MIN_INK = 24; // a text rectangle with less than this has nothing visible in it
+const TEXT_DONE = 3; // mask value of pixels the text pass has already recolored
+
+// Largest channel difference between a 0xBBGGRR pixel and a background color.
+function colorDistance(p, bg) {
+  const dr = Math.abs((p & 255) - (bg & 255));
+  const dg = Math.abs(((p >> 8) & 255) - ((bg >> 8) & 255));
+  const db = Math.abs(((p >> 16) & 255) - ((bg >> 16) & 255));
+  return dr > dg ? (dr > db ? dr : db) : dg > db ? dg : db;
+}
+
+// The color most of a strip has (its background), or -1 when no color has a
+// clear lead. Colors are compared in coarse steps so scan noise still agrees.
+function stripBackground(px32, width, skip, left, right, top, bottom) {
+  const coarse = (p) => p & 0xf0f0f0;
+  let candidate = -1, votes = 0;
+  for (let y = top; y < bottom; y++) {
+    for (let i = y * width + left, end = y * width + right; i < end; i++) {
+      if (skip && skip[i]) continue;
+      const key = coarse(px32[i]);
+      if (votes === 0) candidate = key;
+      votes += key === candidate ? 1 : -1;
+    }
+  }
+  let total = 0, count = 0, r = 0, g = 0, b = 0;
+  for (let y = top; y < bottom; y++) {
+    for (let i = y * width + left, end = y * width + right; i < end; i++) {
+      if (skip && skip[i]) continue;
+      total++;
+      const p = px32[i];
+      if (coarse(p) !== candidate) continue;
+      count++;
+      r += p & 255;
+      g += (p >> 8) & 255;
+      b += (p >> 16) & 255;
+    }
+  }
+  if (!count || count * 5 < total * 2) return -1;
+  return (Math.round(b / count) << 16) | (Math.round(g / count) << 8) | Math.round(r / count);
+}
+
+// Calls visit(i, bg, share) for every pixel of the text rectangles that is
+// not background. `bg` is the packed background color next to the pixel and
+// `share` how much of the pixel is ink: 1 for solid ink, less on anti-aliased
+// edges. Inside a rectangle the background is found strip by strip, so a
+// highlight band or a table fill behind part of a line counts as background.
+// Pixels with a nonzero `skip` value (photos, finished text) are left out.
+function eachInkPixel(px32, width, textRects, skip, visit) {
+  let dist = new Uint8Array(0);
+  let near = new Int32Array(0);
+  for (const rect of textRects) {
+    const w = rect.right - rect.left;
+    const h = rect.bottom - rect.top;
+    if (w < 2 || h < 2) continue;
+    // Strips about half a line high in width: wider than a letter stem, so
+    // ink never wins the vote, and narrow enough to follow a change of fill.
+    const strip = Math.max(4, Math.round(h / 2));
+    const bgs = [];
+    for (let x = rect.left; x < rect.right; x += strip) {
+      bgs.push(stripBackground(px32, width, skip, x, Math.min(rect.right, x + strip), rect.top, rect.bottom));
+    }
+    for (let s = 1; s < bgs.length; s++) if (bgs[s] < 0) bgs[s] = bgs[s - 1];
+    for (let s = bgs.length - 2; s >= 0; s--) if (bgs[s] < 0) bgs[s] = bgs[s + 1];
+    if (bgs[0] < 0) continue;
+
+    if (dist.length < w * h) {
+      dist = new Uint8Array(w * h);
+      near = new Int32Array(w * h);
+    }
+    let far = 0;
+    for (let y = rect.top, k = 0; y < rect.bottom; y++) {
+      for (let x = rect.left, i = y * width + x; x < rect.right; x++, i++, k++) {
+        dist[k] = 0;
+        if (skip && skip[i]) continue;
+        const p = px32[i];
+        const s = ((x - rect.left) / strip) | 0;
+        // The neighbor strips too, so a fill that starts mid-strip is still background.
+        let bg = bgs[s];
+        let d = colorDistance(p, bg);
+        for (const other of [s - 1, s + 1]) {
+          if (d <= NOISE || other < 0 || other >= bgs.length) continue;
+          const od = colorDistance(p, bgs[other]);
+          if (od < d) {
+            d = od;
+            bg = bgs[other];
+          }
+        }
+        if (d <= NOISE) continue;
+        dist[k] = d;
+        near[k] = bg;
+        if (d > far) far = d;
+      }
+    }
+    if (far < MIN_INK) continue;
+    for (let y = rect.top, k = 0; y < rect.bottom; y++) {
+      for (let i = y * width + rect.left, end = y * width + rect.right; i < end; i++, k++) {
+        if (dist[k]) visit(i, near[k], dist[k] / far);
+      }
+    }
+  }
+}
+
+/**
+ * How much of each pixel is text ink, 0..255 (0 = background, 255 = solid ink).
+ * @param {Uint32Array} px32 the page before recoloring
+ * @param {number} width
+ * @param {number} height
+ * @param {Array<{left:number, top:number, right:number, bottom:number}>} textRects
+ * @param {Uint8Array | null} [mask] nonzero where photos are; those pixels are never text
+ */
+export function textWeights(px32, width, height, textRects, mask = null) {
+  const weights = new Uint8Array(width * height);
+  eachInkPixel(px32, width, textRects, mask, (i, bg, share) => {
+    const v = Math.round(share * 255);
+    if (v > weights[i]) weights[i] = v; // rectangles of neighbor runs overlap
+  });
+  return weights;
+}
+
+// Recolor text ink in place with `mapText` and mark it TEXT_DONE in `mask`.
+// An anti-aliased edge pixel is part ink and part background. It is rebuilt
+// as that same blend of the recolored ink and the page-colored background,
+// so no halo of adjusted background and no fringe of unadjusted ink is left
+// around letters.
+function recolorText(px32, width, textRects, mask, mapColor, mapText) {
+  const snap = (v) => clamp(Math.round(v / 5) * 5, 0, 255); // few distinct inks, exact at 0 and 255
+  eachInkPixel(px32, width, textRects, mask, (i, bg, share) => {
+    const p = px32[i];
+    const r = p & 255, g = (p >> 8) & 255, b = (p >> 16) & 255;
+    let out;
+    if (share > 0.97) {
+      out = mapText(r, g, b);
+    } else {
+      // The ink this pixel is a blend of lies on the line from the background through the pixel.
+      const bgR = bg & 255, bgG = (bg >> 8) & 255, bgB = (bg >> 16) & 255;
+      const ink = mapText(snap(bgR + (r - bgR) / share), snap(bgG + (g - bgG) / share), snap(bgB + (b - bgB) / share));
+      const paper = mapColor(bgR, bgG, bgB);
+      const mix = (shift) => Math.round(((paper >> shift) & 255) * (1 - share) + ((ink >> shift) & 255) * share);
+      out = (mix(16) << 16) | (mix(8) << 8) | mix(0);
+    }
+    px32[i] = (p & 0xff000000) | out;
+    mask[i] = TEXT_DONE;
+  });
+}
+
 // ---------- page processing ----------
 
 /**
- * Recolor a rendered page in place.
+ * Recolor a rendered page in place. With `mapText` and `textRects`, text ink
+ * is recolored by `mapText` and everything else by `mapColor`.
  * @param {ImageData} imageData
- * @param {{mapColor:Function, rects?:Array, imageMode?:string, imageDim?:number}} opts
+ * @param {{mapColor:Function, mapText?:Function|null, textRects?:Array, rects?:Array, imageMode?:string, imageDim?:number}} opts
  */
-export function processPage(imageData, { mapColor, rects = [], imageMode = "smart", imageDim = 0.85 }) {
+export function processPage(imageData, { mapColor, mapText = null, textRects = [], rects = [], imageMode = "smart", imageDim = 0.85 }) {
   const { width, height } = imageData;
   const px = new Uint32Array(imageData.data.buffer, imageData.data.byteOffset, width * height);
 
-  // 0 = recolor, 1 = keep, 2 = dim
+  // 0 = recolor, 1 = keep, 2 = dim, 3 = text (already recolored)
   let mask = null;
   if (rects.length && imageMode !== "invert") {
     mask = new Uint8Array(width * height);
@@ -410,12 +603,17 @@ export function processPage(imageData, { mapColor, rects = [], imageMode = "smar
     }
   }
 
+  if (mapText && textRects.length) {
+    mask ??= new Uint8Array(width * height);
+    recolorText(px, width, textRects, mask, mapColor, mapText);
+  }
+
   const dim = Math.round(clamp(imageDim, 0, 1) * 256);
   let lastIn = -1, lastOut = 0;
   for (let i = 0, n = px.length; i < n; i++) {
     const p = px[i];
     const m = mask ? mask[i] : 0;
-    if (m === 1) continue;
+    if (m === 1 || m === TEXT_DONE) continue;
     if (m === 2) {
       if (dim < 256) {
         const r = ((p & 255) * dim) >> 8;

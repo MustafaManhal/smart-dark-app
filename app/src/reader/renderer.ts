@@ -1,8 +1,8 @@
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
-  THEMES, TINTS, adjustColor, createAdjuster, createColorMapper, createPlainMapper, createTintMapper,
-  imageRectsFromCoords, processPage,
+  THEMES, TINTS, createAdjuster, createColorMapper, createPlainMapper, createTintMapper,
+  imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle } from "../settings";
 
@@ -20,9 +20,9 @@ export const CSS_UNITS = 96 / 72;
 const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
 export function pageBackground(o: RenderOptions) {
-  const paper = o.pageStyle === "original" ? [255, 255, 255]
-    : o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
-  return `rgb(${adjustColor(paper, createAdjuster(o.adjust)).join(" ")})`;
+  if (o.pageStyle === "original") return "#ffffff";
+  const rgb = o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
+  return `rgb(${rgb.join(" ")})`;
 }
 
 class PageSlot {
@@ -34,6 +34,8 @@ class PageSlot {
   layerScale = 0;
   task: ReturnType<PDFPageProxy["render"]> | null = null;
   textLayer: InstanceType<typeof pdfjs.TextLayer> | null = null;
+  /** Text runs of the page, fetched once when text adjustments are on. */
+  textItems: unknown[] | null = null;
 
   // Overlays live for the whole session; canvas and text layer come and go.
   highlightLayer = document.createElement("div");
@@ -80,6 +82,8 @@ export class Renderer {
   private busy = false;
   private queued = false;
   private mapper: ((r: number, g: number, b: number) => number) | null = null;
+  /** Same mapping plus the adjustments; used for text ink only. */
+  private textMapper: ((r: number, g: number, b: number) => number) | null = null;
   private styleKey = "";
   private current = 1;
   private resizeObserver: ResizeObserver;
@@ -174,9 +178,16 @@ export class Renderer {
   setOptions(opts: RenderOptions) {
     this.opts = opts;
     const adjust = createAdjuster(opts.adjust);
-    if (opts.pageStyle === "dark") this.mapper = createColorMapper(THEMES[opts.darkTheme], { adjust });
-    else if (opts.pageStyle === "sepia") this.mapper = createTintMapper(TINTS.sepia, { adjust });
-    else this.mapper = adjust ? createPlainMapper(adjust) : null; // untouched original needs no pass
+    if (opts.pageStyle === "dark") {
+      this.mapper = createColorMapper(THEMES[opts.darkTheme]);
+      this.textMapper = adjust && createColorMapper(THEMES[opts.darkTheme], { adjust });
+    } else if (opts.pageStyle === "sepia") {
+      this.mapper = createTintMapper(TINTS.sepia);
+      this.textMapper = adjust && createTintMapper(TINTS.sepia, { adjust });
+    } else {
+      this.mapper = adjust ? createPlainMapper() : null; // untouched original needs no pass
+      this.textMapper = adjust && createPlainMapper(adjust);
+    }
     const a = opts.adjust;
     this.styleKey = `${opts.pageStyle}|${opts.darkTheme}|${opts.imageMode}|${a ? [a.brightness, a.contrast, a.sepia, a.grayscale] : ""}`;
     this.container.style.setProperty("--page-bg", pageBackground(opts));
@@ -406,6 +417,7 @@ export class Renderer {
     canvas.height = Math.floor(viewport.height * out);
     canvas.setAttribute("aria-hidden", "true");
     const mapper = this.mapper;
+    const textMapper = this.textMapper;
     slot.task = slot.page.render({
       canvas,
       viewport,
@@ -418,9 +430,14 @@ export class Renderer {
       const ctx = canvas.getContext("2d")!;
       const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const rects = imageRectsFromCoords(slot.page.imageCoordinates, canvas.width, canvas.height);
-      // Original pages keep photos at full brightness; only text and paper are adjusted.
-      const imageDim = this.opts.pageStyle === "original" ? 1 : undefined;
-      processPage(image, { mapColor: mapper, rects, imageMode: this.opts.imageMode, imageDim });
+      // The adjustments are for text only, so the page tells us where its text is.
+      let textRects: ReturnType<typeof textRectsFromItems> = [];
+      if (textMapper) {
+        slot.textItems ??= (await slot.page.getTextContent({ disableNormalization: true })).items;
+        textRects = textRectsFromItems(slot.textItems, viewport, canvas.width, canvas.height);
+      }
+      const imageDim = this.opts.pageStyle === "original" ? 1 : undefined; // photos stay as they are
+      processPage(image, { mapColor: mapper, mapText: textMapper, textRects, rects, imageMode: this.opts.imageMode, imageDim });
       ctx.putImageData(image, 0, 0);
     }
     // Swap only when ready, so style and zoom changes never flash a blank page.

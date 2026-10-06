@@ -29,14 +29,14 @@ test("values are shown as the distance from the default", () => {
 
 test("defaults leave the pages as they are", () => {
   expect(adjustValues()).toEqual({ brightness: 100, contrast: 100, sepia: 0, grayscale: 0 });
-  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: adjustValues() })).toBe("rgb(255 255 255)");
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: adjustValues() })).toBe("#ffffff");
   expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart" })).toBe("rgb(30 31 34)");
 });
 
-test("the page background follows the adjustments", () => {
-  const adjust = { brightness: 50, contrast: 100, sepia: 0, grayscale: 0 };
-  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust })).toBe("rgb(128 128 128)");
-  expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart", adjust })).toBe("rgb(15 16 17)");
+test("the adjustments are for text, so the paper color stays", () => {
+  const adjust = { brightness: 50, contrast: 100, sepia: 100, grayscale: 0 };
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust })).toBe("#ffffff");
+  expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart", adjust })).toBe("rgb(30 31 34)");
 });
 
 test("buttons step by 5, stop at the ends, and Reset brings the defaults back", () => {

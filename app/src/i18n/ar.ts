@@ -104,7 +104,7 @@ export const AR: Record<string, string> = {
   "Less grayscale": "رمادي أقل",
   "More grayscale": "رمادي أكثر",
   "Reset adjustments": "إعادة الضبط",
-  "Adjustments change text and paper. Photos keep their real colors.": "الضبط يغيّر النص والورق. الصور تبقى بألوانها الحقيقية.",
+  "Adjustments change text only. Paper, charts and photos keep their colors.": "الضبط يغيّر النص فقط. الورق والرسوم والصور تبقى بألوانها.",
   "Dark": "داكن",
   "Dim": "خافت",
   "Black": "أسود",

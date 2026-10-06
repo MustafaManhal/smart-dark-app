@@ -4,9 +4,9 @@ import {
   IMAGE_MODES,
   ADJUST_DEFAULTS,
   ADJUST_RANGES,
-  adjustColor,
   createAdjuster,
   createColorMapper,
+  textRectsFromItems,
   imageRectsFromCoords,
   processPage,
 } from "./smart-invert.js";
@@ -70,6 +70,7 @@ const els = {
 const state = {
   settings: null,
   mapper: null,
+  textMapper: null,
   styleKey: "",
   pdf: null,
   loadingTask: null,
@@ -149,15 +150,17 @@ function applySettings(settings) {
   state.settings = settings;
   const theme = THEMES[settings.theme] || THEMES.dark;
   const adjust = createAdjuster(Object.fromEntries(ADJUSTMENTS.map(({ name, key }) => [name, settings[key]])));
-  state.mapper = createColorMapper(theme, { contrast: settings.contrast, adjust });
+  state.mapper = createColorMapper(theme, { contrast: settings.contrast });
+  // Same mapping plus the adjustments; used for text ink only.
+  state.textMapper = adjust && createColorMapper(theme, { contrast: settings.contrast, adjust });
   state.styleKey = settings.enabled
     ? `${settings.theme}|${settings.imageMode}|${settings.contrast}|${ADJUSTMENTS.map(({ key }) => settings[key])}`
     : "original";
 
   const root = document.documentElement;
   root.classList.toggle("original", !settings.enabled);
-  root.style.setProperty("--page-bg", `rgb(${adjustColor(theme.bg, adjust).join(" ")})`);
-  root.style.setProperty("--page-fg", `rgb(${adjustColor(theme.fg, adjust).join(" ")})`);
+  root.style.setProperty("--page-bg", `rgb(${theme.bg.join(" ")})`);
+  root.style.setProperty("--page-fg", `rgb(${theme.fg.join(" ")})`);
 
   els.toggleDark.setAttribute("aria-pressed", String(settings.enabled));
   els.themeSelect.value = settings.theme;
@@ -389,6 +392,7 @@ class PageView {
     canvas.setAttribute("aria-hidden", "true");
 
     const settings = state.settings;
+    const { mapper, textMapper } = state;
     this.renderTask = this.pdfPage.render({
       canvas,
       viewport,
@@ -405,7 +409,12 @@ class PageView {
       const ctx = canvas.getContext("2d");
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const rects = imageRectsFromCoords(this.pdfPage.imageCoordinates, canvas.width, canvas.height);
-      processPage(imageData, { mapColor: state.mapper, rects, imageMode: settings.imageMode });
+      let textRects = [];
+      if (textMapper) {
+        this.textItems ??= (await this.pdfPage.getTextContent({ disableNormalization: true })).items;
+        textRects = textRectsFromItems(this.textItems, viewport, canvas.width, canvas.height);
+      }
+      processPage(imageData, { mapColor: mapper, mapText: textMapper, textRects, rects, imageMode: settings.imageMode });
       ctx.putImageData(imageData, 0, 0);
     }
 

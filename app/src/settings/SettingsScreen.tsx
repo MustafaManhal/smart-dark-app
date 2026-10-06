@@ -60,7 +60,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
           </>
         )}
         <AdjustControls />
-        <p class="muted small">{t("Adjustments change text and paper. Photos keep their real colors.")}</p>
+        <p class="muted small">{t("Adjustments change text only. Paper, charts and photos keep their colors.")}</p>
       </section>
 
       <section class="card">

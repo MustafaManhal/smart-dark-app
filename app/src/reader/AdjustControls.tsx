@@ -18,7 +18,7 @@ export function adjustLabel(key: AdjustKey, value: number) {
   return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
 }
 
-/** Brightness, contrast, sepia and grayscale for text and paper (photos are left alone). */
+/** Brightness, contrast, sepia and grayscale of the text (paper, charts and photos are left alone). */
 export function AdjustControls() {
   // While a slider is dragged only the number follows; the page is drawn again on release.
   const [dragging, setDragging] = useState<Partial<Record<AdjustKey, number>>>({});

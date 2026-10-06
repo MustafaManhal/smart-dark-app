@@ -94,3 +94,22 @@ Everything above is built, with these differences:
 
 **Tests:** 10 new engine tests (28 in total), 5 new app unit tests (70), 6 new browser tests on Chromium and
 WebKit iPhone 15 (86 passing), 1 new extension end-to-end check (14). The 5 Electron tests pass.
+
+## Changed the same day: text only
+
+The owner asked for the sliders to change the text and nothing else. The first version changed every mapped
+color, so paper and chart colors moved too.
+
+- `textRectsFromItems` turns the items of pdf.js `getTextContent()` into pixel rectangles.
+- Inside each rectangle the background is found strip by strip (the color most of the strip has). A strip is
+  about half a line high in width. A highlight band or a table fill behind part of a line is background too.
+- A pixel that differs from the background is ink. Solid ink is recolored by a second mapper that has the
+  adjuster (`mapText` in `processPage`). An anti-aliased edge pixel is rebuilt as a blend of the recolored
+  ink and the page-colored background, by its share of ink.
+- Everything else goes through the mapper without the adjuster. The page background color is not adjusted.
+- Text inside a kept photo is not touched. Scanned pages without a text layer have no text to adjust.
+- On Original pages black text stays black when brightness goes up, because brightness multiplies the
+  color. Colored text and lower contrast still show.
+
+**Tests:** 33 engine tests, 70 app unit tests, the browser tests in `test/app-e2e/adjust.spec.ts` and the
+extension check now assert that paper, chart bars and photos do not change while text does.

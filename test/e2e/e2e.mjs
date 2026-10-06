@@ -164,43 +164,56 @@ await check("zoom and theme changes re-render without errors", async () => {
   await page.close();
 });
 
-await check("adjustments change page pixels and Reset restores them", async () => {
+await check("adjustments change the text only and Reset restores it", async () => {
   const page = await openAndWait(`${base}/sample.pdf`);
   await waitRendered(page);
-  const corner = () => page.evaluate(() => {
+  // Page corner (paper) and the lightest and warmest pixel of a line of body text.
+  const read = () => page.evaluate(() => {
     const c = document.querySelector(".page canvas");
-    return [...c.getContext("2d").getImageData(3, 3, 1, 1).data].slice(0, 3);
+    const ctx = c.getContext("2d");
+    const paper = [...ctx.getImageData(3, 3, 1, 1).data].slice(0, 3);
+    const left = Math.round(c.width * 0.09), top = Math.round(c.height * 0.163);
+    const data = ctx.getImageData(left, top, Math.round(c.width * 0.51), Math.round(c.height * 0.013)).data;
+    let light = 0, warm = -255;
+    for (let i = 0; i < data.length; i += 4) {
+      light = Math.max(light, data[i] + data[i + 1] + data[i + 2]);
+      warm = Math.max(warm, data[i] - data[i + 2]);
+    }
+    return { paper, light, warm };
   });
-  // Extension pages forbid eval, so the comparison is picked by name.
-  const cornerBecomes = (how, ref = []) => page.waitForFunction((how, ref) => {
-    const c = document.querySelector(".page canvas");
-    const px = [...c.getContext("2d").getImageData(3, 3, 1, 1).data].slice(0, 3);
-    if (how === "lighter") return px.every((v, i) => v > ref[i]);
-    if (how === "warm") return px[0] > px[2] + 4;
-    return px.every((v, i) => v === ref[i]);
-  }, { timeout: 20000 }, how, ref);
-  const before = await corner();
+  const until = async (test) => {
+    for (let i = 0; i < 100; i++) {
+      const now = await read();
+      if (test(now)) return now;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    throw new Error(`pixels never changed: ${JSON.stringify(await read())}`);
+  };
+  const before = await read();
+  assert.ok(before.light > 600, `text should be light on the dark page: ${before.light}`);
   await page.click("#settingsBtn");
   assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "Off");
   assert.equal(await page.$eval("#adjustReset", (b) => b.hidden), true);
 
-  // Brightness +50: the dark paper gets lighter.
-  for (let i = 0; i < 10; i++) await page.click('[data-adjust="brightness"] button[data-step="5"]');
-  await cornerBecomes("lighter", before);
-  assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "+50");
-  assert.equal(await page.$eval('[data-adjust="brightness"] button[data-step="5"]', (b) => b.disabled), true);
+  // Brightness -50: the text gets darker, the paper does not move.
+  for (let i = 0; i < 10; i++) await page.click('[data-adjust="brightness"] button[data-step="-5"]');
+  const dimmed = await until((now) => now.light < before.light * 0.6);
+  assert.deepEqual(dimmed.paper, before.paper);
+  assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "−50");
+  assert.equal(await page.$eval('[data-adjust="brightness"] button[data-step="-5"]', (b) => b.disabled), true);
 
-  // Sepia from the slider itself: red ends above blue on neutral paper.
+  // Sepia from the slider itself: the text turns warm, the paper still does not move.
   await page.$eval("#adjSepia", (input) => {
     input.value = "100";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  await cornerBecomes("warm");
+  const warmed = await until((now) => now.warm > before.warm + 10);
+  assert.deepEqual(warmed.paper, before.paper);
   await page.screenshot({ path: `${outDir}/sample-adjusted.png` });
 
   await page.click("#adjustReset");
-  await cornerBecomes("same", before);
+  await until((now) => now.light === before.light && now.warm === before.warm);
   assert.equal(await page.$eval("#adjustReset", (b) => b.hidden), true);
   await page.close();
 });
