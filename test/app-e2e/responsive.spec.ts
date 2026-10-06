@@ -44,6 +44,31 @@ for (const width of WIDTHS) {
     await expect(page.getByRole("button", { name: /Go to page/ })).toBeInViewport();
     await page.screenshot({ path: `test/output/responsive/reader-${width}.png` });
 
+    // Floating pieces that once ran off a 320px screen: the sticky-note hint and the highlight menu.
+    await page.getByRole("button", { name: "Add sticky note" }).click();
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeInViewport({ ratio: 1 });
+    await noHorizontalOverflow(page, "sticky note hint");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Erase highlights and notes" }).click();
+    await expect(page.getByRole("button", { name: "Done" })).toBeInViewport({ ratio: 1 });
+    await noHorizontalOverflow(page, "eraser hint");
+    await page.getByRole("button", { name: "Done" }).click();
+    await page.locator(".textLayer span", { hasText: "colored words keep their hue" }).first().evaluate((span) => {
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      getSelection()!.removeAllRanges();
+      getSelection()!.addRange(range);
+    });
+    const bar = page.getByRole("toolbar", { name: "Selected text" });
+    await expect(bar.getByRole("button", { name: "Note" })).toBeInViewport({ ratio: 1 });
+    await expect(bar.getByRole("button", { name: "Copy" })).toBeInViewport({ ratio: 1 });
+    await bar.getByRole("button", { name: "Highlight yellow" }).click();
+    const mark = (await page.locator('.page[data-page="1"] .hl').first().boundingBox())!;
+    await page.mouse.click(mark.x + mark.width / 2, mark.y + mark.height / 2);
+    await expect(page.getByRole("dialog", { name: "Highlight" }).getByRole("button", { name: "Remove" })).toBeInViewport({ ratio: 1 });
+    await noHorizontalOverflow(page, "highlight menu");
+    await page.getByRole("dialog", { name: "Highlight" }).getByRole("button", { name: "Remove" }).click();
+
     await page.getByRole("button", { name: "Appearance" }).click();
     await expect(page.getByRole("dialog", { name: "Appearance" })).toBeInViewport();
     await page.waitForTimeout(400); // let the sheet finish sliding in

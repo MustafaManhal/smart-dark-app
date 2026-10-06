@@ -159,7 +159,9 @@ export class Speaker {
     u.lang = this.opts.lang;
     const uri = naturalId(this.opts.voiceURI) || !this.opts.voiceURI ? this.fallbackVoiceURI : this.opts.voiceURI;
     const voice = uri ? synth.getVoices().find((v) => v.voiceURI === uri) : undefined;
-    if (voice) u.voice = voice;
+    try {
+      if (voice) u.voice = voice;
+    } catch {} // keep the browser's own voice
     u.onend = () => this.next(gen);
     u.onerror = (e) => {
       // "interrupted"/"canceled" come from our own cancel(); anything else skips the sentence.
@@ -247,7 +249,9 @@ export async function previewVoice(voiceURI: string, text: string, lang: string,
   u.rate = rate;
   u.lang = lang;
   const voice = synth.getVoices().find((v) => v.voiceURI === voiceURI);
-  if (voice) u.voice = voice;
+  try {
+    if (voice) u.voice = voice;
+  } catch {}
   synth.speak(u);
   return true;
 }

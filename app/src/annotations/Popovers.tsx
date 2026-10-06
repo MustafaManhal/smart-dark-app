@@ -87,10 +87,10 @@ export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
   return (
     <Popover anchor={anchor} label={t("Note")} onClose={close}>
       <div class="pop-note">
-        <blockquote class="pop-quote">{note.text}</blockquote>
-        <input class="pop-title" type="text" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
+        <blockquote class="pop-quote" dir="auto">{note.text}</blockquote>
+        <input class="pop-title" type="text" dir="auto" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
           onInput={(e) => setTitle(e.currentTarget.value)} />
-        <textarea ref={area} aria-label={t("Note text")} rows={4} placeholder={t("Write your note")} value={body}
+        <textarea ref={area} dir="auto" aria-label={t("Note text")} rows={4} placeholder={t("Write your note")} value={body}
           onInput={(e) => setBody(e.currentTarget.value)} />
         <div class="pop-actions">
           {note.id && <Button variant="danger" onClick={onDelete}>{t("Delete")}</Button>}

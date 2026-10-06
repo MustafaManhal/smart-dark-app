@@ -115,10 +115,10 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
           ))}
         </div>
       )}
-      <input class="sticky-title" type="text" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
+      <input class="sticky-title" type="text" dir="auto" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
         onInput={(e) => onTitle(e.currentTarget.value)}
         onBlur={() => { clearTimeout(saveTimer.current); if (title !== (note.title ?? "")) save({}); }} />
-      <textarea ref={area} aria-label={t("Sticky note text")} placeholder={t("Write a note")} value={text}
+      <textarea ref={area} dir="auto" aria-label={t("Sticky note text")} placeholder={t("Write a note")} value={text}
         onInput={(e) => onType(e.currentTarget.value)}
         onBlur={() => { clearTimeout(saveTimer.current); if (text !== note.text) save({}); }} />
     </div>

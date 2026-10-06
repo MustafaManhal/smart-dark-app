@@ -39,7 +39,7 @@ export function VoicePicker({ ra }: { ra: ReturnType<typeof useReadAloud> }) {
     <li class="voice-row">
       <label>
         <input type="radio" name="voice" checked={current === uri} onChange={() => pick(uri)} />
-        <span class="voice-name">{name}</span>
+        <span class="voice-name" dir="auto">{name}</span>
         <span class="voice-detail">{detail}</span>
       </label>
       <IconButton label={t("Hear {name}", { name })} icon="play" class={busy === uri ? "is-busy" : ""} onClick={() => preview(uri)} />
@@ -104,7 +104,7 @@ export function SpeedStepper({ onChange }: { onChange?: () => void }) {
   return (
     <div class="speed-step" role="group" aria-label={t("Speed")}>
       <IconButton label={t("Slower")} icon="minus" disabled={rate <= 0.25} onClick={() => set(rate - 0.25)} />
-      <span class="speed-now" aria-live="polite" aria-label={t("Speed {n}×", { n: rate })}>{rate}×</span>
+      <span class="speed-now" dir="ltr" aria-live="polite" aria-label={t("Speed {n}×", { n: rate })}>{rate}×</span>
       <IconButton label={t("Faster")} icon="plus" disabled={rate >= 3} onClick={() => set(rate + 0.25)} />
     </div>
   );

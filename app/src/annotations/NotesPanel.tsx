@@ -77,17 +77,17 @@ export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
               <button type="button" class={`note-card is-${entry.type}`} onClick={() => onJump(entry)}
                 style={"color" in entry.item ? { "--c": COLOR_HEX[entry.item.color] } : undefined}>
                 <span class="note-meta">{t("Page {page}", { page: entry.page })}</span>
-                {entry.type === "highlight" && <blockquote>{entry.item.text}</blockquote>}
+                {entry.type === "highlight" && <blockquote dir="auto">{entry.item.text}</blockquote>}
                 {entry.type === "note" && (
                   <>
-                    {entry.item.title && <strong class="note-title">{entry.item.title}</strong>}
-                    <blockquote class="is-plain">{entry.item.text}</blockquote>
-                    <p class="note-text">{entry.item.body}</p>
+                    {entry.item.title && <strong class="note-title" dir="auto">{entry.item.title}</strong>}
+                    <blockquote class="is-plain" dir="auto">{entry.item.text}</blockquote>
+                    <p class="note-text" dir="auto">{entry.item.body}</p>
                   </>
                 )}
-                {entry.type === "sticky" && entry.item.title && <strong class="note-title">{entry.item.title}</strong>}
+                {entry.type === "sticky" && entry.item.title && <strong class="note-title" dir="auto">{entry.item.title}</strong>}
                 {entry.type === "sticky" && (entry.item.text || !entry.item.title) && (
-                  <p class="note-text">{entry.item.text || t("Empty sticky note")}</p>
+                  <p class="note-text" dir="auto">{entry.item.text || t("Empty sticky note")}</p>
                 )}
                 {entry.type === "bookmark" && <p class="note-text">{t("Bookmarked page")}</p>}
               </button>

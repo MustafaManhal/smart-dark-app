@@ -53,7 +53,8 @@
   font: inherit;
 }
 .note-card:hover { border-color: color-mix(in srgb, var(--c, var(--accent)) 60%, var(--border)); }
-.note-meta { color: var(--muted); font-size: 12px; }
+/* As tall as the copy and remove buttons beside it, so the text below never runs under them. */
+.note-meta { display: flex; align-items: center; min-height: 28px; color: var(--muted); font-size: 12px; }
 .note-card blockquote { margin: 0; padding: 4px 8px; border-radius: 6px; background: color-mix(in srgb, var(--c) 26%, transparent); }
 .note-card blockquote.is-plain { background: var(--surface-2); font-size: 14px; }
 .note-text { margin: 0; white-space: pre-wrap; }

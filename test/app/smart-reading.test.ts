@@ -100,3 +100,16 @@ test("equal voices: the device's region comes first", () => {
   expect(rankVoices(voices, "en", "en-GB")[0].name).toBe("Daniel");
   expect(rankVoices(voices, "en", "en-AU")[0].name).toBe("Karen");
 });
+
+test("a voice listed twice appears once, and the better of the two entries is kept", () => {
+  const voices = [
+    { uri: "com.apple.voice.compact.en-US.Samantha", name: "Samantha", lang: "en-US", local: true },
+    { uri: "com.apple.voice.enhanced.en-US.Samantha", name: "Samantha", lang: "en-US", local: true },
+    { uri: "com.apple.voice.compact.en-GB.Daniel", name: "Daniel", lang: "en-GB", local: true },
+    { uri: "com.apple.voice.compact.en-GB.Daniel", name: "Daniel", lang: "en-GB", local: true },
+    { uri: "com.apple.eloquence.en-US.Rocko", name: "Rocko", lang: "en-US", local: true },
+  ];
+  const ranked = rankVoices(voices, "en");
+  expect(ranked.map((x) => x.name)).toEqual(["Samantha", "Daniel", "Rocko"]);
+  expect(ranked[0].uri).toBe("com.apple.voice.enhanced.en-US.Samantha");
+});
