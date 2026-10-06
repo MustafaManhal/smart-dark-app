@@ -10,6 +10,10 @@ import {
   refineRect,
   createTintMapper,
   TINTS,
+  ADJUST_DEFAULTS,
+  createAdjuster,
+  createPlainMapper,
+  adjustColor,
 } from "../../src/viewer/smart-invert.js";
 
 const unpack = (v) => [v & 255, (v >> 8) & 255, (v >> 16) & 255];
@@ -151,4 +155,80 @@ test("sepia: colors keep their hue and do not invert", () => {
     const [Lout] = rgbToOklab(...out);
     assert.ok(Math.abs(Lin - Lout) < 0.2, "lightness should stay close in a light theme");
   }
+});
+
+test("adjust: default values need no adjuster", () => {
+  assert.equal(createAdjuster(), null);
+  assert.equal(createAdjuster({ ...ADJUST_DEFAULTS }), null);
+  assert.deepEqual(adjustColor([12, 34, 56], null), [12, 34, 56]);
+});
+
+test("adjust: brightness scales every channel", () => {
+  assert.deepEqual(createAdjuster({ brightness: 50 })(200, 100, 50), [100, 50, 25]);
+  assert.deepEqual(createAdjuster({ brightness: 150 })(200, 100, 50), [255, 150, 75]);
+});
+
+test("adjust: contrast moves colors away from or toward middle gray", () => {
+  const more = createAdjuster({ contrast: 150 });
+  assert.deepEqual(more(255, 128, 0), [255, 128, 0]);
+  assert.deepEqual(more(200, 100, 50), [236, 86, 11]);
+  const less = createAdjuster({ contrast: 50 });
+  assert.deepEqual(less(255, 128, 0), [191, 128, 64]);
+});
+
+test("adjust: full grayscale removes color, half keeps the hue", () => {
+  assert.deepEqual(createAdjuster({ grayscale: 100 })(255, 0, 0), [54, 54, 54]);
+  assert.deepEqual(createAdjuster({ grayscale: 100 })(255, 255, 255), [255, 255, 255]);
+  const [r, g, b] = createAdjuster({ grayscale: 50 })(255, 0, 0);
+  assert.ok(r > g && g === b && g > 0, `${[r, g, b]}`);
+});
+
+test("adjust: sepia warms white paper and keeps black ink black", () => {
+  const sepia = createAdjuster({ sepia: 100 });
+  assert.deepEqual(sepia(255, 255, 255), [255, 255, 239]);
+  assert.deepEqual(sepia(0, 0, 0), [0, 0, 0]);
+  const [r, g, b] = createAdjuster({ sepia: 50 })(...THEMES.dark.bg);
+  assert.ok(r > g && g > b, `dark paper should turn warm: ${[r, g, b]}`);
+});
+
+test("adjust: brightness runs before contrast (Dark Reader order)", () => {
+  // 200 * 0.5 = 100, then (100/255 - 0.5) * 1.5 + 0.5 = 0.3382 -> 86
+  assert.deepEqual(createAdjuster({ brightness: 50, contrast: 150 })(200, 200, 200), [86, 86, 86]);
+});
+
+test("adjust: values outside the ranges are clamped, bad values ignored", () => {
+  assert.deepEqual(createAdjuster({ brightness: 10 })(200, 100, 50), [100, 50, 25]);
+  assert.deepEqual(createAdjuster({ grayscale: 500 })(255, 0, 0), [54, 54, 54]);
+  assert.equal(createAdjuster({ brightness: "abc", sepia: NaN }), null);
+});
+
+test("adjust: mappers apply it after the color mapping", () => {
+  const dim = createAdjuster({ brightness: 50 });
+  const half = (rgb) => rgb.map((c) => Math.round(c / 2));
+  const dark = createColorMapper(THEMES.dark, { adjust: dim });
+  assert.deepEqual(unpack(dark(255, 255, 255)), half(THEMES.dark.bg));
+  assert.deepEqual(unpack(dark(0, 0, 0)), half(THEMES.dark.fg));
+  const tint = createTintMapper(TINTS.sepia, { adjust: dim });
+  assert.deepEqual(unpack(tint(255, 255, 255)), half(TINTS.sepia.paper));
+  const plain = createPlainMapper(dim);
+  assert.deepEqual(unpack(plain(200, 100, 50)), [100, 50, 25]);
+  assert.deepEqual(unpack(createPlainMapper()(200, 100, 50)), [200, 100, 50]);
+});
+
+test("adjust: without an adjuster the mappers give the same colors as before", () => {
+  const a = createColorMapper(THEMES.dark);
+  const b = createColorMapper(THEMES.dark, { adjust: createAdjuster(ADJUST_DEFAULTS) });
+  for (const rgb of [[255, 255, 255], [0, 0, 0], [204, 0, 0], [120, 130, 140], [255, 240, 150]]) {
+    assert.equal(a(...rgb), b(...rgb));
+  }
+});
+
+test("adjust: photos are not adjusted", () => {
+  const img = fakePage(40, 20, (x) => (x < 20 ? [255, 255, 255] : [200, 60 + x, 30]));
+  const rects = [{ left: 20, top: 0, right: 40, bottom: 20 }];
+  const map = createColorMapper(THEMES.dark, { adjust: createAdjuster({ grayscale: 100, brightness: 50 }) });
+  processPage(img, { mapColor: map, rects, imageMode: "keep" });
+  const i = (5 * 40 + 30) * 4;
+  assert.deepEqual([...img.data.slice(i, i + 3)], [200, 90, 30]);
+  assert.notDeepEqual([...img.data.slice(0, 3)], THEMES.dark.bg);
 });

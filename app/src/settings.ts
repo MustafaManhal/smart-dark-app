@@ -11,6 +11,11 @@ const defaults = {
   pageStyle: "dark" as PageStyle,
   darkTheme: "dark" as DarkTheme,
   imageMode: "smart" as ImageMode,
+  // Page adjustments in percent (ranges in ADJUST_RANGES, smart-invert.js).
+  adjBrightness: 100,
+  adjContrast: 100,
+  adjSepia: 0,
+  adjGrayscale: 0,
   appTheme: "system" as AppTheme,
   readRate: 1,
   readPitch: 1,
@@ -42,6 +47,14 @@ export function saveSetting<K extends keyof Settings>(key: K, value: Settings[K]
   settings[key].value = value;
   repo?.set(key, value);
 }
+
+/** The four page adjustments, in the shape the color engine takes. */
+export const adjustValues = () => ({
+  brightness: settings.adjBrightness.value,
+  contrast: settings.adjContrast.value,
+  sepia: settings.adjSepia.value,
+  grayscale: settings.adjGrayscale.value,
+});
 
 // The i18n module keeps its own signal so it has no dependency on storage.
 effect(() => {

@@ -87,13 +87,95 @@ const smoothstep = (e0, e1, x) => {
   return t * t * (3 - 2 * t);
 };
 
+// ---------- adjustments (brightness, contrast, sepia, grayscale) ----------
+
+export const ADJUST_DEFAULTS = { brightness: 100, contrast: 100, sepia: 0, grayscale: 0 };
+
+export const ADJUST_RANGES = {
+  brightness: { min: 50, max: 150, step: 5 },
+  contrast: { min: 50, max: 150, step: 5 },
+  sepia: { min: 0, max: 100, step: 5 },
+  grayscale: { min: 0, max: 100, step: 5 },
+};
+
+/** @typedef {(r:number, g:number, b:number) => number[]} Adjuster */
+
+/**
+ * Build a color adjuster from percent values (see ADJUST_RANGES).
+ * The matrices and their order (brightness, then contrast, grayscale, sepia)
+ * follow Dark Reader's createFilterMatrix (MIT, Dark Reader Ltd.).
+ * @param {{brightness?:number, contrast?:number, sepia?:number, grayscale?:number}} [values]
+ * @returns {Adjuster | null} null when every value is at its default
+ */
+export function createAdjuster(values = {}) {
+  const v = {};
+  for (const [key, { min, max }] of Object.entries(ADJUST_RANGES)) {
+    const n = Number(values[key] ?? ADJUST_DEFAULTS[key]);
+    v[key] = Number.isFinite(n) ? clamp(n, min, max) : ADJUST_DEFAULTS[key];
+  }
+  if (Object.keys(ADJUST_DEFAULTS).every((key) => v[key] === ADJUST_DEFAULTS[key])) return null;
+
+  // 3x4 affine matrix on 0..1 channels: rows are [r, g, b, offset].
+  let m = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]];
+  const then = (next) => {
+    m = next.map((row) => [0, 1, 2, 3].map((col) =>
+      row[0] * m[0][col] + row[1] * m[1][col] + row[2] * m[2][col] + (col === 3 ? row[3] : 0)));
+  };
+  if (v.brightness !== 100) {
+    const k = v.brightness / 100;
+    then([[k, 0, 0, 0], [0, k, 0, 0], [0, 0, k, 0]]);
+  }
+  if (v.contrast !== 100) {
+    const k = v.contrast / 100;
+    const t = (1 - k) / 2;
+    then([[k, 0, 0, t], [0, k, 0, t], [0, 0, k, t]]);
+  }
+  if (v.grayscale !== 0) {
+    const u = 1 - v.grayscale / 100;
+    then([
+      [0.2126 + 0.7874 * u, 0.7152 - 0.7152 * u, 0.0722 - 0.0722 * u, 0],
+      [0.2126 - 0.2126 * u, 0.7152 + 0.2848 * u, 0.0722 - 0.0722 * u, 0],
+      [0.2126 - 0.2126 * u, 0.7152 - 0.7152 * u, 0.0722 + 0.9278 * u, 0],
+    ]);
+  }
+  if (v.sepia !== 0) {
+    const u = 1 - v.sepia / 100;
+    then([
+      [0.393 + 0.607 * u, 0.769 - 0.769 * u, 0.189 - 0.189 * u, 0],
+      [0.349 - 0.349 * u, 0.686 + 0.314 * u, 0.168 - 0.168 * u, 0],
+      [0.272 - 0.272 * u, 0.534 - 0.534 * u, 0.131 + 0.869 * u, 0],
+    ]);
+  }
+
+  const channel = (row, r, g, b) => clamp(Math.round(row[0] * r + row[1] * g + row[2] * b + row[3] * 255), 0, 255);
+  return (r, g, b) => [channel(m[0], r, g, b), channel(m[1], r, g, b), channel(m[2], r, g, b)];
+}
+
+/**
+ * An `[r, g, b]` color after the adjuster (unchanged when there is none).
+ * @type {(rgb:number[], adjust?:Adjuster|null) => number[]}
+ */
+export const adjustColor = (rgb, adjust) => (adjust ? adjust(rgb[0], rgb[1], rgb[2]) : rgb);
+
+/**
+ * Mapper for pages that keep their original colors and are only adjusted.
+ * @param {Adjuster | null} [adjust]
+ */
+export function createPlainMapper(adjust = null) {
+  return (r, g, b) => pack(adjustColor([r, g, b], adjust));
+}
+
 // ---------- the mapping ----------
 
 /**
- * Build a cached color mapper for a theme.
+ * Build a cached color mapper for a theme. `adjust` (from createAdjuster) runs
+ * on every mapped color.
+ * @param {{bg:number[], fg:number[]}} [theme]
+ * @param {{contrast?:number, adjust?:Adjuster|null}} [options]
  * @returns {(r:number,g:number,b:number)=>number} packed 0xBBGGRR (little-endian RGBA order)
  */
-export function createColorMapper(theme = THEMES.dark, { contrast = 1.5 } = {}) {
+export function createColorMapper(theme = THEMES.dark, { contrast = 1.5, adjust = null } = {}) {
+  const finish = (rgb) => pack(adjustColor(rgb, adjust));
   const bg = rgbToOklab(...theme.bg);
   const fg = rgbToOklab(...theme.fg);
   // Starting point for colored content; the exact WCAG check below lifts it
@@ -117,7 +199,7 @@ export function createColorMapper(theme = THEMES.dark, { contrast = 1.5 } = {}) 
 
     // How "colorful" the pixel is. Grays and anti-aliased text edges stay ~0.
     const colorful = smoothstep(0.008, 0.06, C);
-    if (colorful === 0) return pack(oklabToRgb(nL, na, nb));
+    if (colorful === 0) return finish(oklabToRgb(nL, na, nb));
 
     // In a light document, anything clearly darker than paper is content
     // (text, lines, chart marks): flip it like ink but never below a readable
@@ -151,7 +233,7 @@ export function createColorMapper(theme = THEMES.dark, { contrast = 1.5 } = {}) 
       }
       out = oklabToRgb(hi, outA, outB);
     }
-    return pack(out);
+    return finish(out);
   }
 
   return function mapColor(r, g, b) {
@@ -174,8 +256,10 @@ export const TINTS = {
  * Light page styles (sepia): no inversion. Lightness is squeezed into the
  * ink..paper range and neutrals take the tint, so white paper becomes warm
  * paper and black text becomes brown ink; colors keep hue and chroma.
+ * @param {{paper:number[], ink:number[]}} [tint]
+ * @param {{adjust?:Adjuster|null}} [options]
  */
-export function createTintMapper(tint = TINTS.sepia) {
+export function createTintMapper(tint = TINTS.sepia, { adjust = null } = {}) {
   const paper = rgbToOklab(...tint.paper);
   const ink = rgbToOklab(...tint.ink);
   const cache = new Map();
@@ -187,7 +271,7 @@ export function createTintMapper(tint = TINTS.sepia) {
     const na = ink[1] + (paper[1] - ink[1]) * L;
     const nb = ink[2] + (paper[2] - ink[2]) * L;
     const colorful = smoothstep(0.008, 0.06, C);
-    return pack(oklabToRgb(outL, A * colorful + na * (1 - colorful), B * colorful + nb * (1 - colorful)));
+    return pack(adjustColor(oklabToRgb(outL, A * colorful + na * (1 - colorful), B * colorful + nb * (1 - colorful)), adjust));
   }
 
   return function mapColor(r, g, b) {

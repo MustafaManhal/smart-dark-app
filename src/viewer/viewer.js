@@ -2,6 +2,10 @@ import * as pdfjsLib from "../lib/pdfjs/pdf.mjs";
 import {
   THEMES,
   IMAGE_MODES,
+  ADJUST_DEFAULTS,
+  ADJUST_RANGES,
+  adjustColor,
+  createAdjuster,
   createColorMapper,
   imageRectsFromCoords,
   processPage,
@@ -43,6 +47,8 @@ const els = {
   themeSelect: $("themeSelect"),
   imageModeSelect: $("imageModeSelect"),
   contrastRange: $("contrastRange"),
+  adjustRows: $("adjustRows"),
+  adjustReset: $("adjustReset"),
   openFile: $("openFile"),
   fileInput: $("fileInput"),
   download: $("download"),
@@ -82,23 +88,85 @@ if (!isExtension) globalThis.__smartDarkState = state;
 
 // ---------------------------------------------------------------- settings
 
+// Page adjustments: engine name, settings key, and the words for the panel.
+const ADJUSTMENTS = [
+  { name: "brightness", key: "adjBrightness", label: "Brightness", less: "Lower brightness", more: "Raise brightness" },
+  { name: "contrast", key: "adjContrast", label: "Contrast", less: "Lower contrast", more: "Raise contrast" },
+  { name: "sepia", key: "adjSepia", label: "Sepia", less: "Less sepia", more: "More sepia" },
+  { name: "grayscale", key: "adjGrayscale", label: "Grayscale", less: "Less grayscale", more: "More grayscale" },
+];
+
+// "Off" at the default; otherwise the distance from it, like "+5" or "−10".
+function adjustLabel(name, value) {
+  const delta = value - ADJUST_DEFAULTS[name];
+  if (delta === 0) return "Off";
+  return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
+}
+
+function buildAdjustRows() {
+  for (const { name, key, label, less, more } of ADJUSTMENTS) {
+    const { min, max, step } = ADJUST_RANGES[name];
+    const row = document.createElement("div");
+    row.dataset.adjust = name;
+    row.innerHTML = `
+      <div class="adjust-head"><label for="${key}">${label}</label><span class="adjust-value" aria-hidden="true"></span></div>
+      <div class="adjust-line">
+        <button class="icon-btn" data-step="-${step}" title="${less}" aria-label="${less}">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+        </button>
+        <input id="${key}" type="range" min="${min}" max="${max}" step="${step}">
+        <button class="icon-btn" data-step="${step}" title="${more}" aria-label="${more}">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>`;
+    const range = row.querySelector("input");
+    const save = (value) => setSettings({ [key]: Math.min(max, Math.max(min, value)) });
+    // Dragging only moves the number; the pages are drawn again on release.
+    range.addEventListener("input", () => showAdjustValue(row, Number(range.value)));
+    range.addEventListener("change", () => save(Number(range.value)));
+    for (const button of row.querySelectorAll("button")) {
+      button.addEventListener("click", () => save(state.settings[key] + Number(button.dataset.step)));
+    }
+    els.adjustRows.append(row);
+  }
+  els.adjustReset.addEventListener("click", () =>
+    setSettings(Object.fromEntries(ADJUSTMENTS.map(({ name, key }) => [key, ADJUST_DEFAULTS[name]]))));
+}
+
+function showAdjustValue(row, value) {
+  const { min, max } = ADJUST_RANGES[row.dataset.adjust];
+  const text = adjustLabel(row.dataset.adjust, value);
+  const range = row.querySelector("input");
+  range.value = String(value);
+  range.setAttribute("aria-valuetext", text);
+  row.querySelector(".adjust-value").textContent = text;
+  const [less, more] = row.querySelectorAll("button");
+  less.disabled = value <= min;
+  more.disabled = value >= max;
+}
+
 function applySettings(settings) {
   state.settings = settings;
   const theme = THEMES[settings.theme] || THEMES.dark;
-  state.mapper = createColorMapper(theme, { contrast: settings.contrast });
+  const adjust = createAdjuster(Object.fromEntries(ADJUSTMENTS.map(({ name, key }) => [name, settings[key]])));
+  state.mapper = createColorMapper(theme, { contrast: settings.contrast, adjust });
   state.styleKey = settings.enabled
-    ? `${settings.theme}|${settings.imageMode}|${settings.contrast}`
+    ? `${settings.theme}|${settings.imageMode}|${settings.contrast}|${ADJUSTMENTS.map(({ key }) => settings[key])}`
     : "original";
 
   const root = document.documentElement;
   root.classList.toggle("original", !settings.enabled);
-  root.style.setProperty("--page-bg", `rgb(${theme.bg.join(" ")})`);
-  root.style.setProperty("--page-fg", `rgb(${theme.fg.join(" ")})`);
+  root.style.setProperty("--page-bg", `rgb(${adjustColor(theme.bg, adjust).join(" ")})`);
+  root.style.setProperty("--page-fg", `rgb(${adjustColor(theme.fg, adjust).join(" ")})`);
 
   els.toggleDark.setAttribute("aria-pressed", String(settings.enabled));
   els.themeSelect.value = settings.theme;
   els.imageModeSelect.value = settings.imageMode;
   els.contrastRange.value = String(settings.contrast);
+  for (const row of els.adjustRows.children) {
+    showAdjustValue(row, settings[ADJUSTMENTS.find(({ name }) => name === row.dataset.adjust).key]);
+  }
+  els.adjustReset.hidden = !adjust;
   scheduleRender();
 }
 
@@ -816,6 +884,7 @@ function onKeyDown(event) {
 async function init() {
   fillSelect(els.themeSelect, Object.entries(THEMES).map(([k, t]) => [k, t.label]));
   fillSelect(els.imageModeSelect, Object.entries(IMAGE_MODES));
+  buildAdjustRows();
   applySettings(await getSettings());
   onSettingsChanged((patch) => applySettings({ ...state.settings, ...patch }));
   bindEvents();

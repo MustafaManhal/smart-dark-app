@@ -8,6 +8,10 @@ lightness (paper becomes the dark background, ink becomes light text) and keeps 
 found through PDF.js's image coordinates and left alone; scans and screenshots of text are darkened with the
 page. Colored text is lifted until it meets WCAG AA contrast against the background.
 
+Four sliders adjust the result: brightness, contrast, sepia and grayscale. They change text and paper and
+leave photos alone. They are in the Appearance panel of the extension viewer, and in the Appearance sheet
+and the Settings screen of the app.
+
 ## Layout
 
 ```
@@ -85,4 +89,6 @@ privacy policy (`docs/PRIVACY.md`) must be hosted at a public URL before submitt
 
 ## License
 
-MIT, see `LICENSE`. Bundled PDF.js is Apache-2.0; its license ships in `lib/pdfjs/LICENSE`.
+MIT, see `LICENSE`. Bundled PDF.js is Apache-2.0; its license ships in `lib/pdfjs/LICENSE`. The slider
+ranges and the color matrices for brightness, contrast, sepia and grayscale follow
+[Dark Reader](https://github.com/darkreader/darkreader) (MIT).

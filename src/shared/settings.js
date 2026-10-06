@@ -6,7 +6,12 @@ export const DEFAULTS = {
   enabled: true, // smart dark mode on (false = show original colors)
   theme: "dark",
   imageMode: "smart",
-  contrast: 1.5,
+  contrast: 1.5, // "Text boost": exponent of the gray curve in the dark mapping
+  // Page adjustments in percent (ranges in ADJUST_RANGES, smart-invert.js).
+  adjBrightness: 100,
+  adjContrast: 100,
+  adjSepia: 0,
+  adjGrayscale: 0,
   autoOpen: true, // open PDF links in this viewer (needs host permission)
 };
 

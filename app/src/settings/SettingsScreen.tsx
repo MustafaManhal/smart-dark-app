@@ -9,6 +9,7 @@ import { useEffect } from "preact/hooks";
 import { saveSetting, settings, type AppTheme, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { AdjustControls } from "../reader/AdjustControls";
 import "./settings.css";
 
 function Choice<T extends string | number>({ name, legend, value, options, onPick }: {
@@ -58,6 +59,8 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
             <p class="muted small">{t("Smart keeps photos in their real colors and darkens scanned pages.")}</p>
           </>
         )}
+        <AdjustControls />
+        <p class="muted small">{t("Adjustments change text and paper. Photos keep their real colors.")}</p>
       </section>
 
       <section class="card">

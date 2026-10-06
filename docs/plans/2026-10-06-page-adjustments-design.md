@@ -1,4 +1,4 @@
-# Page adjustments: brightness, contrast, sepia, grayscale (design)
+# Page adjustments: brightness, contrast, sepia, grayscale (done)
 
 Approved by the owner on 2026-10-06. The reference is a screenshot of the Dark Reader popup with Brightness
 at -10, Contrast at +5, Sepia at +50 and Grayscale off.
@@ -79,3 +79,18 @@ With every value at its default there is no adjuster and the output is the same 
 - Adjusting photos, or a switch for it.
 - A live preview while the slider is still moving.
 - Per book or per site values. The values apply to every book.
+
+## Built (2026-10-06)
+
+Everything above is built, with these differences:
+
+- The value next to each slider is a plain `<span>` hidden from screen readers. The slider announces the
+  value through `aria-valuetext`. An `<output>` element has the `status` role, which made every value a live
+  region and broke the desktop update test.
+- The Appearance sheet in the reader no longer dims the page. On phones it takes at most 56% of the screen
+  height, and on wide screens it sits at the side, 360px wide. Before this the sheet covered the page, so a
+  slider change could not be seen (`peek` on `Sheet`, `.sheet-backdrop.peek` in `app.css`).
+- The extension panel scrolls when the window is short.
+
+**Tests:** 10 new engine tests (28 in total), 5 new app unit tests (70), 6 new browser tests on Chromium and
+WebKit iPhone 15 (86 passing), 1 new extension end-to-end check (14). The 5 Electron tests pass.

@@ -14,9 +14,10 @@ import { HIGHLIGHT_COLORS, type HighlightColor, type NormRect } from "../db/anno
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
 import { navigate } from "../router";
-import { saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
+import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
 import { Button, IconButton } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
+import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, type OutlineItem, type PDFDocumentProxy } from "./pdf";
 import { CSS_UNITS, Renderer } from "./renderer";
@@ -94,6 +95,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       if (cancelled || !scroller.current) return;
       const r = new Renderer(scroller.current, doc, {
         pageStyle: settings.pageStyle.value, darkTheme: settings.darkTheme.value, imageMode: settings.imageMode.value,
+        adjust: adjustValues(),
       });
       renderer.current = r;
       r.onPageChange = (p) => {
@@ -130,9 +132,10 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const pageStyle = settings.pageStyle.value;
   const darkTheme = settings.darkTheme.value;
   const imageMode = settings.imageMode.value;
+  const adjust = adjustValues();
   useEffect(() => {
-    renderer.current?.setOptions({ pageStyle, darkTheme, imageMode });
-  }, [pageStyle, darkTheme, imageMode]);
+    renderer.current?.setOptions({ pageStyle, darkTheme, imageMode, adjust });
+  }, [pageStyle, darkTheme, imageMode, adjust.brightness, adjust.contrast, adjust.sepia, adjust.grayscale]);
 
   // Navigation stays off until pages are laid out, so early taps are not lost.
   const total = ready ? book?.pageCount ?? 0 : 0;
@@ -476,7 +479,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         </ol>
       </Sheet>
 
-      <Sheet open={sheet === "appearance"} title={t("Appearance")} onClose={() => setSheet(null)}>
+      <Sheet open={sheet === "appearance"} title={t("Appearance")} peek onClose={() => setSheet(null)}>
         <fieldset class="seg">
           <legend>{t("Page")}</legend>
           {STYLES.map(([value, label]) => (
@@ -502,6 +505,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
             </fieldset>
           </>
         )}
+        <AdjustControls />
       </Sheet>
     </div>
   );

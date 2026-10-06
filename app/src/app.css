@@ -106,9 +106,14 @@ button, input, select { font: inherit; color: inherit; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sheet-head h2 { margin: 0; font-size: 17px; }
 
+.sheet-backdrop.peek { background: transparent; }
+.sheet-backdrop.peek .sheet { max-height: 56vh; border: 1px solid var(--border); }
+
 @media (min-width: 720px) {
   .sheet-backdrop { place-items: center; }
   .sheet { width: min(520px, 92vw); border-radius: var(--radius); padding-bottom: 16px; }
+  .sheet-backdrop.peek { place-items: center end; padding-inline-end: 16px; }
+  .sheet-backdrop.peek .sheet { width: min(360px, 92vw); max-height: 85vh; }
 }
 
 @keyframes fade { from { opacity: 0; } }

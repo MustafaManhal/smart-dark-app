@@ -147,6 +147,25 @@ select { padding: 0 8px; }
 .field input[type="range"] { accent-color: var(--accent); }
 .hint { margin: 0; color: var(--muted); font-size: 12px; }
 
+/* Brightness, contrast, sepia and grayscale rows */
+.panel { max-height: calc(100vh - 64px); overflow-y: auto; }
+.adjust { display: grid; gap: 10px; }
+.adjust-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.adjust-head label, .adjust-value { color: var(--muted); }
+.adjust-value { font-variant-numeric: tabular-nums; }
+.adjust-line { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.adjust-line input[type="range"] { flex: 1; min-width: 0; margin: 0; accent-color: var(--accent); }
+#adjustReset {
+  justify-self: start;
+  padding: 6px 12px;
+  color: var(--text);
+  background: var(--control-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+#adjustReset:hover { background: var(--control-hover); }
+
 /* ---------- pages ---------- */
 
 #viewerContainer {

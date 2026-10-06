@@ -164,6 +164,47 @@ await check("zoom and theme changes re-render without errors", async () => {
   await page.close();
 });
 
+await check("adjustments change page pixels and Reset restores them", async () => {
+  const page = await openAndWait(`${base}/sample.pdf`);
+  await waitRendered(page);
+  const corner = () => page.evaluate(() => {
+    const c = document.querySelector(".page canvas");
+    return [...c.getContext("2d").getImageData(3, 3, 1, 1).data].slice(0, 3);
+  });
+  // Extension pages forbid eval, so the comparison is picked by name.
+  const cornerBecomes = (how, ref = []) => page.waitForFunction((how, ref) => {
+    const c = document.querySelector(".page canvas");
+    const px = [...c.getContext("2d").getImageData(3, 3, 1, 1).data].slice(0, 3);
+    if (how === "lighter") return px.every((v, i) => v > ref[i]);
+    if (how === "warm") return px[0] > px[2] + 4;
+    return px.every((v, i) => v === ref[i]);
+  }, { timeout: 20000 }, how, ref);
+  const before = await corner();
+  await page.click("#settingsBtn");
+  assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "Off");
+  assert.equal(await page.$eval("#adjustReset", (b) => b.hidden), true);
+
+  // Brightness +50: the dark paper gets lighter.
+  for (let i = 0; i < 10; i++) await page.click('[data-adjust="brightness"] button[data-step="5"]');
+  await cornerBecomes("lighter", before);
+  assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "+50");
+  assert.equal(await page.$eval('[data-adjust="brightness"] button[data-step="5"]', (b) => b.disabled), true);
+
+  // Sepia from the slider itself: red ends above blue on neutral paper.
+  await page.$eval("#adjSepia", (input) => {
+    input.value = "100";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await cornerBecomes("warm");
+  await page.screenshot({ path: `${outDir}/sample-adjusted.png` });
+
+  await page.click("#adjustReset");
+  await cornerBecomes("same", before);
+  assert.equal(await page.$eval("#adjustReset", (b) => b.hidden), true);
+  await page.close();
+});
+
 await check("open in built-in viewer bypasses the redirect once", async () => {
   const page = await openAndWait(`${base}/sample.pdf`);
   await waitRendered(page);

@@ -1,11 +1,13 @@
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
-  THEMES, TINTS, createColorMapper, createTintMapper, imageRectsFromCoords, processPage,
+  THEMES, TINTS, adjustColor, createAdjuster, createColorMapper, createPlainMapper, createTintMapper,
+  imageRectsFromCoords, processPage,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle } from "../settings";
 
-export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageMode: ImageMode };
+export type Adjust = { brightness: number; contrast: number; sepia: number; grayscale: number };
+export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageMode: ImageMode; adjust?: Adjust };
 
 const MAX_CANVAS_PIXELS = 16_777_216;
 const AHEAD = 1200; // px beyond the viewport to render ahead
@@ -18,9 +20,9 @@ export const CSS_UNITS = 96 / 72;
 const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
 export function pageBackground(o: RenderOptions) {
-  if (o.pageStyle === "original") return "#ffffff";
-  const rgb = o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
-  return `rgb(${rgb.join(" ")})`;
+  const paper = o.pageStyle === "original" ? [255, 255, 255]
+    : o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
+  return `rgb(${adjustColor(paper, createAdjuster(o.adjust)).join(" ")})`;
 }
 
 class PageSlot {
@@ -171,10 +173,12 @@ export class Renderer {
 
   setOptions(opts: RenderOptions) {
     this.opts = opts;
-    if (opts.pageStyle === "dark") this.mapper = createColorMapper(THEMES[opts.darkTheme]);
-    else if (opts.pageStyle === "sepia") this.mapper = createTintMapper(TINTS.sepia);
-    else this.mapper = null;
-    this.styleKey = `${opts.pageStyle}|${opts.darkTheme}|${opts.imageMode}`;
+    const adjust = createAdjuster(opts.adjust);
+    if (opts.pageStyle === "dark") this.mapper = createColorMapper(THEMES[opts.darkTheme], { adjust });
+    else if (opts.pageStyle === "sepia") this.mapper = createTintMapper(TINTS.sepia, { adjust });
+    else this.mapper = adjust ? createPlainMapper(adjust) : null; // untouched original needs no pass
+    const a = opts.adjust;
+    this.styleKey = `${opts.pageStyle}|${opts.darkTheme}|${opts.imageMode}|${a ? [a.brightness, a.contrast, a.sepia, a.grayscale] : ""}`;
     this.container.style.setProperty("--page-bg", pageBackground(opts));
     this.schedule();
   }
@@ -414,7 +418,9 @@ export class Renderer {
       const ctx = canvas.getContext("2d")!;
       const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const rects = imageRectsFromCoords(slot.page.imageCoordinates, canvas.width, canvas.height);
-      processPage(image, { mapColor: mapper, rects, imageMode: this.opts.imageMode });
+      // Original pages keep photos at full brightness; only text and paper are adjusted.
+      const imageDim = this.opts.pageStyle === "original" ? 1 : undefined;
+      processPage(image, { mapColor: mapper, rects, imageMode: this.opts.imageMode, imageDim });
       ctx.putImageData(image, 0, 0);
     }
     // Swap only when ready, so style and zoom changes never flash a blank page.
