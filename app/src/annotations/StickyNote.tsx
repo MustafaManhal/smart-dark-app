@@ -23,22 +23,36 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   const saveTimer = useRef(0);
 
   useEffect(() => setPos({ x: note.x, y: note.y }), [note.x, note.y]);
+  // Undo and redo change the note from outside. What this note saved itself comes back
+  // unchanged and is ignored, so typing ahead of a save is never overwritten.
+  const sent = useRef({ text: note.text, title: note.title ?? "" });
+  useEffect(() => {
+    const incoming = { text: note.text, title: note.title ?? "" };
+    if (incoming.text === sent.current.text && incoming.title === sent.current.title) return;
+    sent.current = incoming;
+    setText(incoming.text);
+    setTitle(incoming.title);
+  }, [note.text, note.title]);
+  const send = (next: Sticky) => {
+    sent.current = { text: next.text, title: next.title ?? "" };
+    onChange(next);
+  };
   useEffect(() => {
     if (autoFocus && !note.collapsed) area.current?.focus();
   }, [autoFocus]);
 
-  const save = (patch: Partial<Sticky>) => onChange({ ...note, text, title, ...pos, ...patch });
+  const save = (patch: Partial<Sticky>) => send({ ...note, text, title, ...pos, ...patch });
 
   function onType(value: string) {
     setText(value);
     clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => onChange({ ...note, ...pos, title, text: value }), 400);
+    saveTimer.current = window.setTimeout(() => send({ ...note, ...pos, title, text: value }), 400);
   }
 
   function onTitle(value: string) {
     setTitle(value);
     clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => onChange({ ...note, ...pos, text, title: value }), 400);
+    saveTimer.current = window.setTimeout(() => send({ ...note, ...pos, text, title: value }), 400);
   }
 
   function startDrag(e: PointerEvent) {
@@ -63,7 +77,7 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", end);
       el.removeEventListener("pointercancel", end);
-      onChange({ ...note, text, title, ...latest });
+      send({ ...note, text, title, ...latest });
     };
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerup", end);

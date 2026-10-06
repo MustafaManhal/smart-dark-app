@@ -322,3 +322,84 @@ test("notes and sticky notes can have a title", async ({ page }) => {
   await panel.getByLabel("Search notes").fill("zzz");
   await expect(panel.locator(".note-title")).toHaveCount(0);
 });
+
+test("undo and redo with the keyboard and with the buttons", async ({ page, isMobile }) => {
+  await openSample(page);
+  const marks = page.locator('.page[data-page="1"] .hl');
+  const undoButton = page.getByRole("button", { name: "Undo", exact: true });
+  const redoButton = page.getByRole("button", { name: "Redo", exact: true });
+  await expect(undoButton).toBeDisabled();
+  // Phones have no keyboard: they use the buttons.
+  const undo = () => (isMobile ? undoButton.click() : page.keyboard.press("ControlOrMeta+Z"));
+  const redo = () => (isMobile ? redoButton.click() : page.keyboard.press("ControlOrMeta+Shift+Z"));
+
+  // Make a highlight, recolor it, bookmark the page.
+  await selectText(page, "colored words keep their hue");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Highlight yellow" }).click();
+  await expect(marks).toHaveCount(1);
+  await clickCenter(page, '.page[data-page="1"] .hl');
+  await page.getByRole("dialog", { name: "Highlight" }).getByRole("radio", { name: "Pink" }).click();
+  await expect(marks).toHaveAttribute("style", /#f783ac/);
+  await page.locator(".reader-title").click(); // a tap outside closes the highlight menu
+  await expect(page.getByRole("dialog", { name: "Highlight" })).toHaveCount(0);
+  const bookmark = page.getByRole("button", { name: /Bookmark this page|Remove bookmark/ });
+  await bookmark.click();
+  await expect(bookmark).toHaveAttribute("aria-pressed", "true");
+  await expect(undoButton).toBeEnabled();
+  await expect(redoButton).toBeDisabled();
+
+  // Back, one step at a time.
+  await undo();
+  await expect(bookmark).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".toast")).toHaveText("Undone");
+  await undo();
+  await expect(marks).toHaveAttribute("style", /#ffd43b/);
+  await undo();
+  await expect(marks).toHaveCount(0);
+  await expect(undoButton).toBeDisabled();
+  if (!isMobile) {
+    await undo(); // the button is disabled now; the keys say why nothing happens
+    await expect(page.locator(".toast")).toHaveText("Nothing to undo");
+  }
+
+  // And forward again.
+  await redo();
+  await expect(marks).toHaveCount(1);
+  await redo();
+  await expect(marks).toHaveAttribute("style", /#f783ac/);
+  if (!isMobile) {
+    await page.keyboard.press("Control+Y");
+    await expect(bookmark).toHaveAttribute("aria-pressed", "true");
+  }
+  await page.reload();
+  await expect(marks).toHaveAttribute("style", /#f783ac/);
+});
+
+test("undo brings back a removed sticky note and takes back its text; typing keeps its own undo", async ({ page, isMobile }) => {
+  test.skip(isMobile, "keyboard");
+  await openSample(page);
+  await page.getByRole("button", { name: "Add sticky note" }).click();
+  const view = page.viewportSize()!;
+  await page.mouse.click(view.width * 0.4, view.height * 0.7);
+  const note = page.getByRole("group", { name: "Sticky note" });
+  await note.getByLabel("Sticky note text").fill("First");
+  // Ctrl+Z inside the text field is the field's own undo: the note stays.
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(note).toHaveCount(1);
+  await note.getByLabel("Sticky note text").fill("Ask about chart colors");
+  await page.waitForTimeout(700); // typing is saved a moment later
+  await page.locator(".reader-title").click(); // leave the text field
+
+  await note.getByRole("button", { name: "Delete note" }).click();
+  await expect(note).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(note.getByLabel("Sticky note text")).toHaveValue("Ask about chart colors");
+  // The typing was one step: one more undo empties the note, another removes it.
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(note.getByLabel("Sticky note text")).toHaveValue("");
+  await page.keyboard.press("ControlOrMeta+Z");
+  await expect(note).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
+  await expect(note.getByLabel("Sticky note text")).toHaveValue("Ask about chart colors");
+});

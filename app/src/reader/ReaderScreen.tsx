@@ -7,6 +7,7 @@ import { clearOverlays, renderOverlays } from "../annotations/Overlays";
 import { SelectionBar } from "../annotations/SelectionBar";
 import { normalizeRects } from "../annotations/geometry";
 import { useAnnotations } from "../annotations/useAnnotations";
+import { History } from "../annotations/history";
 import { ReadAloudBar } from "../readaloud/ReadAloudBar";
 import { ReadingTracker } from "../stats/tracker";
 import { useReadAloud } from "../readaloud/useReadAloud";
@@ -80,6 +81,17 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [placing, setPlacing] = useState(false);
   const [erasing, setErasing] = useState(false);
   const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null);
+  // Undo and redo for this book's highlights, notes, sticky notes and bookmarks (Ctrl/Cmd+Z).
+  const [, setHistoryVersion] = useState(0);
+  const history = useRef<History | null>(null);
+  history.current ??= new History(() => setHistoryVersion((v) => v + 1));
+  // A new edit ends the offer to undo an earlier removal from its message.
+  const record = (step: Parameters<History["push"]>[0]) => {
+    setToast((current) => (current?.undo ? null : current));
+    history.current!.push(step);
+  };
+  const undo = async () => setToast({ text: t((await history.current!.undo()) ? "Undone" : "Nothing to undo") });
+  const redo = async () => setToast({ text: t((await history.current!.redo()) ? "Redone" : "Nothing to redo") });
   const [focusStickyId, setFocusStickyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -194,7 +206,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     if (!ready || !renderer.current) return;
     renderOverlays(renderer.current, annotations.data, {
       focusStickyId,
-      onStickyChange: (s) => annotations.saveSticky(s),
+      onStickyChange: (s) => changeSticky(s),
       onStickyDelete: (s) => removeSticky(s),
       onNoteOpen: (n, b) => (erasing
         ? removeNote(n)
@@ -213,22 +225,56 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     setToast({ text: t((await copyText(text)) ? "Copied" : "Could not copy") });
   }
 
-  // Every removal can be taken back, so one tap is enough to remove.
+  // Every change goes into the history. A removal also shows a message with Undo,
+  // so one tap is enough to remove.
+  const takeBack = () => history.current!.undo();
   async function removeHighlight(h: Highlight) {
     await annotations.removeHighlight(h);
-    setToast({ text: t("Highlight removed"), undo: () => annotations.saveHighlight(h) });
+    record({ undo: () => annotations.saveHighlight(h), redo: () => annotations.removeHighlight(h) });
+    setToast({ text: t("Highlight removed"), undo: takeBack });
+  }
+  async function recolorHighlight(h: Highlight, color: HighlightColor) {
+    if (color === h.color) return;
+    await annotations.saveHighlight({ ...h, color });
+    record({ undo: () => annotations.saveHighlight(h), redo: () => annotations.saveHighlight({ ...h, color }) });
+  }
+  async function saveNote(draft: Parameters<typeof annotations.saveNote>[0]) {
+    const before = draft.id ? annotations.data.notes.find((n) => n.id === draft.id) : undefined;
+    const saved = await annotations.saveNote(draft);
+    record({
+      undo: () => (before ? annotations.saveNote(before) : annotations.removeNote(saved)),
+      redo: () => annotations.saveNote(saved),
+    });
   }
   async function removeNote(n: PassageNote) {
     await annotations.removeNote(n);
-    setToast({ text: t("Note removed"), undo: () => annotations.saveNote(n) });
+    record({ undo: () => annotations.saveNote(n), redo: () => annotations.removeNote(n) });
+    setToast({ text: t("Note removed"), undo: takeBack });
+  }
+  // Typing, moving, recoloring or folding a sticky note. Changes close together count as one step.
+  async function changeSticky(s: Sticky) {
+    const before = annotations.data.stickies.find((x) => x.id === s.id);
+    const saved = await annotations.saveSticky(s);
+    if (!before) return;
+    record({ mergeKey: `sticky:${s.id}`, undo: () => annotations.saveSticky(before), redo: () => annotations.saveSticky(saved) });
   }
   async function removeSticky(s: Sticky) {
+    // A note that comes back through undo should not grab the keyboard again.
+    setFocusStickyId((id) => (id === s.id ? null : id));
     await annotations.removeSticky(s);
-    setToast({ text: t("Sticky note removed"), undo: () => annotations.saveSticky(s) });
+    record({ undo: () => annotations.saveSticky(s), redo: () => annotations.removeSticky(s) });
+    setToast({ text: t("Sticky note removed"), undo: takeBack });
+  }
+  async function toggleBookmark(pageNumber: number) {
+    await annotations.toggleBookmark(pageNumber);
+    const again = () => annotations.toggleBookmark(pageNumber);
+    record({ undo: again, redo: again });
   }
   async function removeBookmark(b: Bookmark) {
     await annotations.removeBookmark(b);
-    setToast({ text: t("Bookmark removed"), undo: () => annotations.toggleBookmark(b.page) });
+    const again = () => annotations.toggleBookmark(b.page);
+    record({ undo: again, redo: again });
+    setToast({ text: t("Bookmark removed"), undo: takeBack });
   }
 
   // Watch the text selection (debounced: iOS fires this while the handles move).
@@ -326,7 +372,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   async function highlightSelection(color: HighlightColor) {
     if (!selection) return;
     const { page: p, rects, text } = selection;
-    await annotations.saveHighlight({ bookId, page: p, rects, text, color });
+    const saved = await annotations.saveHighlight({ bookId, page: p, rects, text, color });
+    record({ undo: () => annotations.removeHighlight(saved), redo: () => annotations.saveHighlight(saved) });
     getSelection()?.removeAllRanges();
     setSelection(null);
   }
@@ -359,6 +406,13 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && placing) return setPlacing(false);
       if (e.key === "Escape" && erasing) return setErasing(false);
+      // Ctrl/Cmd+Z undoes the last edit, with Shift (or Ctrl+Y) it is done again. Text fields keep their own undo.
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
+        e.preventDefault();
+        if (e.key.toLowerCase() === "y" || e.shiftKey) redo();
+        else undo();
+        return;
+      }
       // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
       if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
         e.preventDefault();
@@ -398,6 +452,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         x: Math.min(Math.max(0, hit.x - noteW / 2), Math.max(0, 1 - noteW)),
         y: Math.min(Math.max(0, hit.y - 0.02), Math.max(0, 1 - noteH)),
       });
+      record({ undo: () => annotations.removeSticky(created), redo: () => annotations.saveSticky(created) });
       setFocusStickyId(created.id);
       return;
     }
@@ -444,7 +499,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
             onClick={() => { setPlacing((v) => !v); setHighlightMode(false); setErasing(false); }} />
           <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
             class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
-            onClick={() => annotations.toggleBookmark(page)} />
+            onClick={() => toggleBookmark(page)} />
           <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
             disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : (readAloud.show(), readAloud.toggle(page)))} />
           <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
@@ -473,6 +528,10 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       )}
 
       <div class="float-tools">
+        <div class="history-pill" role="group" aria-label={t("Undo and redo")}>
+          <IconButton label={t("Undo")} icon="undo" disabled={!history.current.canUndo} onClick={undo} />
+          <IconButton label={t("Redo")} icon="redo" disabled={!history.current.canRedo} onClick={redo} />
+        </div>
         <div class="zoom-chips" role="group" aria-label={t("Quick zoom")}>
           <button type="button" class="zoom-chip" aria-pressed={zoom.mode === "fit"} disabled={!ready}
             onClick={() => renderer.current?.fitWidth()}>{t("Fit width")}</button>
@@ -542,14 +601,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         const h = annotations.data.highlights.find((x) => x.id === popover.id);
         return h && (
           <HighlightPopover highlight={h} anchor={popover.anchor} onClose={() => setPopover(null)}
-            onColor={(c) => annotations.saveHighlight({ ...h, color: c })}
+            onColor={(c) => recolorHighlight(h, c)}
             onCopy={() => { copy(h.text); setPopover(null); }}
             onRemove={() => { removeHighlight(h); setPopover(null); }} />
         );
       })()}
       {popover?.type === "note" && (
         <NotePopover key={popover.draft.id ?? "new"} note={popover.draft} anchor={popover.anchor} onClose={() => setPopover(null)}
-          onSave={(body, title) => annotations.saveNote({ bookId, ...popover.draft, body, title })}
+          onSave={(body, title) => saveNote({ bookId, ...popover.draft, body, title })}
           onDelete={() => {
             const n = annotations.data.notes.find((x) => x.id === popover.draft.id);
             if (n) removeNote(n);
