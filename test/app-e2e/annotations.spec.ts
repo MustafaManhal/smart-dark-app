@@ -75,9 +75,12 @@ test("notes panel lists each kind beside the PDF and jumps to it", async ({ page
   await expect(panel.getByRole("list", { name: "Highlights" })).toContainText("colored words keep their hue");
   if (!isMobile) {
     // Wide screens keep the PDF visible next to the panel.
+    // The page is refitted to the narrower reading area a moment after the panel opens.
     const panelBox = (await panel.boundingBox())!;
-    const pageBox = (await page.locator('.page[data-page="1"]').boundingBox())!;
-    expect(pageBox.x + pageBox.width).toBeLessThanOrEqual(panelBox.x + 1);
+    await expect.poll(async () => {
+      const pageBox = (await page.locator('.page[data-page="1"]').boundingBox())!;
+      return pageBox.x + pageBox.width;
+    }).toBeLessThanOrEqual(panelBox.x + 1);
   }
   await page.waitForTimeout(300); // let the panel finish sliding in
   await page.screenshot({ path: `test/output/panel-${test.info().project.name}.png` });
@@ -274,4 +277,48 @@ test("notes panel: copy an entry, remove it, undo", async ({ page }) => {
   await expect(panel.getByRole("tab", { name: /Highlights 0/ })).toBeVisible();
   await page.locator(".toast").getByRole("button", { name: "Undo" }).click();
   await expect(panel.getByRole("tab", { name: /Highlights 1/ })).toBeVisible();
+});
+
+test("notes and sticky notes can have a title", async ({ page }) => {
+  await openSample(page);
+  // A note on a passage, with a title.
+  await selectText(page, "Black body text");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Note" }).click();
+  const pop = page.getByRole("dialog", { name: "Note" });
+  await pop.getByLabel("Note title").fill("Contrast rule");
+  await pop.getByLabel("Note text").fill("Explain how gray text is lifted");
+  await pop.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("button", { name: /Open note: Contrast rule/ })).toBeVisible();
+
+  // A sticky note, with a title.
+  await page.getByRole("button", { name: "Add sticky note" }).click();
+  const view = page.viewportSize()!;
+  await page.mouse.click(view.width * 0.4, view.height * 0.7); // a spot of the page that is on screen
+  const note = page.getByRole("group", { name: "Sticky note" });
+  await note.getByLabel("Note title").fill("Ask Ana");
+  await note.getByLabel("Sticky note text").fill("Which colors for the chart?");
+  await page.waitForTimeout(700); // typing is saved a moment later
+  await page.screenshot({ path: `test/output/note-titles-${test.info().project.name}.png` });
+
+  await page.reload();
+  await expect(page.getByRole("group", { name: "Sticky note" }).getByLabel("Note title")).toHaveValue("Ask Ana");
+  await page.getByRole("button", { name: /Open note: Contrast rule/ }).click();
+  await expect(page.getByRole("dialog", { name: "Note" }).getByLabel("Note title")).toHaveValue("Contrast rule");
+  await page.getByRole("dialog", { name: "Note" }).getByRole("button", { name: "Cancel" }).click();
+
+  // A collapsed sticky note shows its title.
+  await page.getByRole("group", { name: "Sticky note" }).getByRole("button", { name: "Collapse note" }).click();
+  await expect(page.getByRole("button", { name: "Open sticky note: Ask Ana" })).toContainText("Ask Ana");
+
+  // The notes panel lists and searches titles.
+  await page.getByRole("button", { name: "Notes and highlights" }).click();
+  const panel = page.getByRole("complementary", { name: "Notes and highlights" });
+  await panel.getByRole("tab", { name: /^Notes/ }).click();
+  await expect(panel.locator(".note-title")).toHaveText("Contrast rule");
+  await panel.getByRole("tab", { name: /Sticky notes/ }).click();
+  await expect(panel.locator(".note-title")).toHaveText("Ask Ana");
+  await panel.getByLabel("Search notes").fill("ask");
+  await expect(panel.locator(".note-title")).toHaveCount(1);
+  await panel.getByLabel("Search notes").fill("zzz");
+  await expect(panel.locator(".note-title")).toHaveCount(0);
 });

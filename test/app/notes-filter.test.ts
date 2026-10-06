@@ -37,3 +37,17 @@ test("markdown export has a section per kind", () => {
   expect(md).toContain("- p. 2: Call Ana");
   expect(md).toContain("## Bookmarks\n\n- Page 5");
 });
+
+test("titles are searched and exported with their notes", () => {
+  const titled: BookAnnotations = {
+    ...data,
+    notes: [{ ...data.notes[0], title: "Thesis" }],
+    stickies: [{ ...data.stickies[0], title: "To do" }, { ...data.stickies[0], id: "s2", title: "Only a title", text: "" }],
+  };
+  expect(noteItems(titled, { kind: "notes", color: null, query: "thesis" }).map((i) => i.id)).toEqual(["n1"]);
+  expect(noteItems(titled, { kind: "sticky", color: null, query: "to do" }).map((i) => i.id)).toEqual(["s1"]);
+  const md = notesToMarkdown("My book", titled);
+  expect(md).toContain("### Page 1: Thesis\n\n> passage\n\nImportant idea");
+  expect(md).toContain("- p. 2: **To do** Call Ana");
+  expect(md).toContain("- p. 2: **Only a title**\n");
+});

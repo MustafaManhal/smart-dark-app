@@ -36,12 +36,19 @@ export default defineConfig({
         globPatterns: ["**/*.{js,mjs,css,html,png,svg,wasm,bcmap,pfb,ttf,icc,webmanifest}"],
         // Character maps (~170 small files) are only needed by some CJK PDFs. Precaching
         // them made the first install take ~40 s on a phone, so they are cached on first use.
-        globIgnores: ["pdfjs/cmaps/**"],
+        // The natural read-aloud voices (tts/, about 58 MB) are optional and for computers
+        // only, so they are also cached on first use.
+        globIgnores: ["pdfjs/cmaps/**", "tts/**"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/pdfjs/cmaps/"),
             handler: "CacheFirst",
             options: { cacheName: "pdfjs-cmaps", expiration: { maxEntries: 250 } },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes("/tts/"),
+            handler: "CacheFirst",
+            options: { cacheName: "tts-assets", expiration: { maxEntries: 80 } },
           },
         ],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,

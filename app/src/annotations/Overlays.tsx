@@ -31,7 +31,7 @@ function NoteBadge({ note, onOpen }: { note: PassageNote; onOpen: Handlers["onNo
   const last = note.rects[note.rects.length - 1];
   if (!last) return null;
   return (
-    <button type="button" class="pn-badge" aria-label={t("Open note: {text}", { text: note.body.slice(0, 60) })}
+    <button type="button" class="pn-badge" aria-label={t("Open note: {text}", { text: (note.title || note.body).slice(0, 60) })}
       style={{ left: `${(last.x + last.w) * 100}%`, top: `${last.y * 100}%` }}
       onClick={(e) => onOpen(note, (e.currentTarget as HTMLElement).getBoundingClientRect())}>
       <Icon name="note" size={14} />

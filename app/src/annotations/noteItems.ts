@@ -23,10 +23,10 @@ export function noteItems(
       if ((!color || h.color === color) && matches(h.text)) items.push({ type: "highlight", id: h.id, page: h.page, item: h });
     }
   } else if (kind === "notes") {
-    for (const n of data.notes) if (matches(n.text, n.body)) items.push({ type: "note", id: n.id, page: n.page, item: n });
+    for (const n of data.notes) if (matches(n.title ?? "", n.text, n.body)) items.push({ type: "note", id: n.id, page: n.page, item: n });
   } else if (kind === "sticky") {
     for (const s of data.stickies) {
-      if ((!color || s.color === color) && matches(s.text)) items.push({ type: "sticky", id: s.id, page: s.page, item: s });
+      if ((!color || s.color === color) && matches(s.title ?? "", s.text)) items.push({ type: "sticky", id: s.id, page: s.page, item: s });
     }
   } else if (!q) {
     for (const b of data.bookmarks) items.push({ type: "bookmark", id: b.id, page: b.page, item: b });

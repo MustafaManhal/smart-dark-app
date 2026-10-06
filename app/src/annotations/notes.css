@@ -57,6 +57,7 @@
 .note-card blockquote { margin: 0; padding: 4px 8px; border-radius: 6px; background: color-mix(in srgb, var(--c) 26%, transparent); }
 .note-card blockquote.is-plain { background: var(--surface-2); font-size: 14px; }
 .note-text { margin: 0; white-space: pre-wrap; }
+.note-title { display: block; font-weight: 650; padding-inline-end: 64px; overflow-wrap: anywhere; }
 .note-remove { position: absolute; top: 6px; inset-inline-end: 4px; width: 34px; height: 34px; color: var(--muted); }
 .note-remove:hover { color: var(--danger); }
 .note-copy { position: absolute; top: 6px; inset-inline-end: 38px; width: 34px; height: 34px; color: var(--muted); }

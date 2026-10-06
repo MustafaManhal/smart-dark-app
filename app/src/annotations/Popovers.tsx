@@ -50,24 +50,25 @@ export function HighlightPopover({ highlight, anchor, onColor, onCopy, onRemove,
   );
 }
 
-export type NoteDraft = { id?: string; page: number; rects: NormRect[]; text: string; body: string; createdAt?: number };
+export type NoteDraft = { id?: string; page: number; rects: NormRect[]; text: string; body: string; title?: string; createdAt?: number };
 
 /** Write or edit a note on a passage. */
 export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
   note: NoteDraft;
   anchor: Anchor;
-  onSave: (body: string) => void;
+  onSave: (body: string, title: string) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
   const [body, setBody] = useState(note.body);
+  const [title, setTitle] = useState(note.title ?? "");
   const area = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     setTimeout(() => area.current?.focus(), 30);
   }, []);
   const close = () => {
     // Clicking away keeps what was typed; an empty new note is simply dropped.
-    if (body.trim() && body !== note.body) onSave(body);
+    if (body.trim() && (body !== note.body || title !== (note.title ?? ""))) onSave(body, title.trim());
     onClose();
   };
   // Paste at the cursor, for screens where the system paste menu is slow to reach.
@@ -87,6 +88,8 @@ export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
     <Popover anchor={anchor} label={t("Note")} onClose={close}>
       <div class="pop-note">
         <blockquote class="pop-quote">{note.text}</blockquote>
+        <input class="pop-title" type="text" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
+          onInput={(e) => setTitle(e.currentTarget.value)} />
         <textarea ref={area} aria-label={t("Note text")} rows={4} placeholder={t("Write your note")} value={body}
           onInput={(e) => setBody(e.currentTarget.value)} />
         <div class="pop-actions">
@@ -94,7 +97,7 @@ export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
           {canReadClipboard() && <Button onClick={paste}><Icon name="paste" size={16} /> {t("Paste")}</Button>}
           <span class="grow" />
           <Button onClick={onClose}>{t("Cancel")}</Button>
-          <Button variant="primary" disabled={!body.trim()} onClick={() => { onSave(body); onClose(); }}>{t("Save")}</Button>
+          <Button variant="primary" disabled={!body.trim()} onClick={() => { onSave(body, title.trim()); onClose(); }}>{t("Save")}</Button>
         </div>
       </div>
     </Popover>

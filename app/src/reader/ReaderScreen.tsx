@@ -549,7 +549,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       })()}
       {popover?.type === "note" && (
         <NotePopover key={popover.draft.id ?? "new"} note={popover.draft} anchor={popover.anchor} onClose={() => setPopover(null)}
-          onSave={(body) => annotations.saveNote({ bookId, ...popover.draft, body })}
+          onSave={(body, title) => annotations.saveNote({ bookId, ...popover.draft, body, title })}
           onDelete={() => {
             const n = annotations.data.notes.find((x) => x.id === popover.draft.id);
             if (n) removeNote(n);

@@ -123,6 +123,8 @@ export const AR: Record<string, string> = {
   "Note": "ملاحظة",
   "Copy": "نسخ",
   "Copy text": "نسخ النص",
+  "Note title": "عنوان الملاحظة",
+  "Empty sticky note": "ملاحظة لاصقة فارغة",
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Paste": "لصق",

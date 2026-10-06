@@ -10,14 +10,14 @@ export type Highlight = {
   id: string; bookId: string; page: number; rects: NormRect[]; color: HighlightColor;
   text: string; createdAt: number; updatedAt: number;
 };
-/** A note attached to a passage of text (separate from highlights). */
+/** A note attached to a passage of text (separate from highlights). The title is optional. */
 export type PassageNote = {
   id: string; bookId: string; page: number; rects: NormRect[]; text: string; body: string;
-  createdAt: number; updatedAt: number;
+  title?: string; createdAt: number; updatedAt: number;
 };
 export type Sticky = {
   id: string; bookId: string; page: number; x: number; y: number; color: HighlightColor;
-  text: string; collapsed: boolean; createdAt: number; updatedAt: number;
+  text: string; title?: string; collapsed: boolean; createdAt: number; updatedAt: number;
 };
 export type Bookmark = { id: string; bookId: string; page: number; createdAt: number };
 

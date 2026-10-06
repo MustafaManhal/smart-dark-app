@@ -80,16 +80,22 @@ export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
                 {entry.type === "highlight" && <blockquote>{entry.item.text}</blockquote>}
                 {entry.type === "note" && (
                   <>
+                    {entry.item.title && <strong class="note-title">{entry.item.title}</strong>}
                     <blockquote class="is-plain">{entry.item.text}</blockquote>
                     <p class="note-text">{entry.item.body}</p>
                   </>
                 )}
-                {entry.type === "sticky" && <p class="note-text">{entry.item.text || "Empty sticky note"}</p>}
+                {entry.type === "sticky" && entry.item.title && <strong class="note-title">{entry.item.title}</strong>}
+                {entry.type === "sticky" && (entry.item.text || !entry.item.title) && (
+                  <p class="note-text">{entry.item.text || t("Empty sticky note")}</p>
+                )}
                 {entry.type === "bookmark" && <p class="note-text">{t("Bookmarked page")}</p>}
               </button>
               {entry.type !== "bookmark" && (
                 <IconButton label={t("Copy text")} icon="copy" class="note-copy"
-                  onClick={() => onCopy(entry.type === "note" ? `${entry.item.text}\n\n${entry.item.body}` : entry.item.text)} />
+                  onClick={() => onCopy([
+                    "title" in entry.item ? entry.item.title : "", entry.item.text, entry.type === "note" ? entry.item.body : "",
+                  ].filter(Boolean).join("\n\n"))} />
               )}
               <IconButton label={t(`Remove ${entry.type === "sticky" ? "sticky note" : entry.type} on page {page}`, { page: entry.page })} icon="trash"
                 class="note-remove" onClick={() => onRemove(entry)} />

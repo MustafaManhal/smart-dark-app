@@ -15,6 +15,7 @@ type Props = {
 /** A sticky note on the page: drag by its header, type in its body. */
 export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   const [text, setText] = useState(note.text);
+  const [title, setTitle] = useState(note.title ?? "");
   const [pos, setPos] = useState({ x: note.x, y: note.y });
   const [palette, setPalette] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -26,16 +27,22 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
     if (autoFocus && !note.collapsed) area.current?.focus();
   }, [autoFocus]);
 
-  const save = (patch: Partial<Sticky>) => onChange({ ...note, text, ...pos, ...patch });
+  const save = (patch: Partial<Sticky>) => onChange({ ...note, text, title, ...pos, ...patch });
 
   function onType(value: string) {
     setText(value);
     clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => onChange({ ...note, ...pos, text: value }), 400);
+    saveTimer.current = window.setTimeout(() => onChange({ ...note, ...pos, title, text: value }), 400);
+  }
+
+  function onTitle(value: string) {
+    setTitle(value);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => onChange({ ...note, ...pos, text, title: value }), 400);
   }
 
   function startDrag(e: PointerEvent) {
-    if ((e.target as Element).closest("button")) return;
+    if ((e.target as Element).closest("button, input")) return;
     const page = root.current!.parentElement!.getBoundingClientRect();
     const box = root.current!.getBoundingClientRect();
     const dx = e.clientX - box.left;
@@ -56,7 +63,7 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", end);
       el.removeEventListener("pointercancel", end);
-      onChange({ ...note, text, ...latest });
+      onChange({ ...note, text, title, ...latest });
     };
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerup", end);
@@ -68,9 +75,10 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   if (note.collapsed) {
     return (
       <div ref={root} class="sticky is-collapsed" style={style}>
-        <button type="button" class="sticky-tab" aria-label={t("Open sticky note: {text}", { text: text || t("empty") })}
+        <button type="button" class="sticky-tab" aria-label={t("Open sticky note: {text}", { text: title || text || t("empty") })}
           onClick={() => save({ collapsed: false })}>
           <Icon name="sticky" size={18} />
+          {title && <span class="sticky-tab-title">{title}</span>}
         </button>
       </div>
     );
@@ -93,6 +101,9 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
           ))}
         </div>
       )}
+      <input class="sticky-title" type="text" aria-label={t("Note title")} placeholder={t("Title")} value={title} maxLength={80}
+        onInput={(e) => onTitle(e.currentTarget.value)}
+        onBlur={() => { clearTimeout(saveTimer.current); if (title !== (note.title ?? "")) save({}); }} />
       <textarea ref={area} aria-label={t("Sticky note text")} placeholder={t("Write a note")} value={text}
         onInput={(e) => onType(e.currentTarget.value)}
         onBlur={() => { clearTimeout(saveTimer.current); if (text !== note.text) save({}); }} />
