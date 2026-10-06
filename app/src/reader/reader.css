@@ -1,4 +1,5 @@
-.reader { position: fixed; inset: 0; background: var(--bg); color: var(--text); --bar-top: calc(53px + var(--safe-top)); --bar-bottom: var(--safe-bottom); }
+/* --float-gap: room above page 1 for the floating page, zoom and quick-zoom controls. */
+.reader { position: fixed; inset: 0; background: var(--bg); color: var(--text); --bar-top: calc(53px + var(--safe-top)); --bar-bottom: var(--safe-bottom); --float-gap: 54px; }
 /* Reader chrome follows the page style, not the app theme. */
 .reader[data-style="dark"] {
   color-scheme: dark;
@@ -55,9 +56,11 @@
 .float-tools {
   position: absolute;
   top: calc(var(--bar-top) + 10px);
-  inset-inline-end: 12px;
+  inset-inline: 12px;
   z-index: 5;
   display: flex;
+  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   pointer-events: none;
 }
@@ -81,7 +84,28 @@
 .page-total { color: var(--muted); }
 .zoom-pill .icon-btn { width: 30px; height: 30px; }
 .zoom-pill .icon { width: 16px; height: 16px; }
-.zoom-value { min-width: 46px; height: 30px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.zoom-value { min-width: 46px; text-align: center; }
+/* Quick zoom: one tap for fit width, fit page or a percentage. */
+.zoom-chips { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 3px 0; }
+.zoom-chips::-webkit-scrollbar { display: none; }
+.zoom-chip {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.zoom-chip:hover:not(:disabled, [aria-pressed="true"]) { background: var(--surface-2); }
+.zoom-chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.zoom-chip:disabled { opacity: 0.5; cursor: default; }
 .reader.bars-hidden .float-tools { transform: translateY(-8px); opacity: 0; pointer-events: none; }
 .reader.bars-hidden .float-tools > * { pointer-events: none; }
 
@@ -105,30 +129,18 @@
 .book-progress-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-inline-start: -1px; background: color-mix(in srgb, var(--bg) 70%, transparent); }
 
 /* Phones and narrow windows: tools get their own row so every icon stays visible. */
+@media (max-width: 900px) {
+  /* Not enough room for one row: the quick-zoom chips go under the pills and scroll sideways. */
+  .reader { --float-gap: 90px; }
+  .float-tools { flex-wrap: wrap; row-gap: 0; }
+  .zoom-chips { order: 3; max-width: 100%; margin-top: 3px; }
+  .float-tools::after { content: ""; order: 2; flex-basis: 100%; height: 0; }
+}
 @media (max-width: 720px) {
-  /* --float-gap: room for the page/zoom pills so they do not cover the top of page 1. */
-  .reader { --bar-top: calc(97px + var(--safe-top)); --float-gap: 54px; }
+  .reader { --bar-top: calc(97px + var(--safe-top)); }
   .reader-top { grid-template-columns: auto minmax(0, 1fr) 40px; grid-template-areas: "back title ." "tools tools tools"; row-gap: 2px; }
   .tools { justify-content: space-around; padding-top: 2px; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 }
-
-.zoom-menu {
-  position: absolute;
-  top: 40px;
-  inset-inline-end: 0;
-  display: grid;
-  min-width: 140px;
-  padding: 6px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  pointer-events: auto;
-  animation: rise 0.15s var(--ease);
-}
-.zoom-menu button { padding: 8px 12px; border: 0; border-radius: 8px; background: none; text-align: start; cursor: pointer; font-variant-numeric: tabular-nums; }
-.zoom-menu button:hover, .zoom-menu button[aria-current="true"] { background: var(--surface-2); }
-.zoom-menu hr { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
 
 .mode-hint {
   position: absolute;
@@ -152,7 +164,6 @@
 .mode-colors .swatch { width: 22px; height: 22px; }
 .mode-done { border: 0; border-radius: 999px; padding: 6px 12px; background: var(--surface-2); cursor: pointer; }
 @media (max-width: 420px) { .mode-hint > span { display: none; } }
-.pill-sep { width: 1px; height: 18px; margin: 0 2px; background: var(--border); }
 .zoom-pill .icon-btn.is-on { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
 /* Read aloud */

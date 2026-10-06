@@ -17,6 +17,9 @@ const defaults = {
   adjSepia: 0,
   adjGrayscale: 0,
   appTheme: "system" as AppTheme,
+  // Last zoom, so a book opens the way the reader left it. Scale is in renderer units.
+  zoomMode: "fit" as "fit" | "page" | "manual",
+  zoomScale: 1,
   readRate: 1,
   readPitch: 1,
   readVoices: {} as Record<string, string>, // language -> voiceURI

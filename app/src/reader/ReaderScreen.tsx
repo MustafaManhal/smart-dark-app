@@ -66,7 +66,6 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [pageInput, setPageInput] = useState("1");
   const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | null>(null);
   const [zoom, setZoom] = useState<{ scale: number; mode: "fit" | "page" | "manual" }>({ scale: 1, mode: "fit" });
-  const [zoomMenu, setZoomMenu] = useState(false);
   const [progress, setProgress] = useState(0);
   const [highlightMode, setHighlightMode] = useState(false);
   const [penColor, setPenColor] = useState<HighlightColor>("yellow");
@@ -83,6 +82,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     let doc: PDFDocumentProxy | null = null;
     let cancelled = false;
     let saveTimer = 0;
+    let zoomTimer = 0;
     (async () => {
       const [b, blob, saved] = await Promise.all([repos.books.get(bookId), repos.books.file(bookId), repos.progress.get(bookId)]);
       if (!b || !blob) {
@@ -102,9 +102,17 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         setPage(p);
         setPageInput(String(p));
       };
-      r.onScaleChange = (scale, mode) => setZoom({ scale, mode });
+      r.onScaleChange = (scale, mode) => {
+        setZoom({ scale, mode });
+        // Remember the zoom for the next book; pinch and wheel report many steps.
+        clearTimeout(zoomTimer);
+        zoomTimer = window.setTimeout(() => {
+          if (mode !== settings.zoomMode.value) saveSetting("zoomMode", mode);
+          if (mode === "manual" && scale !== settings.zoomScale.value) saveSetting("zoomScale", scale);
+        }, 400);
+      };
       r.onProgress = setProgress;
-      await r.init();
+      await r.init({ mode: settings.zoomMode.value, scale: settings.zoomScale.value });
       if (startPage) r.scrollToPage(startPage);
       else if (saved) r.scrollToPage(saved.page, saved.offset);
       setReady(true);
@@ -122,6 +130,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     return () => {
       cancelled = true;
       clearTimeout(saveTimer);
+      clearTimeout(zoomTimer);
       if (renderer.current) clearOverlays(renderer.current);
       renderer.current?.destroy();
       renderer.current = null;
@@ -332,7 +341,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const zoomPercent = Math.round((zoom.scale / CSS_UNITS) * 100);
 
   const chapterStarts = total > 1 ? outline.filter((o) => o.depth === 0 && o.page > 1).map((o) => (o.page - 1) / total) : [];
-  const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+  const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   return (
     <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""}`} data-style={pageStyle}>
@@ -379,34 +388,26 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       )}
 
       <div class="float-tools">
+        <div class="zoom-chips" role="group" aria-label={t("Quick zoom")}>
+          <button type="button" class="zoom-chip" aria-pressed={zoom.mode === "fit"} disabled={!ready}
+            onClick={() => renderer.current?.fitWidth()}>{t("Fit width")}</button>
+          <button type="button" class="zoom-chip" aria-pressed={zoom.mode === "page"} disabled={!ready}
+            onClick={() => renderer.current?.fitPage()}>{t("Fit page")}</button>
+          {ZOOM_PRESETS.map((z) => (
+            <button type="button" class="zoom-chip" dir="ltr" disabled={!ready}
+              aria-pressed={zoom.mode === "manual" && Math.abs(zoom.scale / CSS_UNITS - z) < 0.005}
+              onClick={() => renderer.current?.zoomTo(z * CSS_UNITS)}>{Math.round(z * 100)}%</button>
+          ))}
+        </div>
         <button type="button" class="page-pill" disabled={!ready} onClick={() => setSheet("goto")}
           aria-label={t("Page {page} of {total}. Go to page", { page, total })}>
           <span class="page-now">{page}</span><span class="page-total">/ {total}</span>
         </button>
         <div class="zoom-pill" role="group" aria-label={t("Zoom")}>
           <IconButton label={t("Zoom out")} icon="minus" disabled={!ready} onClick={() => renderer.current?.zoomBy(1 / ZOOM_STEP)} />
-          <button type="button" class="zoom-value" disabled={!ready} aria-haspopup="menu" aria-expanded={zoomMenu}
-            aria-label={t("Zoom {n}%. Zoom options", { n: zoomPercent })} onClick={() => setZoomMenu((v) => !v)}>
-            {zoomPercent}%
-          </button>
+          <span class="zoom-value">{zoomPercent}%</span>
           <IconButton label={t("Zoom in")} icon="plus" disabled={!ready} onClick={() => renderer.current?.zoomBy(ZOOM_STEP)} />
-          <span class="pill-sep" aria-hidden="true" />
-          <IconButton label={t("Fit width")} icon="fitWidth" class={zoom.mode === "fit" ? "is-on" : ""}
-            aria-pressed={zoom.mode === "fit"} disabled={!ready} onClick={() => renderer.current?.fitWidth()} />
-          <IconButton label={t("Fit page")} icon="fitPage" class={zoom.mode === "page" ? "is-on" : ""}
-            aria-pressed={zoom.mode === "page"} disabled={!ready} onClick={() => renderer.current?.fitPage()} />
         </div>
-        {zoomMenu && (
-          <div class="zoom-menu" role="menu" aria-label={t("Zoom options")}>
-            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitWidth(); setZoomMenu(false); }}>{t("Fit width")}</button>
-            <button type="button" role="menuitem" onClick={() => { renderer.current?.fitPage(); setZoomMenu(false); }}>{t("Fit page")}</button>
-            <hr />
-            {ZOOM_PRESETS.map((z) => (
-              <button type="button" role="menuitem" aria-current={Math.abs(zoom.scale / CSS_UNITS - z) < 0.005 ? "true" : undefined}
-                onClick={() => { renderer.current?.zoomTo(z * CSS_UNITS); setZoomMenu(false); }}>{Math.round(z * 100)}%</button>
-            ))}
-          </div>
-        )}
       </div>
 
       {placing && (

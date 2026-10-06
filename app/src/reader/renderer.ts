@@ -12,7 +12,6 @@ export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageM
 const MAX_CANVAS_PIXELS = 16_777_216;
 const AHEAD = 1200; // px beyond the viewport to render ahead
 const KEEP = 4000; // px beyond which rendered pages are released
-const MAX_FIT_WIDTH = 900;
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 5;
 /** pdf.js scale 1 is 72 dpi; "100%" in PDF apps means 96 dpi. */
@@ -119,7 +118,7 @@ export class Renderer {
     return this.slots.length;
   }
 
-  async init() {
+  async init(zoom?: { mode: "fit" | "page" | "manual"; scale: number }) {
     const first = await this.doc.getPage(1);
     const vp = first.getViewport({ scale: 1 });
     for (let i = 1; i <= this.doc.numPages; i++) {
@@ -128,7 +127,9 @@ export class Renderer {
       this.slots.push(slot);
       this.content.append(slot.div);
     }
-    this.fit();
+    this.mode = zoom?.mode ?? "fit";
+    if (zoom?.mode === "manual") this.applyScale(clampScale(zoom.scale));
+    else this.fit();
     this.resizeObserver.observe(this.container);
   }
 
@@ -194,10 +195,10 @@ export class Renderer {
     this.schedule();
   }
 
-  /** Scale that fits the page width (capped at a comfortable reading width). */
+  /** Scale at which the page is as wide as the screen. */
   fitScale() {
-    const width = Math.min(this.container.clientWidth - 24, MAX_FIT_WIDTH);
-    return this.slots.length && width > 0 ? clampScale(Math.min(2.5, width / this.slots[0].w)) : 1;
+    const width = this.container.clientWidth - 24;
+    return this.slots.length && width > 0 ? clampScale(width / this.slots[0].w) : 1;
   }
 
   private pageScale() {

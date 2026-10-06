@@ -10,7 +10,7 @@ async function noHorizontalOverflow(page: Page, where: string) {
     const vw = document.documentElement.clientWidth;
     const offenders: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
-      if (el.closest(".page, .chips, .reader-scroll, .heat-scroll")) continue; // these scroll sideways on purpose
+      if (el.closest(".page, .chips, .zoom-chips, .reader-scroll, .heat-scroll")) continue; // these scroll sideways on purpose
       const r = el.getBoundingClientRect();
       if (r.width && (r.right > vw + 1 || r.left < -1)) offenders.push(`${el.tagName.toLowerCase()}.${el.className}`);
     }
