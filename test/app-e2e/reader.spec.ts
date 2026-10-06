@@ -64,7 +64,7 @@ test("pinch to zoom on touch screens", async ({ page, isMobile }) => {
   await expect.poll(width).toBeGreaterThan(before * 1.8);
 });
 
-test("quick zoom chips: percentages, fit page and fit width in one tap", async ({ page }) => {
+test("zoom: fit chips in one tap, percentages from the zoom number", async ({ page }) => {
   await openSample(page);
   const box = () => page.locator('.page[data-page="1"]').evaluate((p) => {
     const r = p.getBoundingClientRect();
@@ -78,13 +78,18 @@ test("quick zoom chips: percentages, fit page and fit width in one tap", async (
   expect((await box()).w).toBeGreaterThan((await scroller()).w - 30);
   expect((await box()).w).toBeLessThanOrEqual((await scroller()).w);
 
-  await chips.getByRole("button", { name: "200%" }).click();
+  // Only the two fit chips; percentages are in the menu behind the zoom number.
+  await expect(chips.getByRole("button")).toHaveCount(2);
+  await page.getByRole("button", { name: /Zoom options/ }).click();
+  await page.getByRole("menuitem", { name: "200%" }).click();
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(page.locator(".zoom-value")).toHaveText("200%");
-  await expect(chips.getByRole("button", { name: "200%" })).toHaveAttribute("aria-pressed", "true");
   await expect(chips.getByRole("button", { name: "Fit width" })).toHaveAttribute("aria-pressed", "false");
   await expect.poll(async () => (await box()).w).toBeCloseTo(595 * 2 * (96 / 72), -1);
 
-  await chips.getByRole("button", { name: "50%", exact: true }).click();
+  await page.getByRole("button", { name: /Zoom options/ }).click();
+  await expect(page.getByRole("menuitem", { name: "200%" })).toHaveAttribute("aria-current", "true");
+  await page.getByRole("menuitem", { name: "50%", exact: true }).click();
   await expect(page.locator(".zoom-value")).toHaveText("50%");
   await expect.poll(async () => (await box()).w).toBeCloseTo(595 * 0.5 * (96 / 72), -1);
 
@@ -101,14 +106,14 @@ test("quick zoom chips: percentages, fit page and fit width in one tap", async (
 test("the zoom is remembered for the next book", async ({ page }) => {
   await openSample(page);
   const chips = page.getByRole("group", { name: "Quick zoom" });
-  await chips.getByRole("button", { name: "150%" }).click();
+  await page.getByRole("button", { name: /Zoom options/ }).click();
+  await page.getByRole("menuitem", { name: "150%" }).click();
   await expect(page.locator(".zoom-value")).toHaveText("150%");
   await page.waitForTimeout(700); // saved after the zoom settles
   await page.getByRole("button", { name: "Back to library" }).click();
   await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.locator(".zoom-value")).toHaveText("150%");
-  await expect(chips.getByRole("button", { name: "150%" })).toHaveAttribute("aria-pressed", "true");
 
   await chips.getByRole("button", { name: "Fit page" }).click();
   await page.waitForTimeout(700);

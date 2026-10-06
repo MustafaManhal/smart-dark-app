@@ -60,7 +60,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
           </>
         )}
         <AdjustControls />
-        <p class="muted small">{t("Adjustments change text only. Paper, charts and photos keep their colors.")}</p>
+        <p class="muted small">{t("Brightness changes the text only. Contrast, sepia and grayscale change the whole page. Photos keep their colors.")}</p>
       </section>
 
       <section class="card">

@@ -164,7 +164,7 @@ await check("zoom and theme changes re-render without errors", async () => {
   await page.close();
 });
 
-await check("adjustments change the text only and Reset restores it", async () => {
+await check("brightness changes text only, sepia the whole page, Reset restores both", async () => {
   const page = await openAndWait(`${base}/sample.pdf`);
   await waitRendered(page);
   // Page corner (paper) and the lightest and warmest pixel of a line of body text.
@@ -202,18 +202,19 @@ await check("adjustments change the text only and Reset restores it", async () =
   assert.equal(await page.$eval('[data-adjust="brightness"] .adjust-value', (o) => o.textContent), "−50");
   assert.equal(await page.$eval('[data-adjust="brightness"] button[data-step="-5"]', (b) => b.disabled), true);
 
-  // Sepia from the slider itself: the text turns warm, the paper still does not move.
+  // Sepia from the slider itself: text and paper both turn warm.
   await page.$eval("#adjSepia", (input) => {
     input.value = "100";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
   const warmed = await until((now) => now.warm > before.warm + 10);
-  assert.deepEqual(warmed.paper, before.paper);
+  assert.ok(warmed.paper[0] > warmed.paper[2] + 2, `paper should be warm: ${warmed.paper}`);
   await page.screenshot({ path: `${outDir}/sample-adjusted.png` });
 
   await page.click("#adjustReset");
-  await until((now) => now.light === before.light && now.warm === before.warm);
+  const restored = await until((now) => now.light === before.light && now.warm === before.warm);
+  assert.deepEqual(restored.paper, before.paper);
   assert.equal(await page.$eval("#adjustReset", (b) => b.hidden), true);
   await page.close();
 });

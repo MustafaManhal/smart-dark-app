@@ -29,14 +29,18 @@ test("values are shown as the distance from the default", () => {
 
 test("defaults leave the pages as they are", () => {
   expect(adjustValues()).toEqual({ brightness: 100, contrast: 100, sepia: 0, grayscale: 0 });
-  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: adjustValues() })).toBe("#ffffff");
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: adjustValues() })).toBe("rgb(255 255 255)");
   expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart" })).toBe("rgb(30 31 34)");
 });
 
-test("the adjustments are for text, so the paper color stays", () => {
-  const adjust = { brightness: 50, contrast: 100, sepia: 100, grayscale: 0 };
-  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust })).toBe("#ffffff");
-  expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart", adjust })).toBe("rgb(30 31 34)");
+test("brightness is for text, so the paper color stays; the other sliders change the paper", () => {
+  const dim = { brightness: 50, contrast: 100, sepia: 0, grayscale: 0 };
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: dim })).toBe("rgb(255 255 255)");
+  expect(pageBackground({ pageStyle: "dark", darkTheme: "dark", imageMode: "smart", adjust: dim })).toBe("rgb(30 31 34)");
+  const warm = { brightness: 50, contrast: 100, sepia: 100, grayscale: 0 };
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: warm })).toBe("rgb(255 255 239)");
+  const flat = { brightness: 100, contrast: 50, sepia: 0, grayscale: 0 };
+  expect(pageBackground({ pageStyle: "original", darkTheme: "dark", imageMode: "smart", adjust: flat })).toBe("rgb(191 191 191)");
 });
 
 test("buttons step by 5, stop at the ends, and Reset brings the defaults back", () => {

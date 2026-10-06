@@ -113,3 +113,15 @@ color, so paper and chart colors moved too.
 
 **Tests:** 33 engine tests, 70 app unit tests, the browser tests in `test/app-e2e/adjust.spec.ts` and the
 extension check now assert that paper, chart bars and photos do not change while text does.
+
+## Changed on 2026-10-07: only brightness is text only
+
+The owner then asked for contrast on all document colors and brightness on text only, with the other two as
+recommended. Sepia and grayscale follow contrast: a warm page is the point of sepia, and grayscale on text
+alone would leave charts colored.
+
+- `createAdjusters(values)` returns `{ page, text }`. `page` has contrast, sepia and grayscale and goes to the
+  mapper for every pixel. `text` has all four values and goes to `mapText`. It is `null` when brightness is at
+  its default, and then no text pass runs.
+- The page background color goes through the `page` adjuster again.
+- Photos are still never changed.

@@ -38,7 +38,7 @@ const openAppearance = async (page: Page) => {
   return page.getByRole("dialog", { name: "Appearance" });
 };
 
-test("brightness and grayscale change the text; paper, charts and photos stay", async ({ page }) => {
+test("brightness changes text only; grayscale changes the whole page; photos stay", async ({ page }) => {
   await openSample(page);
   const before = {
     paper: await paper(page), bar: await redBar(page), photo: await photo(page),
@@ -63,20 +63,28 @@ test("brightness and grayscale change the text; paper, charts and photos stay", 
   await sheet.getByRole("slider", { name: "Grayscale" }).fill("100");
   await expect(sheet.locator("#adjust-grayscale-value")).toHaveText("+100");
   await expect.poll(async () => spread(await strongest(page, RED_WORDS, "colorful"))).toBeLessThanOrEqual(6);
-  expect(await redBar(page)).toEqual(before.bar);
+  // Grayscale is for the whole page: the chart bar loses its color too, but it is not dimmed like the text.
+  const grayBar = await redBar(page);
+  expect(spread(grayBar)).toBeLessThanOrEqual(2);
+  expect(sum(grayBar)).toBeGreaterThan(sum(await strongest(page, RED_WORDS, "light")));
+  expect(spread(await paper(page))).toBeLessThanOrEqual(1);
   expect(await photo(page)).toEqual(before.photo);
-  expect(await paper(page)).toEqual(before.paper);
   await page.screenshot({ path: `test/output/adjust-${test.info().project.name}.png` });
 
   await sheet.getByRole("button", { name: "Reset adjustments" }).click();
   await expect.poll(() => strongest(page, BODY_LINE, "light")).toEqual(before.ink);
   expect(await strongest(page, RED_WORDS, "colorful")).toEqual(before.red);
+  expect(await redBar(page)).toEqual(before.bar);
+  expect(await paper(page)).toEqual(before.paper);
   await expect(sheet.getByRole("button", { name: "Reset adjustments" })).toHaveCount(0);
 });
 
-test("sepia warms the text, not the paper, and the choice survives a reload", async ({ page }) => {
+test("sepia warms text and paper, and the choice survives a reload", async ({ page }) => {
   await openSample(page);
-  const paperBefore = await paper(page);
+  const paperWarmth = async () => {
+    const [r, , b] = await paper(page);
+    return r - b;
+  };
   const warmth = async () => {
     const [r, , b] = await strongest(page, BODY_LINE, "warm");
     return r - b;
@@ -84,7 +92,7 @@ test("sepia warms the text, not the paper, and the choice survives a reload", as
   const sheet = await openAppearance(page);
   await sheet.getByRole("slider", { name: "Sepia" }).fill("50");
   await expect.poll(warmth).toBeGreaterThan(15);
-  expect(await paper(page)).toEqual(paperBefore);
+  expect(await paperWarmth()).toBeGreaterThan(2);
 
   const lit = sum(await strongest(page, BODY_LINE, "light"));
   await sheet.getByRole("button", { name: "Lower contrast" }).click();
@@ -96,7 +104,7 @@ test("sepia warms the text, not the paper, and the choice survives a reload", as
   await page.reload();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect.poll(warmth).toBeGreaterThan(15);
-  expect(await paper(page)).toEqual(paperBefore);
+  expect(await paperWarmth()).toBeGreaterThan(2);
   const again = await openAppearance(page);
   await expect(again.locator("#adjust-sepia-value")).toHaveText("+50");
   await expect(again.locator("#adjust-contrast-value")).toHaveText("−5");
@@ -110,7 +118,7 @@ test("sepia warms the text, not the paper, and the choice survives a reload", as
   await expect(page.getByRole("slider", { name: "Sepia" })).toHaveValue("0");
 });
 
-test("original pages: colored text gets brighter, white paper stays white", async ({ page }) => {
+test("original pages: brightness lifts colored text only, contrast changes the paper too", async ({ page }) => {
   await openSample(page);
   const sheet = await openAppearance(page);
   await sheet.getByRole("radio", { name: "Original" }).check();
@@ -123,6 +131,13 @@ test("original pages: colored text gets brighter, white paper stays white", asyn
   await expect.poll(async () => (await strongest(page, RED_WORDS, "red"))[0]).toBeGreaterThan(redBefore + 20);
   expect((await paper(page)).join()).toMatch(/^25[0-5],25[0-5],25[0-5]$/);
   expect(await redBar(page)).toEqual(barBefore);
+  expect(await photo(page)).toEqual(photoBefore);
+
+  for (let i = 0; i < 4; i++) await sheet.getByRole("button", { name: "Lower contrast" }).click();
+  await expect(sheet.locator("#adjust-contrast-value")).toHaveText("−20");
+  // 255 * 0.8 + 255 * 0.1 = 229.5
+  await expect.poll(async () => (await paper(page)).join()).toMatch(/^(229|230),(229|230),(229|230)$/);
+  expect(await redBar(page)).not.toEqual(barBefore);
   expect(await photo(page)).toEqual(photoBefore);
 });
 

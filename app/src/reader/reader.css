@@ -84,8 +84,25 @@
 .page-total { color: var(--muted); }
 .zoom-pill .icon-btn { width: 30px; height: 30px; }
 .zoom-pill .icon { width: 16px; height: 16px; }
-.zoom-value { min-width: 46px; text-align: center; }
-/* Quick zoom: one tap for fit width, fit page or a percentage. */
+.zoom-value { min-width: 46px; height: 30px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+/* Percentages, opened from the zoom number. */
+.zoom-menu {
+  position: absolute;
+  top: 40px;
+  inset-inline-end: 0;
+  display: grid;
+  min-width: 120px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: fade 0.12s var(--ease);
+}
+.zoom-menu button { padding: 8px 12px; border: 0; border-radius: 8px; background: none; text-align: start; cursor: pointer; font-variant-numeric: tabular-nums; }
+.zoom-menu button:hover, .zoom-menu button[aria-current="true"] { background: var(--surface-2); }
+/* Fit width and fit page: one tap each. */
 .zoom-chips { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 3px 0; }
 .zoom-chips::-webkit-scrollbar { display: none; }
 .zoom-chip {
@@ -129,12 +146,13 @@
 .book-progress-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-inline-start: -1px; background: color-mix(in srgb, var(--bg) 70%, transparent); }
 
 /* Phones and narrow windows: tools get their own row so every icon stays visible. */
-@media (max-width: 900px) {
-  /* Not enough room for one row: the quick-zoom chips go under the pills and scroll sideways. */
+@media (max-width: 400px) {
+  /* Not enough room for one row: the fit chips go under the pills. */
   .reader { --float-gap: 90px; }
   .float-tools { flex-wrap: wrap; row-gap: 0; }
   .zoom-chips { order: 3; max-width: 100%; margin-top: 3px; }
   .float-tools::after { content: ""; order: 2; flex-basis: 100%; height: 0; }
+  .zoom-menu { top: 40px; }
 }
 @media (max-width: 720px) {
   .reader { --bar-top: calc(97px + var(--safe-top)); }

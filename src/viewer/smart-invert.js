@@ -101,9 +101,23 @@ export const ADJUST_RANGES = {
 /** @typedef {(r:number, g:number, b:number) => number[]} Adjuster */
 
 /**
- * Build a color adjuster from percent values (see ADJUST_RANGES). Viewers
- * use it for text only: one mapper without it for the page and one with it
- * for the ink (`mapText` in processPage).
+ * The two adjusters a viewer needs. Contrast, sepia and grayscale change every
+ * recolored pixel of the document (`page`, for the mapper passed as
+ * `mapColor`). Brightness is for text only, so `text` has all four values and
+ * goes to the mapper passed as `mapText`; it is null when brightness is at its
+ * default, because text then looks like the rest of the page.
+ * @param {{brightness?:number, contrast?:number, sepia?:number, grayscale?:number}} [values]
+ * @returns {{page: Adjuster | null, text: Adjuster | null}}
+ */
+export function createAdjusters(values = {}) {
+  const page = createAdjuster({ ...values, brightness: ADJUST_DEFAULTS.brightness });
+  const brightness = Number(values.brightness ?? ADJUST_DEFAULTS.brightness);
+  const text = Number.isFinite(brightness) && brightness !== ADJUST_DEFAULTS.brightness ? createAdjuster(values) : null;
+  return { page, text };
+}
+
+/**
+ * Build a color adjuster from percent values (see ADJUST_RANGES).
  * The matrices and their order (brightness, then contrast, grayscale, sepia)
  * follow Dark Reader's createFilterMatrix (MIT, Dark Reader Ltd.).
  * @param {{brightness?:number, contrast?:number, sepia?:number, grayscale?:number}} [values]

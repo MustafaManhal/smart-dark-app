@@ -1,7 +1,7 @@
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
-  THEMES, TINTS, createAdjuster, createColorMapper, createPlainMapper, createTintMapper,
+  THEMES, TINTS, adjustColor, createAdjusters, createColorMapper, createPlainMapper, createTintMapper,
   imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle } from "../settings";
@@ -19,9 +19,10 @@ export const CSS_UNITS = 96 / 72;
 const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
 export function pageBackground(o: RenderOptions) {
-  if (o.pageStyle === "original") return "#ffffff";
-  const rgb = o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
-  return `rgb(${rgb.join(" ")})`;
+  const paper = o.pageStyle === "original" ? [255, 255, 255]
+    : o.pageStyle === "sepia" ? TINTS.sepia.paper : THEMES[o.darkTheme].bg;
+  // Contrast, sepia and grayscale change the paper too; brightness is for text only.
+  return `rgb(${adjustColor(paper, createAdjusters(o.adjust).page).join(" ")})`;
 }
 
 class PageSlot {
@@ -178,16 +179,17 @@ export class Renderer {
 
   setOptions(opts: RenderOptions) {
     this.opts = opts;
-    const adjust = createAdjuster(opts.adjust);
+    // Contrast, sepia and grayscale are for the whole page; brightness is for text only.
+    const { page, text } = createAdjusters(opts.adjust);
     if (opts.pageStyle === "dark") {
-      this.mapper = createColorMapper(THEMES[opts.darkTheme]);
-      this.textMapper = adjust && createColorMapper(THEMES[opts.darkTheme], { adjust });
+      this.mapper = createColorMapper(THEMES[opts.darkTheme], { adjust: page });
+      this.textMapper = text && createColorMapper(THEMES[opts.darkTheme], { adjust: text });
     } else if (opts.pageStyle === "sepia") {
-      this.mapper = createTintMapper(TINTS.sepia);
-      this.textMapper = adjust && createTintMapper(TINTS.sepia, { adjust });
+      this.mapper = createTintMapper(TINTS.sepia, { adjust: page });
+      this.textMapper = text && createTintMapper(TINTS.sepia, { adjust: text });
     } else {
-      this.mapper = adjust ? createPlainMapper() : null; // untouched original needs no pass
-      this.textMapper = adjust && createPlainMapper(adjust);
+      this.mapper = page || text ? createPlainMapper(page) : null; // untouched original needs no pass
+      this.textMapper = text && createPlainMapper(text);
     }
     const a = opts.adjust;
     this.styleKey = `${opts.pageStyle}|${opts.darkTheme}|${opts.imageMode}|${a ? [a.brightness, a.contrast, a.sepia, a.grayscale] : ""}`;
@@ -431,7 +433,7 @@ export class Renderer {
       const ctx = canvas.getContext("2d")!;
       const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const rects = imageRectsFromCoords(slot.page.imageCoordinates, canvas.width, canvas.height);
-      // The adjustments are for text only, so the page tells us where its text is.
+      // Brightness is for text only, so the page tells us where its text is.
       let textRects: ReturnType<typeof textRectsFromItems> = [];
       if (textMapper) {
         slot.textItems ??= (await slot.page.getTextContent({ disableNormalization: true })).items;

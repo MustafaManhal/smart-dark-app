@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import { HIGHLIGHT_COLORS, type Highlight, type HighlightColor, type NormRect } from "../db/annotations";
 import { Button } from "../ui/Button";
@@ -18,8 +18,9 @@ export function HighlightPopover({ highlight, anchor, onColor, onCopy, onRemove,
   onRemove: () => void;
   onClose: () => void;
 }) {
-  // Delete or Backspace removes the open highlight.
-  useEffect(() => {
+  // Delete or Backspace removes the open highlight. A layout effect, so the key
+  // works from the moment the menu is on screen.
+  useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Delete" && e.key !== "Backspace") return;
       e.preventDefault();

@@ -4,7 +4,8 @@ import {
   IMAGE_MODES,
   ADJUST_DEFAULTS,
   ADJUST_RANGES,
-  createAdjuster,
+  adjustColor,
+  createAdjusters,
   createColorMapper,
   textRectsFromItems,
   imageRectsFromCoords,
@@ -149,18 +150,18 @@ function showAdjustValue(row, value) {
 function applySettings(settings) {
   state.settings = settings;
   const theme = THEMES[settings.theme] || THEMES.dark;
-  const adjust = createAdjuster(Object.fromEntries(ADJUSTMENTS.map(({ name, key }) => [name, settings[key]])));
-  state.mapper = createColorMapper(theme, { contrast: settings.contrast });
-  // Same mapping plus the adjustments; used for text ink only.
-  state.textMapper = adjust && createColorMapper(theme, { contrast: settings.contrast, adjust });
+  // Contrast, sepia and grayscale are for the whole page; brightness is for text only.
+  const adjust = createAdjusters(Object.fromEntries(ADJUSTMENTS.map(({ name, key }) => [name, settings[key]])));
+  state.mapper = createColorMapper(theme, { contrast: settings.contrast, adjust: adjust.page });
+  state.textMapper = adjust.text && createColorMapper(theme, { contrast: settings.contrast, adjust: adjust.text });
   state.styleKey = settings.enabled
     ? `${settings.theme}|${settings.imageMode}|${settings.contrast}|${ADJUSTMENTS.map(({ key }) => settings[key])}`
     : "original";
 
   const root = document.documentElement;
   root.classList.toggle("original", !settings.enabled);
-  root.style.setProperty("--page-bg", `rgb(${theme.bg.join(" ")})`);
-  root.style.setProperty("--page-fg", `rgb(${theme.fg.join(" ")})`);
+  root.style.setProperty("--page-bg", `rgb(${adjustColor(theme.bg, adjust.page).join(" ")})`);
+  root.style.setProperty("--page-fg", `rgb(${adjustColor(theme.fg, adjust.text ?? adjust.page).join(" ")})`);
 
   els.toggleDark.setAttribute("aria-pressed", String(settings.enabled));
   els.themeSelect.value = settings.theme;
@@ -169,7 +170,7 @@ function applySettings(settings) {
   for (const row of els.adjustRows.children) {
     showAdjustValue(row, settings[ADJUSTMENTS.find(({ name }) => name === row.dataset.adjust).key]);
   }
-  els.adjustReset.hidden = !adjust;
+  els.adjustReset.hidden = !adjust.page && !adjust.text;
   scheduleRender();
 }
 

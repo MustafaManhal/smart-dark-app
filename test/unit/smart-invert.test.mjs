@@ -16,6 +16,7 @@ import {
   adjustColor,
   textRectsFromItems,
   textWeights,
+  createAdjusters,
 } from "../../src/viewer/smart-invert.js";
 
 const unpack = (v) => [v & 255, (v >> 8) & 255, (v >> 16) & 255];
@@ -321,4 +322,37 @@ test("anti-aliased letter edges get their share of the change, without a color f
   assert.ok(Math.max(...edge) - Math.min(...edge) <= 2, `edge should be gray: ${edge}`);
   assert.ok(edge[0] > 140 && edge[0] < 170, `edge should sit between ink and paper: ${edge}`);
   assert.deepEqual(at(26, 10), [255, 255, 255], "paper next to the letter is untouched");
+});
+
+test("brightness is for text only; contrast, sepia and grayscale are for the whole page", () => {
+  assert.deepEqual(createAdjusters(), { page: null, text: null });
+  // Brightness alone: nothing for the page, a text adjuster.
+  const dim = createAdjusters({ brightness: 50 });
+  assert.equal(dim.page, null);
+  assert.deepEqual(dim.text(200, 100, 50), [100, 50, 25]);
+  // Grayscale alone: the page changes and text needs no adjuster of its own.
+  const gray = createAdjusters({ grayscale: 100 });
+  assert.deepEqual(gray.page(255, 0, 0), [54, 54, 54]);
+  assert.equal(gray.text, null);
+  // Both: text gets brightness first, then what the page gets.
+  const both = createAdjusters({ brightness: 50, contrast: 150 });
+  assert.deepEqual(both.page(200, 200, 200), [236, 236, 236]);
+  assert.deepEqual(both.text(200, 200, 200), [86, 86, 86]);
+});
+
+test("a page with dimmed text and full grayscale: text is dim and gray, a chart bar is gray but not dim", () => {
+  // White page, red "text" block at x 20..23 and a red "chart bar" at x 50..57 outside the text rectangle.
+  const img = fakePage(60, 24, (x, y) => {
+    if (y >= 8 && y < 16 && x >= 20 && x < 24) return [255, 0, 0];
+    if (x >= 50 && x < 58) return [255, 0, 0];
+    return [255, 255, 255];
+  });
+  const { page, text } = createAdjusters({ brightness: 50, grayscale: 100 });
+  processPage(img, {
+    mapColor: createPlainMapper(page), mapText: createPlainMapper(text), textRects: [{ left: 2, top: 4, right: 46, bottom: 20 }],
+  });
+  const at = (x, y) => [...img.data.slice((y * 60 + x) * 4, (y * 60 + x) * 4 + 3)];
+  assert.deepEqual(at(21, 10), [27, 27, 27], "text: half as bright, then gray");
+  assert.deepEqual(at(53, 10), [54, 54, 54], "chart bar: gray at full brightness");
+  assert.deepEqual(at(10, 10), [255, 255, 255], "paper");
 });
