@@ -231,3 +231,26 @@ test("sleep timer at the end of the chapter stops before the next chapter", asyn
   await page.waitForTimeout(500);
   expect((await spoken(page)).some((s) => s.text.includes("Long documents"))).toBe(false);
 });
+
+test("selecting text while reading aloud: the selection bar keeps its size and stays clear of the read-aloud bar", async ({ page }) => {
+  await openSample(page);
+  await page.evaluate(() => ((window as unknown as { __speechMs: number }).__speechMs = 800));
+  await page.getByRole("button", { name: "Read aloud", exact: true }).click();
+  const readBar = page.getByRole("region", { name: "Read aloud" });
+  await expect(readBar).toBeVisible();
+  await page.locator(".textLayer span", { hasText: "Smart Dark PDF sample - toggle" }).first().evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+  });
+  const bar = page.getByRole("toolbar", { name: "Selected text" });
+  await expect(bar).toBeVisible();
+  const box = (await bar.boundingBox())!;
+  expect(box.height).toBeLessThan(70); // it once stretched over the whole page here
+  expect(box.y + box.height).toBeLessThanOrEqual((await readBar.boundingBox())!.y);
+  // Highlighting works while the voice keeps reading.
+  await bar.getByRole("button", { name: "Highlight green" }).click();
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
+  await expect(readBar.getByRole("button", { name: "Pause reading" })).toBeVisible();
+});

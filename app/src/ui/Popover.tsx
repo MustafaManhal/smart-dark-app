@@ -22,7 +22,9 @@ export function Popover({ anchor, label, onClose, children }: {
     const h = el.offsetHeight;
     const margin = 8;
     const below = anchor.bottom + margin;
-    const top = below + h < innerHeight - margin ? below : Math.max(margin, anchor.top - h - margin);
+    // Not over the read-aloud bar when it is open.
+    const floor = Math.min(innerHeight, document.querySelector(".read-bar")?.getBoundingClientRect().top ?? innerHeight);
+    const top = below + h < floor - margin ? below : Math.max(margin, anchor.top - h - margin);
     const center = (anchor.left + anchor.right) / 2;
     const left = Math.min(Math.max(margin, center - w / 2), innerWidth - w - margin);
     setPos({ left, top });

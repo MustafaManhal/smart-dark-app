@@ -188,6 +188,11 @@
 @media (max-width: 380px) { .tools .icon-btn { width: 35px; } }
 .zoom-pill .icon-btn.is-on { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
+/* The notes panel takes the right side on wide screens: hints stay over the page. */
+@media (min-width: 960px) {
+  .reader.panel-open :is(.mode-hint, .place-hint) { inset-inline-end: 388px; }
+}
+
 /* Switches inside sheets (the settings screen has its own copy in settings.css). */
 .sheet .toggle { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; }
 .sheet .toggle input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
@@ -244,6 +249,5 @@
 .field select { height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 0 10px; }
 .toggle { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; cursor: pointer; }
 .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
-.reader.reading .selection-bar { bottom: calc(var(--safe-bottom) + 80px); }
 @media (max-width: 380px) { .read-bar .icon-btn { width: 34px; height: 34px; } .read-speed { min-width: 40px; } }
 .reader.reading .reader-scroll { padding-bottom: calc(var(--safe-bottom) + 96px); }

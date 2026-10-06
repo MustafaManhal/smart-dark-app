@@ -40,10 +40,12 @@ export function SelectionBar({ anchor, onHighlight, onNote, onCopy }: {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   useLayoutEffect(() => {
     const el = box.current!;
-    // The bar stays below the reader's top bar (which slides away when hidden).
+    // The bar stays below the reader's top bar (which slides away when hidden)
+    // and above the read-aloud bar when that is open.
     const bar = document.querySelector(".reader-top")?.getBoundingClientRect().bottom ?? 0;
+    const readBar = document.querySelector(".read-bar")?.getBoundingClientRect().top ?? innerHeight;
     setPos(placeSelectionBar(anchor, { w: el.offsetWidth, h: el.offsetHeight }, {
-      width: innerWidth, minTop: Math.max(0, bar), maxBottom: innerHeight, touch: matchMedia("(hover: none)").matches,
+      width: innerWidth, minTop: Math.max(0, bar), maxBottom: Math.min(innerHeight, readBar), touch: matchMedia("(hover: none)").matches,
     }));
   }, [anchor.left, anchor.top, anchor.right, anchor.bottom]);
 

@@ -57,6 +57,17 @@ async function check(page: Page, where: string, findings: Finding[]) {
       }
       res.push({ kind: "covered", detail: `${name(el)} under ${name(top)}` });
     }
+    // Floating bars are small things. One that fills the screen has conflicting rules.
+    for (const el of document.querySelectorAll<HTMLElement>(".selection-bar, .toast, .mode-hint, .place-hint, .read-bar, .zoom-menu, .float-tools > *")) {
+      const r = el.getBoundingClientRect();
+      if (r.height > vh * 0.6 || (r.height > 120 && !el.matches(".zoom-menu"))) res.push({ kind: "stretched", detail: `${name(el)} is ${Math.round(r.height)}px tall` });
+    }
+    const bar = document.querySelector(".read-bar")?.getBoundingClientRect();
+    for (const el of document.querySelectorAll<HTMLElement>(".selection-bar, .popover, .toast")) {
+      const r = el.getBoundingClientRect();
+      if (bar && r.width && r.bottom > bar.top + 1 && r.top < bar.bottom && r.right > bar.left && r.left < bar.right)
+        res.push({ kind: "over the read-aloud bar", detail: name(el) });
+    }
     // Text cut off inside buttons and chips.
     for (const el of scope.querySelectorAll<HTMLElement>("button, .chip, .zoom-chip, .seg label, .voice-detail, h1, h2, legend")) {
       if (!el.offsetWidth) continue;
@@ -182,6 +193,21 @@ for (const lang of ["en", "ar"] as const) {
       await page.locator('.sheet input[name="sleep"]').nth(1).check({ force: true });
       await page.locator(".sheet-head .icon-btn").click();
       await check(page, `${tag}-15-read-bar-sleep`, findings);
+      // Editing while read aloud is on: the selection bar, the highlight menu, the tool hints.
+      await selectText(page, "Smart Dark PDF sample - toggle");
+      await expect(page.locator(".selection-bar")).toBeVisible();
+      await check(page, `${tag}-15b-reading-selection`, findings);
+      await page.locator(".selection-bar .swatch").nth(1).click();
+      const read = (await page.locator('.page[data-page="1"] .hl').last().boundingBox())!;
+      await page.mouse.click(read.x + read.width / 2, read.y + read.height / 2);
+      await expect(page.locator(".popover")).toBeVisible();
+      await check(page, `${tag}-15c-reading-highlight-menu`, findings);
+      await page.locator(".pop-action.is-danger").click();
+      await expect(page.locator(".toast")).toBeVisible();
+      await check(page, `${tag}-15d-reading-toast`, findings);
+      await page.locator(".tools .icon-btn").nth(0).click(); // highlighter
+      await check(page, `${tag}-15e-reading-highlight-mode`, findings);
+      await page.locator(".mode-done").click();
       await page.locator(".read-bar .icon-btn").last().click();
 
       await page.locator(".tools .icon-btn").nth(7).click(); // appearance
@@ -206,6 +232,15 @@ for (const lang of ["en", "ar"] as const) {
       await check(page, `${tag}-21-panel-notes`, findings);
       await page.locator(".panel-tabs button").nth(2).click();
       await check(page, `${tag}-22-panel-sticky`, findings);
+      if (width >= 960) {
+        // Wide screens keep the page beside the panel, so the tools still work there.
+        await page.locator(".tools .icon-btn").nth(1).click(); // eraser
+        await check(page, `${tag}-22b-panel-eraser-hint`, findings);
+        const hint = (await page.locator(".mode-hint").boundingBox())!;
+        const panel = (await page.locator(".notes-panel").boundingBox())!;
+        if (hint.x < panel.x + panel.width && hint.x + hint.width > panel.x) findings.push({ where: `${tag}-22b`, kind: "hint under the notes panel", detail: `${Math.round(hint.x)}..${Math.round(hint.x + hint.width)} vs panel ${Math.round(panel.x)}..${Math.round(panel.x + panel.width)}` });
+        await page.locator(".mode-done").click();
+      }
       await page.locator(".panel-head .icon-btn").last().click();
 
       await page.locator(".top-back").click();
