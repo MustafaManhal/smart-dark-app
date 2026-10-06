@@ -144,7 +144,7 @@
 
 .mode-hint {
   position: absolute;
-  top: calc(var(--bar-top) + 52px);
+  top: calc(var(--bar-top) + var(--float-gap) - 2px);
   left: 50%;
   translate: -50% 0;
   z-index: 7;
@@ -163,7 +163,9 @@
 .mode-colors { display: flex; gap: 6px; }
 .mode-colors .swatch { width: 22px; height: 22px; }
 .mode-done { border: 0; border-radius: 999px; padding: 6px 12px; background: var(--surface-2); cursor: pointer; }
-@media (max-width: 420px) { .mode-hint > span { display: none; } }
+@media (max-width: 420px) { .mode-hint:not(.is-text) > span { display: none; } }
+/* Eight tools in one row need smaller buttons on the narrowest phones. */
+@media (max-width: 380px) { .tools .icon-btn { width: 35px; } }
 .zoom-pill .icon-btn.is-on { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
 /* Read aloud */

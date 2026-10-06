@@ -155,3 +155,123 @@ test("bookmark the current page", async ({ page }) => {
   await page.reload();
   await expect(page.locator('.page[data-page="2"]')).toHaveClass(/is-bookmarked/);
 });
+
+test("the selection bar opens next to the selected text and follows it", async ({ page, isMobile }) => {
+  await openSample(page);
+  await selectText(page, "colored words keep their hue");
+  const bar = page.getByRole("toolbar", { name: "Selected text" });
+  await expect(bar).toBeVisible();
+  const selected = () => page.evaluate(() => {
+    const r = getSelection()!.getRangeAt(0).getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+  });
+  const near = async () => {
+    const [b, sel] = [(await bar.boundingBox())!, await selected()];
+    // Below the text on touch screens, above it with a mouse; never far away.
+    const gap = isMobile ? b.y - sel.bottom : sel.top - (b.y + b.height);
+    return { gap, overlapsX: b.x < sel.right && b.x + b.width > sel.left };
+  };
+  await expect.poll(async () => (await near()).gap).toBeGreaterThanOrEqual(0);
+  expect((await near()).gap).toBeLessThan(80);
+  expect((await near()).overlapsX).toBe(true);
+  await page.screenshot({ path: `test/output/selection-bar-${test.info().project.name}.png` });
+
+  // Scrolling moves the bar with the text.
+  const before = (await bar.boundingBox())!.y;
+  await page.locator(".reader-scroll").evaluate((el) => el.scrollBy(0, 60));
+  await expect.poll(async () => (await bar.boundingBox())!.y).toBeLessThan(before - 30);
+  expect((await near()).gap).toBeLessThan(80);
+});
+
+test("copy from the selection bar says Copied and gives tidy text", async ({ page, context, browserName }) => {
+  if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openSample(page);
+  await selectText(page, "colored words keep their hue");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Copy" }).click();
+  await expect(page.locator(".toast")).toHaveText("Copied");
+  await expect(page.getByRole("toolbar", { name: "Selected text" })).toBeHidden();
+  if (browserName === "chromium") {
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("colored words keep their hue");
+  }
+  await expect(page.locator(".toast")).toBeHidden({ timeout: 4000 });
+});
+
+test("copying with the keyboard joins the lines of the page", async ({ page, context, browserName }) => {
+  test.skip(browserName !== "chromium", "needs clipboard access");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openSample(page);
+  // From the first body line into the second.
+  await page.evaluate(() => {
+    const spans = [...document.querySelectorAll(".textLayer span")];
+    const first = spans.find((s) => s.textContent!.includes("The highlighted"))!;
+    const second = spans.find((s) => s.textContent!.includes("words keep a visible"))!;
+    const range = document.createRange();
+    range.setStart(first.firstChild!, first.textContent!.indexOf("The highlighted"));
+    range.setEnd(second.firstChild!, "words keep a visible".length);
+    const sel = getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  await expect(page.getByRole("toolbar", { name: "Selected text" })).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+C");
+  await expect(page.locator(".toast")).toHaveText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("The highlighted words keep a visible");
+});
+
+test("eraser removes a highlight in one tap and Undo brings it back", async ({ page }) => {
+  await openSample(page);
+  await selectText(page, "colored words keep their hue");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Highlight yellow" }).click();
+  const marks = page.locator('.page[data-page="1"] .hl');
+  await expect(marks).toHaveCount(1);
+
+  const eraser = page.getByRole("button", { name: "Erase highlights and notes" });
+  await eraser.click();
+  await expect(eraser).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Tap a highlight or note to remove it")).toBeVisible();
+  await clickCenter(page, '.page[data-page="1"] .hl');
+  await expect(marks).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Highlight" })).toHaveCount(0);
+  await expect(page.locator(".toast")).toContainText("Highlight removed");
+  await page.screenshot({ path: `test/output/eraser-${test.info().project.name}.png` });
+
+  await page.locator(".toast").getByRole("button", { name: "Undo" }).click();
+  await expect(marks).toHaveCount(1);
+  await expect(page.locator(".toast")).toBeHidden();
+  await page.reload();
+  await expect(marks).toHaveCount(1);
+});
+
+test("Remove in the highlight menu can be undone, and Delete removes too", async ({ page, isMobile }) => {
+  await openSample(page);
+  await selectText(page, "colored words keep their hue");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Highlight blue" }).click();
+  const marks = page.locator('.page[data-page="1"] .hl');
+  await expect(marks).toHaveCount(1);
+  await clickCenter(page, '.page[data-page="1"] .hl');
+  await page.getByRole("dialog", { name: "Highlight" }).getByRole("button", { name: "Remove" }).click();
+  await expect(marks).toHaveCount(0);
+  await page.locator(".toast").getByRole("button", { name: "Undo" }).click();
+  await expect(marks).toHaveCount(1);
+  await expect(marks).toHaveAttribute("style", /#74c0fc|116, 192, 252/i);
+
+  if (isMobile) return; // no keyboard on phones
+  await clickCenter(page, '.page[data-page="1"] .hl');
+  await expect(page.getByRole("dialog", { name: "Highlight" })).toBeVisible();
+  await page.keyboard.press("Delete");
+  await expect(marks).toHaveCount(0);
+});
+
+test("notes panel: copy an entry, remove it, undo", async ({ page }) => {
+  await openSample(page);
+  await selectText(page, "colored words keep their hue");
+  await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Highlight yellow" }).click();
+  await page.getByRole("button", { name: "Notes and highlights" }).click();
+  const panel = page.getByRole("complementary", { name: "Notes and highlights" });
+  await panel.getByRole("button", { name: "Copy text" }).click();
+  await expect(page.locator(".toast")).toHaveText(/Copied|Could not copy/);
+  await panel.getByRole("button", { name: "Remove highlight on page 1" }).click();
+  await expect(panel.getByRole("tab", { name: /Highlights 0/ })).toBeVisible();
+  await page.locator(".toast").getByRole("button", { name: "Undo" }).click();
+  await expect(panel.getByRole("tab", { name: /Highlights 1/ })).toBeVisible();
+});

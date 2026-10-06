@@ -18,6 +18,8 @@ const PATHS = {
   book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5",
   bookmark: "M6 3h12v18l-6-4-6 4z",
   sticky: "M5 4h14v10l-6 6H5zM13 20v-6h6",
+  eraser: "M16.3 3.9l3.8 3.8a1.6 1.6 0 0 1 0 2.2L11 19H7.2l-3.3-3.3a1.6 1.6 0 0 1 0-2.2l10.2-9.6a1.6 1.6 0 0 1 2.2 0zM8.6 9.1l6.3 6.3M7 19h13",
+  paste: "M9 4h6v3H9zM9 5H6v15h12V5h-3M9 12h6M9 16h4",
   highlighter: "M9 11l6-6 4 4-6 6M9 11l-3 3v4h4l3-3M4 21h7",
   note: "M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5",
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",

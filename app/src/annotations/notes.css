@@ -59,3 +59,5 @@
 .note-text { margin: 0; white-space: pre-wrap; }
 .note-remove { position: absolute; top: 6px; inset-inline-end: 4px; width: 34px; height: 34px; color: var(--muted); }
 .note-remove:hover { color: var(--danger); }
+.note-copy { position: absolute; top: 6px; inset-inline-end: 38px; width: 34px; height: 34px; color: var(--muted); }
+.note-copy:hover { color: var(--text); }

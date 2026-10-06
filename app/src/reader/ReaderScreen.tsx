@@ -10,9 +10,10 @@ import { useAnnotations } from "../annotations/useAnnotations";
 import { ReadAloudBar } from "../readaloud/ReadAloudBar";
 import { ReadingTracker } from "../stats/tracker";
 import { useReadAloud } from "../readaloud/useReadAloud";
-import { HIGHLIGHT_COLORS, type HighlightColor, type NormRect } from "../db/annotations";
+import { HIGHLIGHT_COLORS, type Bookmark, type Highlight, type HighlightColor, type NormRect, type PassageNote, type Sticky } from "../db/annotations";
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
+import { copyText, tidyCopiedText } from "../platform/clipboard";
 import { navigate } from "../router";
 import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
 import { Button, IconButton } from "../ui/Button";
@@ -76,6 +77,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [popover, setPopover] = useState<PopState | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [erasing, setErasing] = useState(false);
+  const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null);
   const [focusStickyId, setFocusStickyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -191,10 +194,41 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     renderOverlays(renderer.current, annotations.data, {
       focusStickyId,
       onStickyChange: (s) => annotations.saveSticky(s),
-      onStickyDelete: (s) => annotations.removeSticky(s),
-      onNoteOpen: (n, b) => setPopover({ type: "note", draft: n, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } }),
+      onStickyDelete: (s) => removeSticky(s),
+      onNoteOpen: (n, b) => (erasing
+        ? removeNote(n)
+        : setPopover({ type: "note", draft: n, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } })),
     });
-  }, [ready, annotations.data, focusStickyId]);
+  }, [ready, annotations.data, focusStickyId, erasing]);
+
+  // Messages leave by themselves; one with Undo stays a little longer.
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), toast.undo ? 6000 : 1800);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  async function copy(text: string) {
+    setToast({ text: t((await copyText(text)) ? "Copied" : "Could not copy") });
+  }
+
+  // Every removal can be taken back, so one tap is enough to remove.
+  async function removeHighlight(h: Highlight) {
+    await annotations.removeHighlight(h);
+    setToast({ text: t("Highlight removed"), undo: () => annotations.saveHighlight(h) });
+  }
+  async function removeNote(n: PassageNote) {
+    await annotations.removeNote(n);
+    setToast({ text: t("Note removed"), undo: () => annotations.saveNote(n) });
+  }
+  async function removeSticky(s: Sticky) {
+    await annotations.removeSticky(s);
+    setToast({ text: t("Sticky note removed"), undo: () => annotations.saveSticky(s) });
+  }
+  async function removeBookmark(b: Bookmark) {
+    await annotations.removeBookmark(b);
+    setToast({ text: t("Bookmark removed"), undo: () => annotations.toggleBookmark(b.page) });
+  }
 
   // Watch the text selection (debounced: iOS fires this while the handles move).
   useEffect(() => {
@@ -212,7 +246,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         const page = Number(start.dataset.page);
         // A selection that runs onto the next page is kept to its first page.
         const rects = normalizeRects([...range.getClientRects()], start.getBoundingClientRect());
-        const text = sel.toString().replace(/\s+/g, " ").trim();
+        const text = tidyCopiedText(sel.toString());
         const b = range.getBoundingClientRect();
         const anchor = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
         setSelection(rects.length && text ? { page, rects, text, anchor } : null);
@@ -223,6 +257,45 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       clearTimeout(timer);
       document.removeEventListener("selectionchange", onChange);
     };
+  }, []);
+
+  // The bar next to the selection follows it while the page scrolls or the window changes.
+  const hasSelection = selection !== null;
+  useEffect(() => {
+    const el = scroller.current;
+    if (!hasSelection || !el) return;
+    let frame = 0;
+    const follow = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const sel = getSelection();
+        if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+        const b = sel.getRangeAt(0).getBoundingClientRect();
+        setSelection((s) => s && { ...s, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } });
+      });
+    };
+    el.addEventListener("scroll", follow, { passive: true });
+    addEventListener("resize", follow);
+    return () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener("scroll", follow);
+      removeEventListener("resize", follow);
+    };
+  }, [hasSelection]);
+
+  // Ctrl/Cmd + C on selected page text puts tidy text on the clipboard:
+  // whole sentences, not one line of the page per line.
+  const selectedText = useRef("");
+  selectedText.current = selection?.text ?? "";
+  useEffect(() => {
+    const onCopy = (e: ClipboardEvent) => {
+      if (!selectedText.current || isTyping(e.target) || !e.clipboardData) return;
+      e.clipboardData.setData("text/plain", selectedText.current);
+      e.preventDefault();
+      setToast({ text: t("Copied") });
+    };
+    document.addEventListener("copy", onCopy);
+    return () => document.removeEventListener("copy", onCopy);
   }, []);
 
   // Highlight mode: releasing the mouse or finger over a selection highlights it at
@@ -275,15 +348,16 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   }
 
   function removeEntry(entry: NoteItem) {
-    if (entry.type === "highlight") annotations.removeHighlight(entry.item);
-    else if (entry.type === "note") annotations.removeNote(entry.item);
-    else if (entry.type === "sticky") annotations.removeSticky(entry.item);
-    else annotations.removeBookmark(entry.item);
+    if (entry.type === "highlight") removeHighlight(entry.item);
+    else if (entry.type === "note") removeNote(entry.item);
+    else if (entry.type === "sticky") removeSticky(entry.item);
+    else removeBookmark(entry.item);
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && placing) return setPlacing(false);
+      if (e.key === "Escape" && erasing) return setErasing(false);
       // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
       if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
         e.preventDefault();
@@ -305,7 +379,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [page, total, sheet, popover, placing]);
+  }, [page, total, sheet, popover, placing, erasing]);
 
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
@@ -329,8 +403,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     if (hit) {
       const pageEl = renderer.current!.layers(hit.page)!.page;
       const n = annotations.data.notes.find((x) => x.page === hit.page && inRects(x.rects, hit.x, hit.y));
-      if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects) });
       const h = annotations.data.highlights.find((x) => x.page === hit.page && inRects(x.rects, hit.x, hit.y));
+      // Eraser: one tap removes what is under the finger (Undo brings it back).
+      if (erasing) {
+        if (h) removeHighlight(h);
+        else if (n) removeNote(n);
+        return;
+      }
+      if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects) });
       if (h) return setPopover({ type: "highlight", id: h.id, anchor: anchorFor(pageEl, h.rects) });
     }
     if (matchMedia("(hover: none)").matches) setBarsHidden((hidden) => !hidden);
@@ -354,9 +434,13 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
           <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
             aria-pressed={highlightMode} disabled={!ready}
-            onClick={() => { setHighlightMode((v) => !v); setPlacing(false); }} />
+            onClick={() => { setHighlightMode((v) => !v); setPlacing(false); setErasing(false); }} />
+          <IconButton label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
+            aria-pressed={erasing} disabled={!ready}
+            onClick={() => { setErasing((v) => !v); setHighlightMode(false); setPlacing(false); }} />
           <IconButton label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
-            aria-pressed={placing} disabled={!ready} onClick={() => { setPlacing((v) => !v); setHighlightMode(false); }} />
+            aria-pressed={placing} disabled={!ready}
+            onClick={() => { setPlacing((v) => !v); setHighlightMode(false); setErasing(false); }} />
           <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
             class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
             onClick={() => annotations.toggleBookmark(page)} />
@@ -410,6 +494,13 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         </div>
       </div>
 
+      {erasing && (
+        <div class="mode-hint is-text" role="status">
+          <span>{t("Tap a highlight or note to remove it")}</span>
+          <button type="button" class="mode-done" onClick={() => setErasing(false)}>{t("Done")}</button>
+        </div>
+      )}
+
       {placing && (
         <div class="place-hint" role="status">
           {t("Tap the page where the note should go")}
@@ -419,16 +510,24 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
 
       {error
         ? <p class="reader-error" role="alert">{t(error)}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""}`} ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} />}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""}`} ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} />}
 
       <ReadAloudBar ra={readAloud} page={page} />
 
-      {selection && (
+      {selection && !highlightMode && (
         <SelectionBar
+          anchor={selection.anchor}
           onHighlight={(c) => highlightSelection(c)}
           onNote={noteSelection}
-          onCopy={() => { navigator.clipboard?.writeText(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
+          onCopy={() => { copy(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
         />
+      )}
+
+      {toast && (
+        <div class="toast" role="status">
+          {toast.text}
+          {toast.undo && <button type="button" onClick={() => { toast.undo!(); setToast(null); }}>{t("Undo")}</button>}
+        </div>
       )}
 
       {popover?.type === "highlight" && (() => {
@@ -436,7 +535,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         return h && (
           <HighlightPopover highlight={h} anchor={popover.anchor} onClose={() => setPopover(null)}
             onColor={(c) => annotations.saveHighlight({ ...h, color: c })}
-            onRemove={() => { annotations.removeHighlight(h); setPopover(null); }} />
+            onCopy={() => { copy(h.text); setPopover(null); }}
+            onRemove={() => { removeHighlight(h); setPopover(null); }} />
         );
       })()}
       {popover?.type === "note" && (
@@ -444,7 +544,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           onSave={(body) => annotations.saveNote({ bookId, ...popover.draft, body })}
           onDelete={() => {
             const n = annotations.data.notes.find((x) => x.id === popover.draft.id);
-            if (n) annotations.removeNote(n);
+            if (n) removeNote(n);
             setPopover(null);
           }} />
       )}
@@ -453,7 +553,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         <>
           <div class="panel-backdrop" onClick={() => setPanelOpen(false)} />
           <NotesPanel title={book?.title ?? t("Notes")} data={annotations.data}
-            onJump={jumpTo} onRemove={removeEntry} onClose={() => setPanelOpen(false)} />
+            onJump={jumpTo} onCopy={copy} onRemove={removeEntry} onClose={() => setPanelOpen(false)} />
         </>
       )}
 

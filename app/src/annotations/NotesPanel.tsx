@@ -11,10 +11,11 @@ import { counts, noteItems, type NoteItem, type NoteKind } from "./noteItems";
 const TABS: [NoteKind, string][] = [["highlights", "Highlights"], ["notes", "Notes"], ["sticky", "Sticky notes"], ["bookmarks", "Bookmarks"]];
 
 /** Highlights, notes, sticky notes and bookmarks of the open book, next to the PDF. */
-export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
+export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
   title: string;
   data: BookAnnotations;
   onJump: (entry: NoteItem) => void;
+  onCopy: (text: string) => void;
   onRemove: (entry: NoteItem) => void;
   onClose: () => void;
 }) {
@@ -86,6 +87,10 @@ export function NotesPanel({ title, data, onJump, onRemove, onClose }: {
                 {entry.type === "sticky" && <p class="note-text">{entry.item.text || "Empty sticky note"}</p>}
                 {entry.type === "bookmark" && <p class="note-text">{t("Bookmarked page")}</p>}
               </button>
+              {entry.type !== "bookmark" && (
+                <IconButton label={t("Copy text")} icon="copy" class="note-copy"
+                  onClick={() => onCopy(entry.type === "note" ? `${entry.item.text}\n\n${entry.item.body}` : entry.item.text)} />
+              )}
               <IconButton label={t(`Remove ${entry.type === "sticky" ? "sticky note" : entry.type} on page {page}`, { page: entry.page })} icon="trash"
                 class="note-remove" onClick={() => onRemove(entry)} />
             </li>

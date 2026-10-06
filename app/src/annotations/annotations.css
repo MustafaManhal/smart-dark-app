@@ -20,9 +20,36 @@
 .icon-btn.is-on.fill-on .icon path { fill: currentColor; }
 
 .reader-scroll.is-placing .page { cursor: crosshair; }
+.reader-scroll.is-erasing .page, .reader-scroll.is-erasing .textLayer :is(span, br) { cursor: pointer; }
+.reader-scroll.is-erasing .hl { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 1px; }
+
+/* Short messages: "Copied", or what was removed with a way to undo it. */
+.toast {
+  position: absolute;
+  bottom: calc(var(--bar-bottom) + 18px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 6px 8px 6px 16px;
+  max-width: calc(100% - 24px);
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  white-space: nowrap;
+  animation: fade 0.15s var(--ease);
+}
+.toast:not(:has(button)) { padding-inline-end: 16px; }
+.toast button { border: 0; border-radius: 999px; padding: 6px 14px; background: color-mix(in srgb, var(--bg) 18%, transparent); color: inherit; font-weight: 650; cursor: pointer; }
+.reader.reading .toast { bottom: calc(var(--bar-bottom) + 96px); }
 .place-hint {
   position: absolute;
-  top: calc(var(--bar-top) + 10px);
+  top: calc(var(--bar-top) + var(--float-gap) - 2px);
   left: 50%;
   translate: -50% 0;
   z-index: 7;
@@ -39,11 +66,9 @@
 }
 .place-hint button { border: 0; border-radius: 999px; padding: 6px 12px; background: color-mix(in srgb, var(--bg) 18%, transparent); color: inherit; cursor: pointer; }
 
+/* Next to the selected text; placed by SelectionBar.tsx. */
 .selection-bar {
-  position: absolute;
-  bottom: calc(var(--bar-bottom) + 16px);
-  left: 50%;
-  translate: -50% 0;
+  position: fixed;
   z-index: 7;
   display: flex;
   align-items: center;
@@ -54,7 +79,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  animation: rise 0.18s var(--ease);
+  animation: fade 0.12s var(--ease);
 }
 .swatch { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--text) 14%, transparent); cursor: pointer; }
 .swatch[aria-checked="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
