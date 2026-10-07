@@ -44,8 +44,10 @@ The app works without a connection after the first visit. It connects only in th
   that folder belongs to a service such as iCloud Drive, Dropbox or OneDrive, that service carries the files
   under its own privacy policy. The app itself makes no connection for this.
 - **Backups, saved PDFs and shared quotes** go where you save or share them.
-- **The desktop app's update check** asks GitHub for the number of the newest release when you press
-  "Check for updates".
+- **The desktop app's update check** asks GitHub for the number of the newest release when the app starts
+  (once a day) and when you press "Check for updates". "Update now" downloads the new installer from
+  GitHub. Nothing about you or your books is part of either. The check at start can be turned off in
+  Settings.
 
 ## The browser extension
 

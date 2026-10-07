@@ -165,7 +165,8 @@ test("smart dark turns the page dark, and the text size changes", async ({ page 
   await expect(page.locator(".ebook")).toHaveAttribute("data-page-style", "dark");
   // The paper is the theme's dark gray: a point in the page's margin is dark on the screen.
   const paperIsDark = async () => {
-    const shot = await page.screenshot({ clip: { x: 20, y: 120, width: 4, height: 4 } });
+    const paper = (await page.locator(".ebook-page").boundingBox())!; // under the bar, whatever its height
+    const shot = await page.screenshot({ clip: { x: paper.x + 8, y: paper.y + 12, width: 4, height: 4 } });
     return page.evaluate(async (data) => {
       const bitmap = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob());
       const canvas = new OffscreenCanvas(4, 4);

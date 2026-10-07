@@ -51,6 +51,7 @@ const defaults = {
   reminderTime: "19:00",
   language: "system" as Language,
   lookupOn: false, // online book details lookup is opt-in
+  updateAuto: true, // the desktop app asks GitHub for a newer version when it starts, once a day
   wordLookupOn: false, // looking a word up in Wiktionary is opt-in: the word leaves the device
 };
 

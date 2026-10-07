@@ -343,6 +343,11 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".top-menu").click();
       await expect(page.locator(".book-menu")).toBeVisible();
       await check(page, `${tag}-18b-book-menu`, findings);
+      await page.locator(".book-menu button").nth(1).click(); // focus: only the book
+      await expect(page.locator(".focus-exit")).toBeVisible();
+      await check(page, `${tag}-18b2-focus`, findings);
+      await page.locator(".focus-exit").click();
+      await page.locator(".top-menu").click();
       // From the book menu: the command list, auto-scroll and (with a keyboard) the shortcut sheet.
       await page.locator(".book-menu button").first().click();
       await expect(page.locator(".palette")).toBeVisible();
@@ -351,7 +356,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await check(page, `${tag}-18d-commands-found`, findings);
       await page.keyboard.press("Escape");
       await page.locator(".top-menu").click();
-      await page.locator(".book-menu button").nth(1).click();
+      await page.locator(".book-menu button").nth(2).click(); // the third card: auto-scroll (after the command finder and focus)
       await expect(page.locator(".auto-bar")).toBeVisible();
       await page.locator(".auto-bar .read-play").click(); // hold still for the picture
       await check(page, `${tag}-18e-auto-scroll`, findings);
@@ -421,10 +426,15 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await expect(page.locator(".ebook-title small")).toHaveText("One: The Keeper");
       await check(page, `${tag}-31-ebook`, findings);
       for (const [i, name] of ["search", "contents", "notes", "appearance"].entries()) {
-        await page.locator(".ebook-tools .icon-btn").nth(i === 0 ? 0 : i === 1 ? 1 : i === 2 ? -2 : -1).click();
+        // The tools from the left: search, contents; from the right: focus, appearance, notes.
+        await page.locator(".ebook-tools .icon-btn").nth(i === 0 ? 0 : i === 1 ? 1 : i === 2 ? -3 : -2).click();
         await check(page, `${tag}-32-ebook-${name}`, findings);
         await page.locator(".sheet-head .icon-btn").click();
       }
+      await page.locator(".ebook-tools .icon-btn").last().click(); // focus: only the book
+      await expect(page.locator(".focus-exit")).toBeVisible();
+      await check(page, `${tag}-33-ebook-focus`, findings);
+      await page.locator(".focus-exit").click();
 
       writeFileSync(`${out}/${tag}.json`, JSON.stringify({ errors, findings }, null, 1));
       expect([...new Set(errors)], "console errors").toEqual([]);

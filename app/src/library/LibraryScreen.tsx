@@ -5,6 +5,9 @@ import { incoming } from "../platform/incoming";
 import { autoSync, syncNow, syncStatus } from "../sync/sync";
 import { restored } from "../ui/Shell";
 import { useMedia } from "../ui/useMedia";
+import { desktop } from "../platform/desktop";
+import { installUpdate, updateState } from "../platform/update";
+import { UpdateLine, updateReady } from "../settings/UpdateCard";
 import { navigate } from "../router";
 import { Button, IconButton } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
@@ -320,6 +323,12 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <div class="lib-review" role="status">
           <span>{t(dueCount === 1 ? "1 mark to review today." : "{n} marks to review today.", { n: dueCount })}</span>
           <Button variant="primary" onClick={() => navigate({ name: "review" })}>{t("Review")}</Button>
+        </div>
+      )}
+      {desktop && (updateReady() || updateState.value.step === "downloading" || updateState.value.step === "opened") && (
+        <div class="lib-review" role="status">
+          <span>{updateReady() ? t("A new version of Reader343 is ready.") : <UpdateLine />}</span>
+          {updateReady() && <Button variant="primary" onClick={installUpdate}>{t("Update now")}</Button>}
         </div>
       )}
       {sync.state === "needs-permission" && (

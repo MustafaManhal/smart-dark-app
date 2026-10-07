@@ -36,6 +36,8 @@ program: the dark viewer only.
 | "Open with" from the system | when installed | no | yes | no | no | no |
 | Opens PDF links of the web | no | no | no | no | no | yes |
 | Offline | yes | yes | yes | yes | yes | yes |
+| Focus: only the book | yes | yes | yes | yes | yes | no |
+| Gets its updates | by itself | by itself | "Update now" in the app | by itself | by itself | from the store, once listed |
 
 ## Why the "no" cells are "no"
 

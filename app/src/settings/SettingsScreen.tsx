@@ -4,7 +4,8 @@ import { BackupSheet } from "../backup/BackupSheet";
 import type { Repos } from "../db/repos";
 import { lang, t } from "../i18n/i18n";
 import { navigate } from "../router";
-import { desktop, type UpdateResult } from "../platform/desktop";
+import { desktop } from "../platform/desktop";
+import { UpdateCard } from "./UpdateCard";
 import { refreshStorageInfo, storageInfo } from "../platform/pwa";
 import { useEffect } from "preact/hooks";
 import { saveSetting, settings, type AppTheme, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
@@ -38,7 +39,6 @@ const SECTIONS: [string, string][] = [
 
 export function SettingsScreen({ repos }: { repos: Repos }) {
   const [backupOpen, setBackupOpen] = useState(false);
-  const [update, setUpdate] = useState<UpdateResult | "checking" | "error" | null>(null);
   useEffect(() => {
     refreshStorageInfo();
   }, []);
@@ -151,28 +151,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
 
       <SyncCard repos={repos} />
 
-      {desktop && (
-        <section class="card" id="set-updates">
-          <h2>{t("Updates")}</h2>
-          <Button onClick={async () => {
-            setUpdate("checking");
-            setUpdate(await desktop!.checkForUpdates().catch(() => "error" as const));
-          }} disabled={update === "checking"}>{t("Check for updates")}</Button>
-          {update && update !== "checking" && (
-            <p class="muted small" role="status">
-              {update === "error" && t("Could not check for updates. Try again later.")}
-              {update !== "error" && update.status === "off" && t("Update checks are not set up for this build.")}
-              {update !== "error" && update.status === "current" && t("You have the latest version ({v}).", { v: update.current })}
-              {update !== "error" && update.status === "available" && (
-                <>
-                  {t("Version {v} is available.", { v: update.latest })}{" "}
-                  <button type="button" class="link" onClick={() => desktop!.openExternal(update.url)}>{t("Download")}</button>
-                </>
-              )}
-            </p>
-          )}
-        </section>
-      )}
+      {desktop && <UpdateCard />}
 
       <section class="card about" id="set-about">
         <h2>{t("About")}</h2>

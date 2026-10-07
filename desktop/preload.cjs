@@ -9,5 +9,8 @@ contextBridge.exposeInMainWorld("desktop", {
   onNavigate: (callback) => ipcRenderer.on("desktop:navigate", (_e, hash) => callback(hash)),
   openDialog: () => ipcRenderer.invoke("desktop:open-dialog"),
   checkForUpdates: () => ipcRenderer.invoke("desktop:check-updates"),
+  /** Downloads the installer of the update the last check found, and opens it. */
+  installUpdate: () => ipcRenderer.invoke("desktop:install-update"),
+  onUpdateProgress: (callback) => ipcRenderer.on("desktop:update-progress", (_e, percent) => callback(percent)),
   openExternal: (url) => ipcRenderer.invoke("desktop:open-external", url),
 });

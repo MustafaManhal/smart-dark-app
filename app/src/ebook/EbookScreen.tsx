@@ -79,6 +79,10 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
   const [found, setFound] = useState<Found[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [speaking, setSpeaking] = useState<"off" | "playing" | "paused">("off");
+  // Focus: the bars go away and only the book is left.
+  const [focus, setFocus] = useState(false);
+  const focusNow = useRef(focus);
+  focusNow.current = focus;
   const style = settings.pageStyle.value, theme = settings.darkTheme.value;
   const fontSize = settings.ebookFontSize.value, flow = settings.ebookFlow.value;
 
@@ -183,6 +187,8 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
               setOpenMark(null);
               if (x < width * 0.3) v.goLeft();
               else if (x > width * 0.7) v.goRight();
+              // The middle of the page: the bars go away, or come back.
+              else setFocus(!focusNow.current);
             });
           });
           doc.addEventListener("keydown", onKey.current);
@@ -235,7 +241,8 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
     else if (e.key === "ArrowRight") v.goRight();
     else if (e.key === "PageDown" || (e.key === " " && !e.shiftKey)) v.next();
     else if (e.key === "PageUp" || (e.key === " " && e.shiftKey)) v.prev();
-    else if (e.key === "Escape") { setSelection(null); setOpenMark(null); return; }
+    else if (e.key === "f" || e.key === "F") setFocus(!focus);
+    else if (e.key === "Escape") { setSelection(null); setOpenMark(null); setFocus(false); return; }
     else return;
     e.preventDefault();
   };
@@ -392,7 +399,7 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
   const paper = pageColors(style, theme);
 
   return (
-    <div class="ebook" data-page-style={style} style={{ "--ebook-paper": paper.paper, "--ebook-ink": paper.ink }}>
+    <div class={focus ? "ebook is-focus" : "ebook"} data-page-style={style} style={{ "--ebook-paper": paper.paper, "--ebook-ink": paper.ink }}>
       <header class="ebook-top">
         <IconButton label={t("Back to library")} icon="back" onClick={() => navigate({ name: "library" })} />
         <div class="ebook-title">
@@ -409,6 +416,7 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
           {speaking !== "off" && <IconButton label={t("Stop")} text={t("Stop")} icon="close" onClick={stopSpeech} />}
           <IconButton label={t("Notes and highlights")} text={t("Notes")} icon="notes" onClick={() => setSheet("notes")} />
           <IconButton label={t("Appearance")} text={t("Appearance")} icon="palette" onClick={() => setSheet("look")} />
+          <IconButton label={t("Focus: only the book")} text={t("Focus")} icon="eye" onClick={() => setFocus(true)} />
         </div>
       </header>
 
@@ -431,6 +439,11 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
         <IconButton label={t("Next page")} icon="chevronRight" disabled={state !== "ready"} onClick={() => view.current?.next()} />
       </footer>
 
+      {focus && (
+        <button type="button" class="focus-exit" onClick={() => setFocus(false)}>
+          <Icon name="eye" size={16} /> {t("Show the tools")}
+        </button>
+      )}
       {selection && !openMark && (
         <SelectionBar anchor={selection.anchor} onHighlight={addHighlight} onNote={addNote}
           onCopy={() => { copyText(selection.text); view.current?.deselect(); setSelection(null); }} />

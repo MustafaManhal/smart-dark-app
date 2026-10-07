@@ -1,5 +1,7 @@
 import { _electron as electron, expect, test, type ElectronApplication } from "@playwright/test";
 import { mkdtempSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -8,7 +10,8 @@ let app: ElectronApplication;
 test.beforeEach(async () => {
   // A fresh profile per test, so libraries do not leak between tests.
   const profile = mkdtempSync(join(tmpdir(), "sdr-"));
-  app = await electron.launch({ args: [".", `--user-data-dir=${profile}`], cwd: resolve(".") });
+  // The update check is off in these tests: it would ask GitHub at every start. Two tests turn it on.
+  app = await electron.launch({ args: [".", `--user-data-dir=${profile}`], cwd: resolve("."), env: { ...process.env, READER343_TEST_UPDATES: "off" } });
 });
 test.afterEach(async () => app?.close());
 
@@ -46,6 +49,9 @@ test("a PDF opened from the operating system goes straight to the reader", async
 });
 
 test("menu navigation and the update check work", async () => {
+  // This one asks the real GitHub.
+  await app.close();
+  app = await electron.launch({ args: [".", `--user-data-dir=${mkdtempSync(join(tmpdir(), "sdr-"))}`], cwd: resolve(".") });
   const win = await app.firstWindow();
   await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send("desktop:navigate", "#/settings"));
@@ -191,7 +197,7 @@ test("the desktop app has the named places, the named tools, and makes a PDF wit
 
   await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("test/fixtures/links.pdf"));
   await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
-  await expect(win.getByRole("toolbar", { name: "Reading tools" }).locator(".btn-text")).toHaveCount(16);
+  await expect(win.getByRole("toolbar", { name: "Reading tools" }).locator(".btn-text")).toHaveCount(17);
   // What the browser's own model does is not offered here: the desktop app has no such model.
   await win.getByRole("button", { name: "All tools" }).click();
   const all = win.getByRole("dialog", { name: "All tools" });
@@ -210,4 +216,59 @@ test("the desktop app has the named places, the named tools, and makes a PDF wit
   await expect(sheet.getByRole("button", { name: "Save" })).toBeVisible();
   await sheet.getByRole("button", { name: "Add to library" }).click();
   await expect(sheet).toContainText("It is in your library now.");
+});
+
+test("a newer version is offered when the app starts, and Update now downloads this computer's installer", async () => {
+  // A stand-in for GitHub: a release far newer than this build, with a small file as its installer.
+  const installer = Buffer.alloc(300_000, 7);
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  const name = process.platform === "win32" ? `Reader343-win-${arch}.exe` : process.platform === "darwin" ? `Reader343-mac-${arch}.dmg` : "Reader343-linux-x86_64.AppImage";
+  const asked: string[] = [];
+  const server = createServer((req, res) => {
+    asked.push(req.url ?? "");
+    const base = `http://localhost:${(server.address() as AddressInfo).port}`;
+    if (req.url === "/latest") {
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ tag_name: "v99.1.0", html_url: "https://github.com/MustafaManhal/smart-dark-app/releases", assets: [
+        { name, size: installer.length, browser_download_url: `${base}/${name}` },
+        { name: "Reader343-other.zip", size: 5, browser_download_url: `${base}/other.zip` },
+      ] }));
+    }
+    if (req.url === `/${name}`) {
+      res.writeHead(200, { "content-length": installer.length });
+      return res.end(installer);
+    }
+    res.writeHead(404).end();
+  });
+  await new Promise<void>((done) => server.listen(0, "localhost", done));
+  const profile = mkdtempSync(join(tmpdir(), "sdr-"));
+  await app.close();
+  app = await electron.launch({
+    args: [".", `--user-data-dir=${profile}`], cwd: resolve("."),
+    env: { ...process.env, READER343_TEST_UPDATES: `http://localhost:${(server.address() as AddressInfo).port}` },
+  });
+  try {
+    const win = await app.firstWindow();
+    await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+    // The check ran by itself: the library says so.
+    await expect(win.getByText("A new version of Reader343 is ready.")).toBeVisible({ timeout: 15_000 });
+    expect(asked).toContain("/latest");
+
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send("desktop:navigate", "#/settings"));
+    const card = win.locator("#set-updates");
+    await expect(card).toContainText("Version 99.1.0 is available.");
+    await expect(card.getByRole("checkbox", { name: "Check when the app starts" })).toBeChecked();
+    await card.getByRole("button", { name: "Update now" }).click();
+    // In a test nothing is opened and the app stays: the file is there, whole.
+    await expect(card).toContainText(/The new version is open|The installer is opening|The new version is in the folder/, { timeout: 15_000 });
+    const size = await app.evaluate(async ({ app: a }, file) => {
+      const { statSync } = process.mainModule!.require("node:fs");
+      const { join: joinPath } = process.mainModule!.require("node:path");
+      return statSync(joinPath(a.getPath("temp"), "reader343-update-v99.1.0", file)).size;
+    }, name).catch((error) => String(error));
+    expect(size).toBe(installer.length);
+    expect(asked).toContain(`/${name}`);
+  } finally {
+    server.close();
+  }
 });

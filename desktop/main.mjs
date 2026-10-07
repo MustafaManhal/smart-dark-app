@@ -2,8 +2,9 @@
 // Serves the built web app over a private app:// protocol, opens PDFs passed
 // by the OS (double-click, "Open with", dock drop), and adds native menus.
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, shell } from "electron";
-import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { once } from "node:events";
+import { createWriteStream, existsSync } from "node:fs";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -187,7 +188,14 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-// ---------- update check (GitHub Releases, read only) ----------
+// ---------- updates (GitHub Releases) ----------
+// The app asks GitHub for the newest release, and on "Update now" downloads this computer's installer
+// from that release and opens it. Nothing about the reader or the library is sent.
+
+// Tests point the check at a server of their own, and then nothing is opened and the app stays.
+const TEST_UPDATES = /^http:\/\/localhost:\d+$/.test(process.env.READER343_TEST_UPDATES ?? "") ? process.env.READER343_TEST_UPDATES : "";
+const UPDATE_API = TEST_UPDATES ? `${TEST_UPDATES}/latest` : `https://api.github.com/repos/${UPDATE_REPO}/releases/latest`;
+const UPDATE_FILES = TEST_UPDATES ? `${TEST_UPDATES}/` : `https://github.com/${UPDATE_REPO}/releases/download/`;
 
 const newer = (a, b) => {
   const pa = a.replace(/^v/, "").split(".").map(Number);
@@ -196,17 +204,63 @@ const newer = (a, b) => {
   return false;
 };
 
+/** The installer of a release for this computer (the names electron-builder.yml gives them). */
+function installerName() {
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  if (process.platform === "win32") return `Reader343-win-${arch}.exe`;
+  if (process.platform === "darwin") return `Reader343-mac-${arch}.dmg`;
+  return "Reader343-linux-x86_64.AppImage";
+}
+
+let found = null; // the newest release, as the last check saw it
+
 async function checkForUpdates() {
-  if (!UPDATE_REPO) return { status: "off", current: app.getVersion() };
-  const res = await net.fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "SmartDarkReader" },
-  });
+  // "off" in READER343_TEST_UPDATES keeps the tests from asking GitHub at every start.
+  if (!UPDATE_REPO || process.env.READER343_TEST_UPDATES === "off") return { status: "off", current: app.getVersion() };
+  const res = await net.fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json", "User-Agent": "Reader343" } });
   if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
   const release = await res.json();
   const latest = String(release.tag_name ?? "");
-  return newer(latest, app.getVersion())
-    ? { status: "available", current: app.getVersion(), latest, url: release.html_url }
-    : { status: "current", current: app.getVersion(), latest };
+  if (!newer(latest, app.getVersion())) return { status: "current", current: app.getVersion(), latest };
+  const asset = (release.assets ?? []).find((a) => a.name === installerName());
+  // Only a file of this project's own releases is ever downloaded.
+  const ok = asset && String(asset.browser_download_url).startsWith(UPDATE_FILES);
+  found = ok ? { latest, name: asset.name, size: Number(asset.size) || 0, url: asset.browser_download_url } : null;
+  return { status: "available", current: app.getVersion(), latest, url: release.html_url, canInstall: !!found, size: found?.size ?? 0 };
+}
+
+/** Downloads the installer found by the last check, opens it, and leaves so it can replace the app. */
+async function installUpdate() {
+  if (!found) throw new Error("No update was found to install.");
+  const { latest, name, size, url } = found;
+  const res = await net.fetch(url, { headers: { "User-Agent": "Reader343" } });
+  if (!res.ok || !res.body) throw new Error(`The download answered ${res.status}`);
+  const folder = join(app.getPath("temp"), `reader343-update-${latest.replace(/[^\w.-]/g, "")}`);
+  await mkdir(folder, { recursive: true });
+  const file = join(folder, name);
+  const out = createWriteStream(file);
+  let done = 0, told = -1;
+  for await (const chunk of res.body) {
+    if (!out.write(chunk)) await once(out, "drain");
+    done += chunk.length;
+    const percent = size ? Math.min(100, Math.floor((done / size) * 100)) : 0;
+    if (percent !== told) win?.webContents.send("desktop:update-progress", (told = percent));
+  }
+  out.end();
+  await once(out, "finish");
+  if (size && done !== size) throw new Error(`The download is incomplete (${done} of ${size} bytes).`);
+  if (TEST_UPDATES) return { file, opened: false };
+  if (process.platform === "linux") {
+    // An AppImage is the app itself: it is shown in its folder, to be started in place of the old one.
+    await chmod(file, 0o755);
+    shell.showItemInFolder(file);
+    return { file, opened: true };
+  }
+  // Windows: the installer. Mac: the disk image, from which the app is dragged to Applications.
+  const problem = await shell.openPath(file);
+  if (problem) throw new Error(problem);
+  setTimeout(() => app.quit(), 1500);
+  return { file, opened: true };
 }
 
 // ---------- start ----------
@@ -233,6 +287,7 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle("desktop:open-dialog", chooseFiles);
   ipcMain.handle("desktop:check-updates", () => checkForUpdates());
+  ipcMain.handle("desktop:install-update", () => installUpdate());
   ipcMain.handle("desktop:open-external", (_e, url) => {
     if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url);
   });

@@ -105,3 +105,5 @@ catches a missed one as low contrast.
   in groups), two rows of five in the dock on phones. "All tools" lists everything as cards with a line each.
 - The home screen says what the app can do: the cards of "What you can do", beside the books on wide screens.
 - Bars push the page and leave with a tap on it. Nothing lies over the page while it is read.
+- **Focus** takes every bar and tool away and leaves the book. It has a named tool, a key (F) and a quiet
+  button to come back; a way in that can be seen matters as much as the mode itself.

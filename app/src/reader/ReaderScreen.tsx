@@ -965,6 +965,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (e.key === "Escape" && placing) return setPlacing(false);
     if (e.key === "Escape" && erasing) return setErasing(false);
     if (e.key === "Escape" && drawMode) return setDrawMode(false);
+    if (e.key === "Escape" && barsHidden && !sheet && !popover && !palette) return setBarsHidden(false);
     // Ctrl/Cmd+Z undoes the last edit, with Shift (or Ctrl+Y) it is done again. Text fields keep their own undo.
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
       e.preventDefault();
@@ -1007,6 +1008,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       "?": () => setSheet("shortcuts"),
       a: () => (auto.open ? auto.stop() : startAuto()), A: () => (auto.open ? auto.stop() : startAuto()),
       b: () => toggleBookmark(page), B: () => toggleBookmark(page),
+      f: () => setFocus(!barsHidden), F: () => setFocus(!barsHidden),
       g: () => setSheet("goto"), G: () => setSheet("goto"),
       r: () => rotate(90), R: () => rotate(e.shiftKey ? -90 : 90),
       ArrowRight: () => go(page + 1), j: () => go(page + 1),
@@ -1153,6 +1155,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       { id: "fit-page", title: t("Fit page"), run: () => renderer.current?.fitPage() },
       ...LAYOUTS.map(([value, label]): Command => ({ id: `layout-${value}`, title: `${t("Layout")}: ${t(label)}`, run: () => saveSetting("viewLayout", value) })),
       ...STYLES.map(([value, label]): Command => ({ id: `style-${value}`, title: `${t("Page")}: ${t(label)}`, run: () => saveSetting("pageStyle", value) })),
+      { id: "focus", title: t("Focus: only the book"), icon: "eye", keys: "F", run: () => setFocus(true) },
       { id: "crop", title: t("Crop margins"), run: () => toggleCrop(!crop?.on) },
       { id: "rotate-right", title: t("Rotate right"), icon: "rotateRight", keys: "R", run: () => rotate(90) },
       { id: "rotate-left", title: t("Rotate left"), icon: "rotateLeft", keys: keys("Shift+R"), run: () => rotate(-90) },
@@ -1177,6 +1180,17 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
   // The reading tools: in the top bar on wide screens, in a dock at the bottom on phones (where the thumb is).
   const offModes = () => { setHighlightMode(false); setPlacing(false); setErasing(false); setDrawMode(false); };
+  // Focus: every bar and tool goes away and only the book is left. Esc, F, the small button in the corner
+  // or (on a touch screen) a tap on the page brings them back.
+  const setFocus = (on: boolean) => {
+    if (on) {
+      offModes();
+      setPanel(null);
+      setSheet(null);
+      setToast({ text: t(matchMedia("(hover: none)").matches ? "Only the book. Tap the page to bring the tools back." : "Only the book. Press Esc to bring the tools back.") });
+    }
+    setBarsHidden(on);
+  };
   const tools = (
     <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
       <IconButton data-tool="highlight" text={t("Highlight")} label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
@@ -1199,6 +1213,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       <IconButton data-tool="contents" text={t("Contents")} label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
         onClick={() => togglePanel("contents")} disabled={!outline.length} />
       <IconButton data-tool="appearance" text={t("Appearance")} label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
+      <IconButton data-tool="focus" text={t("Focus")} label={t("Focus: only the book")} icon="eye" disabled={!ready} onClick={() => setFocus(true)} />
       <IconButton data-tool="crop" text={t("Crop")} label={t("Crop margins")} icon="area" class={crop?.on ? "is-on" : ""}
         aria-pressed={!!crop?.on} disabled={!ready} onClick={() => toggleCrop(!crop?.on)} />
       <IconButton data-tool="rotate" text={t("Rotate")} label={t("Rotate right")} icon="rotateRight" disabled={!ready} onClick={() => rotate(90)} />
@@ -1395,6 +1410,11 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         />
       )}
 
+      {barsHidden && (
+        <button type="button" class="focus-exit" onClick={() => setBarsHidden(false)}>
+          <Icon name="eye" size={16} /> {t("Show the tools")}
+        </button>
+      )}
       {toast && (
         <div class="toast" role="status">
           {toast.text}
@@ -1485,6 +1505,13 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
                 <Icon name="search" />
                 <span><strong>{t("Find a command")}</strong><small>{t("Every action of the reader in one list.")}</small></span>
                 {!touchOnly && <kbd dir="ltr">{keys("Mod+K")}</kbd>}
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={() => setFocus(true)}>
+                <Icon name="eye" />
+                <span><strong>{t("Focus: only the book")}</strong><small>{t("Every bar and tool goes away. Esc, or a tap on the page, brings them back.")}</small></span>
+                {!touchOnly && <kbd dir="ltr">F</kbd>}
               </button>
             </li>
             <li>

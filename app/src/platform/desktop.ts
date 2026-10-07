@@ -1,11 +1,12 @@
 import type { Repos } from "../db/repos";
 import { openIncoming } from "./incoming";
+import { startUpdates } from "./update";
 
 type OpenedFile = { name: string; bytes: Uint8Array };
 export type UpdateResult =
   | { status: "off"; current: string }
   | { status: "current"; current: string; latest: string }
-  | { status: "available"; current: string; latest: string; url: string };
+  | { status: "available"; current: string; latest: string; url: string; canInstall?: boolean; size?: number };
 
 type DesktopBridge = {
   platform: string;
@@ -14,6 +15,8 @@ type DesktopBridge = {
   onNavigate(cb: (hash: string) => void): void;
   openDialog(): Promise<void>;
   checkForUpdates(): Promise<UpdateResult>;
+  installUpdate(): Promise<{ file: string; opened: boolean }>;
+  onUpdateProgress(cb: (percent: number) => void): void;
   openExternal(url: string): Promise<void>;
 };
 
@@ -31,5 +34,6 @@ export async function initDesktop(repos: Repos) {
   const open = (file: OpenedFile) =>
     openIncoming(repos, [new File([file.bytes as Uint8Array<ArrayBuffer>], file.name, { type: "application/pdf" })]);
   desktop.onOpenFile(open);
+  startUpdates();
   for (const file of await desktop.ready()) await open(file);
 }

@@ -504,3 +504,14 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 .book-menu button > .icon { width: 22px; height: 22px; margin-top: 1px; }
 .book-menu kbd { align-self: flex-start; }
 @media (min-width: 721px) { .sheet:has(.book-menu) { width: min(880px, calc(100vw - 48px)); max-width: none; } }
+
+/* Focus: only the book. The way back is a small button in the corner that stays out of the way. */
+.focus-exit { position: absolute; top: calc(10px + var(--safe-top)); inset-inline-end: 12px; z-index: 7; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 600 var(--text-sm)/1 var(--font); cursor: pointer; opacity: 0.38; transition: opacity var(--fast); box-shadow: var(--shadow-sm); }
+.focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
+.tools [data-tool="focus"] { --c: var(--c-learn); }
+@media (min-width: 721px) {
+  .reader-top .tools .icon-btn[data-tool="focus"] { margin-inline-start: 13px; position: relative; }
+  .reader-top .tools .icon-btn[data-tool="focus"]::before { content: ""; position: absolute; inset-block: 12px; inset-inline-start: -8px; width: 1px; background: var(--border-strong); }
+}
+/* A phone's dock has ten places: Focus takes the one of Auto-scroll, which stays under "All tools". */
+@media (max-width: 720px) { .dock .tools [data-tool="autoscroll"] { display: none; } }
