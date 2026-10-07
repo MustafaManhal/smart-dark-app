@@ -143,7 +143,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 |---|---|---|---|
 | E1 (done 2026-10-07; English and Arabic both read a clean test page correctly) | OCR for scanned PDFs: text for search, selection and read aloud | L | [tesseract.js 7](https://github.com/naptha/tesseract.js/releases), Apache-2.0, about 8 MB plus a language file. Arabic output order has open bugs upstream ([#4428](https://github.com/tesseract-ocr/tesseract/issues/4428)); test before promising it |
 | E2 (done 2026-10-07) | Look up a word (Wiktionary, opt-in because the word leaves the device) | S | on iPhone the system menu already offers Look Up and Translate |
-| E3 | Summarize a chapter, explain a passage, translate a selection with the browser's built-in model | M | Chrome on computers only: Summarizer and Translator since Chrome 138, Prompt API for web pages since 148 ([Chrome docs](https://developer.chrome.com/docs/ai/built-in-apis)). Not on phones, Safari, Firefox or the desktop app. Shown only where it works |
+| E3 (done 2026-10-07; tested with a stand-in model, not with a real one) | Summarize a chapter, explain a passage, translate a selection with the browser's built-in model | M | Chrome on computers only: Summarizer and Translator since Chrome 138, Prompt API for web pages since 148 ([Chrome docs](https://developer.chrome.com/docs/ai/built-in-apis)). Not on phones, Safari, Firefox or the desktop app. Shown only where it works |
 | E4 (done 2026-10-07) | Contents generated for PDFs that have none | M | from heading sizes |
 | E5 | Natural Arabic voice | M | Supertonic 3 (MIT code, OpenRAIL-M model, about 404 MB); computers only |
 

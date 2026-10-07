@@ -30,13 +30,15 @@ export function placeSelectionBar(
 }
 
 /** Shown next to the selected text: copy it, highlight it, or write a note on it. */
-export function SelectionBar({ anchor, onHighlight, onNote, onCopy, onLookup }: {
+export function SelectionBar({ anchor, onHighlight, onNote, onCopy, onLookup, onAsk }: {
   anchor: Anchor;
   onHighlight: (color: HighlightColor) => void;
   onNote: () => void;
   onCopy: () => void;
   /** Given when the selection is a word or two: look it up in the dictionary. */
   onLookup?: () => void;
+  /** Given when the browser has its own model: explain or translate the selection. */
+  onAsk?: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -66,6 +68,9 @@ export function SelectionBar({ anchor, onHighlight, onNote, onCopy, onLookup }: 
       <span class="sep" />
       {onLookup && (
         <button type="button" class="sel-action sel-icon" aria-label={t("Look up")} title={t("Look up")} onClick={onLookup}><Icon name="book" size={18} /></button>
+      )}
+      {onAsk && (
+        <button type="button" class="sel-action sel-icon" aria-label={t("Explain or translate")} title={t("Explain or translate")} onClick={onAsk}><Icon name="sparkle" size={18} /></button>
       )}
       <button type="button" class="sel-action" onClick={onNote}><Icon name="note" size={18} /> {t("Note")}</button>
     </div>

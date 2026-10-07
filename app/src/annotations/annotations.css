@@ -223,3 +223,13 @@
 .lookup-entries ol { margin: 0; padding-inline-start: 22px; display: grid; gap: 4px; }
 .lookup-source { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin: 14px 0 0 !important; color: var(--muted); font-size: var(--text-sm); }
 .lookup-source a { color: var(--accent-strong); }
+
+/* Answers of the browser's own model */
+.ai-sheet { display: grid; gap: 12px; }
+.ai-source { margin: 0; padding: 10px 12px; border-inline-start: 3px solid var(--border-strong); border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: var(--text-sm); max-height: 96px; overflow: auto; overflow-wrap: anywhere; }
+.ai-tasks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ai-tasks .sort { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.ai-tasks select { height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
+.ai-note { margin: 0; color: var(--muted); }
+.ai-answer { padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 44vh; overflow: auto; line-height: 1.6; }
+.ai-about { margin: 0; color: var(--muted); font-size: var(--text-xs); }

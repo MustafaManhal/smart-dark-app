@@ -31,6 +31,8 @@ import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
 import { wordToLookUp } from "../lookup/dictionary";
 import { LookupSheet } from "../lookup/LookupSheet";
+import { AiSheet, type AiRequest } from "../ai/AiSheet";
+import { checkAi } from "../ai/builtin";
 import { makeOutline } from "./autoOutline";
 import { render } from "preact";
 import { DRAW_COLORS, DRAW_TOOLS, type Drawing, type DrawTool } from "../db/drawings";
@@ -187,6 +189,27 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [editingText, setEditingText] = useState<Drawing | null>(null);
   const [signing, setSigning] = useState(false);
   const [lookupWord, setLookupWord] = useState<string | null>(null);
+  // The browser's own model, where there is one (Chrome and Edge on computers): summaries, explanations, translations.
+  const [ai, setAi] = useState({ summarize: false, translate: false, explain: false });
+  useEffect(() => {
+    checkAi().then(setAi);
+  }, []);
+  const [aiRequest, setAiRequest] = useState<AiRequest | null>(null);
+  const [gathering, setGathering] = useState(false);
+  // The words of the chapter being read (or of the page, in a book without chapters), for a summary.
+  const summarizeChapter = async () => {
+    if (!bookSearch || gathering) return;
+    setGathering(true);
+    const from = chapter?.startPage ?? page;
+    const to = Math.min(chapter?.endPage ?? page, from + 59);
+    const texts: string[] = [];
+    for (let n = from; n <= to; n++) texts.push((await bookSearch.page(n).catch(() => null))?.text ?? "");
+    setGathering(false);
+    const text = texts.join("\n\n").trim();
+    setSheet(null);
+    if (text.length < 200) return setToast({ text: t("There is too little text here to summarize.") });
+    setAiRequest({ text, book: book?.title ?? "", tasks: ["summarize"], heading: chapter?.item.title ?? t("Page {page}", { page }) });
+  };
   const drawTool = settings.drawTool.value;
   const drawColor = settings.drawColor.value;
   const drawSize = settings.drawSize.value;
@@ -1353,6 +1376,11 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           onNote={noteSelection}
           onCopy={() => { copy(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
           onLookup={wordToLookUp(selection.text) ? () => { setLookupWord(wordToLookUp(selection.text)); getSelection()?.removeAllRanges(); setSelection(null); } : undefined}
+          onAsk={ai.explain || ai.translate ? () => {
+            setAiRequest({ text: selection.text, book: book?.title ?? "", tasks: selection.text.length > 600 ? ["explain", "translate", "summarize"] : ["explain", "translate"] });
+            getSelection()?.removeAllRanges();
+            setSelection(null);
+          } : undefined}
         />
       )}
 
@@ -1487,6 +1515,14 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
                 </button>
               )}
             </li>
+            {ai.summarize && (
+              <li>
+                <button type="button" disabled={gathering} onClick={summarizeChapter}>
+                  <Icon name="sparkle" />
+                  <span><strong>{t(chapter ? "Summarize this chapter" : "Summarize this page")}</strong><small>{t("By the model built into this browser, on this device.")}</small></span>
+                </button>
+              </li>
+            )}
             <li>
               <button type="button" onClick={() => { setMarked(null); setSheet("ocr"); }}>
                 <Icon name="scan" />
@@ -1508,6 +1544,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
       <LookupSheet word={lookupWord} onClose={() => setLookupWord(null)} />
+      <AiSheet request={aiRequest} support={ai} onClose={() => setAiRequest(null)} />
       <SignaturePad open={signing} onClose={() => setSigning(false)} onSave={(points) => { saveSetting("signature", points); setSigning(false); }} />
       <Sheet open={sheet === "ocr"} title={t("Recognize text")} onClose={() => setSheet(null)}>
         <div class="ocr-sheet">
