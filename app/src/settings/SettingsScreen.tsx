@@ -126,6 +126,11 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
           <input type="checkbox" checked={s.lookupOn.value} onChange={(e) => saveSetting("lookupOn", e.currentTarget.checked)} />
           {t("Look up book details online")}
         </label>
+        <label class="toggle">
+          <input type="checkbox" checked={s.wordLookupOn.value} onChange={(e) => saveSetting("wordLookupOn", e.currentTarget.checked)} />
+          {t("Look up words in Wiktionary")}
+        </label>
+        <p class="toggle-note">{t("Sends the selected word to en.wiktionary.org when you ask for its meaning.")}</p>
         <p class="muted small">{t("Off by default. When you search, only the text you type is sent to Open Library and Google Books, to find titles, authors and covers. Nothing else leaves this device.")}</p>
       </section>
 

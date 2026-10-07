@@ -48,6 +48,7 @@ const defaults = {
   reminderTime: "19:00",
   language: "system" as Language,
   lookupOn: false, // online book details lookup is opt-in
+  wordLookupOn: false, // looking a word up in Wiktionary is opt-in: the word leaves the device
 };
 
 type Settings = typeof defaults;

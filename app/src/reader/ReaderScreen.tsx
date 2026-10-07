@@ -29,6 +29,8 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { wordToLookUp } from "../lookup/dictionary";
+import { LookupSheet } from "../lookup/LookupSheet";
 import { makeOutline } from "./autoOutline";
 import { render } from "preact";
 import { DRAW_COLORS, DRAW_TOOLS, type Drawing, type DrawTool } from "../db/drawings";
@@ -184,6 +186,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [live, setLive] = useState<Drawing | null>(null);
   const [editingText, setEditingText] = useState<Drawing | null>(null);
   const [signing, setSigning] = useState(false);
+  const [lookupWord, setLookupWord] = useState<string | null>(null);
   const drawTool = settings.drawTool.value;
   const drawColor = settings.drawColor.value;
   const drawSize = settings.drawSize.value;
@@ -1349,6 +1352,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           onHighlight={(c) => highlightSelection(c)}
           onNote={noteSelection}
           onCopy={() => { copy(selection.text); getSelection()?.removeAllRanges(); setSelection(null); }}
+          onLookup={wordToLookUp(selection.text) ? () => { setLookupWord(wordToLookUp(selection.text)); getSelection()?.removeAllRanges(); setSelection(null); } : undefined}
         />
       )}
 
@@ -1503,6 +1507,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       </Sheet>
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      <LookupSheet word={lookupWord} onClose={() => setLookupWord(null)} />
       <SignaturePad open={signing} onClose={() => setSigning(false)} onSave={(points) => { saveSetting("signature", points); setSigning(false); }} />
       <Sheet open={sheet === "ocr"} title={t("Recognize text")} onClose={() => setSheet(null)}>
         <div class="ocr-sheet">

@@ -25,7 +25,7 @@ const CSP = [
   "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-  "connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://smart-dark-app.vercel.app https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
+  "connect-src 'self' data: blob: https://en.wiktionary.org https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://smart-dark-app.vercel.app https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
   "object-src 'none'",
   "base-uri 'none'",
   "frame-ancestors 'none'",

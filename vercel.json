@@ -8,7 +8,7 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://huggingface.co https://*.hf.co; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' data: blob: https://en.wiktionary.org https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://huggingface.co https://*.hf.co; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },

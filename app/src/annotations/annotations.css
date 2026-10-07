@@ -213,3 +213,13 @@
 .quote-view canvas { display: block; width: min(100%, 360px); height: auto; border-radius: 10px; }
 .quote-sheet .sheet-actions { flex-wrap: wrap; }
 .quote-status { min-height: 1.4em; margin: 6px 0 0; color: var(--muted); font-size: 13px; text-align: end; }
+
+/* Word lookup */
+.sel-action.sel-icon { padding: 0 8px; }
+.lookup-word h3 { margin: 0 0 10px; font-size: var(--text-lg); overflow-wrap: anywhere; }
+.lookup-word p { margin: 0 0 10px; }
+.lookup-entries { display: grid; gap: 12px; max-height: 46vh; overflow: auto; }
+.lookup-entries h4 { margin: 0 0 4px; color: var(--muted); font-size: var(--text-sm); font-weight: 600; text-transform: capitalize; }
+.lookup-entries ol { margin: 0; padding-inline-start: 22px; display: grid; gap: 4px; }
+.lookup-source { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin: 14px 0 0 !important; color: var(--muted); font-size: var(--text-sm); }
+.lookup-source a { color: var(--accent-strong); }

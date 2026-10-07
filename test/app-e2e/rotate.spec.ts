@@ -12,8 +12,9 @@ async function rotate(page: Page, name: "Rotate right" | "Rotate left", times = 
   await sheet.getByRole("button", { name: "Close" }).click();
 }
 
+/** Selects the words and gives the screen box of the selection (the highlight should land on it). */
 async function selectWords(page: Page) {
-  await span(page).evaluate((el, t) => {
+  return span(page).evaluate((el, t) => {
     const node = el.firstChild!;
     const start = node.textContent!.indexOf(t);
     const range = document.createRange();
@@ -21,14 +22,11 @@ async function selectWords(page: Page) {
     range.setEnd(node, start + t.length);
     getSelection()!.removeAllRanges();
     getSelection()!.addRange(range);
+    // Measured in the same step: the page may lay its text out again right after a turn.
+    const b = range.getBoundingClientRect();
+    return { x: b.x, y: b.y, width: b.width, height: b.height };
   }, WORDS);
 }
-
-/** The screen box of the selected words (the highlight should land on it). */
-const selectionBox = (page: Page) => page.evaluate(() => {
-  const b = getSelection()!.getRangeAt(0).getBoundingClientRect();
-  return { x: b.x, y: b.y, width: b.width, height: b.height };
-});
 
 const near = (a: { x: number; y: number; width: number; height: number }, b: typeof a, by = 6) => {
   expect(Math.abs(a.x - b.x)).toBeLessThan(by);
@@ -73,8 +71,7 @@ for (const turns of [1, 2, 3]) {
   test(`a highlight made on a page turned ${turns * 90}° sits on its words, there and upright`, async ({ page }) => {
     await openSample(page);
     await rotate(page, "Rotate right", turns);
-    await selectWords(page);
-    const words = await selectionBox(page);
+    const words = await selectWords(page);
     await page.getByRole("toolbar", { name: "Selected text" }).locator(".swatch").first().click();
     const mark = page.locator('.page[data-page="1"] .hl').first();
     await expect(mark).toBeVisible();
@@ -89,8 +86,7 @@ for (const turns of [1, 2, 3]) {
 
     // Turned back, it is still on the same words.
     await rotate(page, "Rotate left", turns);
-    await selectWords(page);
-    near(await boxOf(mark), await selectionBox(page));
+    near(await boxOf(mark), await selectWords(page));
   });
 }
 
@@ -101,8 +97,7 @@ test("a highlight made upright follows its words when the page is turned", async
   const mark = page.locator('.page[data-page="1"] .hl').first();
   await expect(mark).toBeVisible();
   await rotate(page, "Rotate right");
-  await selectWords(page);
-  near(await boxOf(mark), await selectionBox(page));
+  near(await boxOf(mark), await selectWords(page));
 });
 
 test("a sticky note goes where the tap is on a turned page, and stays upright", async ({ page }) => {
