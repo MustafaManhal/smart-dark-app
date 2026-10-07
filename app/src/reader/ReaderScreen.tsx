@@ -36,7 +36,8 @@ import { QuoteSheet } from "../annotations/QuoteSheet";
 import type { QuoteSource } from "../annotations/quote";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
-import { saveFile } from "../platform/saveFile";
+import { safeFileName, saveFile } from "../platform/saveFile";
+import { exportAnnotatedPdf, exportCount } from "../annotations/exportPdf";
 import { CSS_UNITS, Renderer } from "./renderer";
 import { PageGrid } from "./PageGrid";
 import { BookSearch } from "./search";
@@ -279,8 +280,24 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     const saved = await saveFile(new File([fileBlob.current], book.fileName, { type: "application/pdf" }));
     if (saved) setSheet(null);
   };
+  // The PDF with the reader's marks inside it. It is built first and saved with a second tap, because a
+  // phone only lets a file be saved from inside a tap (see saveFile).
+  const [marked, setMarked] = useState<{ state: "building" } | { state: "ready"; file: File } | { state: "failed" } | null>(null);
+  const buildMarked = async () => {
+    if (!fileBlob.current || !book) return;
+    setMarked({ state: "building" });
+    try {
+      const bytes = await exportAnnotatedPdf(new Uint8Array(await fileBlob.current.arrayBuffer()), annotations.data, book.password);
+      const name = `${safeFileName(book.fileName.replace(/\.pdf$/i, ""))} (${t("with marks")}).pdf`;
+      setMarked({ state: "ready", file: new File([bytes as Uint8Array<ArrayBuffer>], name, { type: "application/pdf" }) });
+    } catch (error) {
+      console.error("Export failed", error);
+      setMarked({ state: "failed" });
+    }
+  };
   const closeMenu = () => {
     printStop.current.now = true;
+    setMarked(null);
     setSheet(null);
   };
 
@@ -1180,6 +1197,25 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
                 <Icon name="download" />
                 <span><strong>{t("Save a copy")}</strong><small>{t("The PDF file as you added it.")}</small></span>
               </button>
+            </li>
+            <li>
+              {marked?.state === "ready" ? (
+                <button type="button" class="is-ready" onClick={async () => { if (await saveFile(marked.file)) closeMenu(); }}>
+                  <Icon name="download" />
+                  <span><strong>{t("Save the PDF with your marks")}</strong><small>{t("Ready: {n} marks and notes inside.", { n: exportCount(annotations.data) })}</small></span>
+                </button>
+              ) : (
+                <button type="button" disabled={marked?.state === "building" || exportCount(annotations.data) === 0} onClick={buildMarked}>
+                  <Icon name="highlighter" />
+                  <span>
+                    <strong>{t("Save a copy with your marks")}</strong>
+                    <small role="status">{t(marked?.state === "building" ? "Putting your marks into the PDF…"
+                      : marked?.state === "failed" ? "This PDF could not be written. Its marks are still in the app."
+                      : exportCount(annotations.data) === 0 ? "This book has no marks or notes yet."
+                      : "Highlights and notes become part of the PDF, for other apps to show.")}</small>
+                  </span>
+                </button>
+              )}
             </li>
             {!touchOnly && (
               <li>

@@ -357,6 +357,9 @@
 .book-menu button { width: 100%; display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 10px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; transition: background var(--fast); }
 .book-menu button:hover { background: var(--surface-2); }
 .book-menu svg { color: var(--accent); }
+.book-menu button:disabled { cursor: default; }
+.book-menu button:disabled > :is(svg, span strong) { opacity: 0.5; }
+.book-menu button.is-ready { background: var(--accent-soft); }
 .book-menu svg { flex: none; }
 .book-menu span { display: grid; gap: 2px; min-width: 0; }
 .book-menu small { color: var(--muted); font-size: 13px; }

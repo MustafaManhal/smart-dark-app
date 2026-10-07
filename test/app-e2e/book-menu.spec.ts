@@ -114,11 +114,50 @@ test("save a copy gives back the PDF file", async ({ page, isMobile }) => {
   await openSample(page);
   await page.getByRole("button", { name: "Book menu" }).click();
   const download = page.waitForEvent("download");
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Save a copy/ }).click();
+  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Save a copy(?! with)/ }).click();
   const file = await download;
   expect(file.suggestedFilename()).toBe("sample.pdf");
   const path = test.info().outputPath("copy.pdf");
   await file.saveAs(path);
   expect(statSync(path).size).toBe(statSync("src/sample/sample.pdf").size);
   expect(readFileSync(path).subarray(0, 5).toString()).toBe("%PDF-");
+});
+
+test("a copy with the marks inside is a PDF that carries them", async ({ page, isMobile }) => {
+  await openSample(page);
+  // Without marks there is nothing to put in.
+  await page.getByRole("button", { name: "Book menu" }).click();
+  const menu = page.getByRole("dialog", { name: "Book menu" });
+  await expect(menu.getByRole("button", { name: /^Save a copy with your marks/ })).toBeDisabled();
+  await expect(menu).toContainText("This book has no marks or notes yet.");
+  await menu.getByRole("button", { name: "Close" }).click();
+
+  await page.locator(".textLayer span", { hasText: "colored words keep their hue" }).first().evaluate((span) => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+  });
+  await page.getByRole("toolbar", { name: "Selected text" }).locator(".swatch").first().click();
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Book menu" }).click();
+  await menu.getByRole("button", { name: /^Save a copy with your marks/ }).click();
+  const save = menu.getByRole("button", { name: /^Save the PDF with your marks/ });
+  await expect(save).toBeVisible({ timeout: 20_000 });
+  await expect(save).toContainText("1 marks and notes inside");
+  await expect(menu).toBeInViewport({ ratio: 1 });
+  test.skip(isMobile, "the iPhone share sheet cannot be driven by tests; the save path is the same code");
+  const download = page.waitForEvent("download");
+  await save.click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("sample (with marks).pdf");
+  const path = test.info().outputPath("marked.pdf");
+  await file.saveAs(path);
+  const bytes = readFileSync(path);
+  expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
+  // The mark's own drawing is in the file (the mark itself sits in a packed part; the unit test reads it back).
+  expect(bytes.toString("latin1")).toContain("/BM /Multiply");
+  expect(bytes.length).toBeGreaterThan(20_000);
+  await expect(menu).toBeHidden();
 });
