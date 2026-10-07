@@ -39,7 +39,7 @@ export default defineConfig({
         // The natural read-aloud voices (tts/, about 58 MB) are optional and for computers
         // only, so they are also cached on first use.
         // The speech model (voices/, 102 MB) is downloaded only when the reader asks for natural voices.
-        globIgnores: ["pdfjs/cmaps/**", "tts/**", "voices/**"],
+        globIgnores: ["pdfjs/cmaps/**", "tts/**", "voices/**", "about/**"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/pdfjs/cmaps/"),
@@ -54,6 +54,8 @@ export default defineConfig({
         ],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: "index.html",
+        // The public page and the license texts are plain files, not screens of the app.
+        navigateFallbackDenylist: [/\/about\//, /\/licenses\//],
         cleanupOutdatedCaches: true,
         // Take control right away, so the first visit is already available offline.
         clientsClaim: true,

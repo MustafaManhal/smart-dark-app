@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import { BackupSheet } from "../backup/BackupSheet";
 import type { Repos } from "../db/repos";
-import { t } from "../i18n/i18n";
+import { lang, t } from "../i18n/i18n";
 import { navigate } from "../router";
 import { desktop, type UpdateResult } from "../platform/desktop";
 import { refreshStorageInfo, storageInfo } from "../platform/pwa";
@@ -162,7 +162,8 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <h2>{t("About")}</h2>
         <p class="about-name"><Brand size={24} /> <span>{t("version {v}", { v: __APP_VERSION__ })}</span></p>
         <p>{t("Your books, notes and reading history stay on this device. Nothing is sent anywhere unless you turn on online book details.")}</p>
-        <p class="muted small">{t("MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0).")}</p>
+        <p><a class="link" href={`${import.meta.env.BASE_URL}about/${lang.value === "ar" ? "ar.html" : ""}`} target="_blank" rel="noopener">{t("What Reader343 does")}</a></p>
+        <p class="muted small">{t("MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0). Typeface: Inter (SIL Open Font License).")}</p>
       </section>
 
       <BackupSheet repos={repos} open={backupOpen} onClose={() => setBackupOpen(false)} onRestored={() => {}} />

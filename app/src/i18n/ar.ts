@@ -170,6 +170,8 @@ export const AR: Record<string, string> = {
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Book menu": "قائمة الكتاب",
+  "What Reader343 does": "ما الذي يفعله Reader343",
+  "MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0). Typeface: Inter (SIL Open Font License).": "رخصة MIT. عرض PDF بواسطة Mozilla PDF.js (Apache-2.0). الخط: Inter (رخصة SIL للخطوط المفتوحة).",
   "Sections": "الأقسام",
   "Spacing": "التباعد",
   "Comfortable": "مريح",

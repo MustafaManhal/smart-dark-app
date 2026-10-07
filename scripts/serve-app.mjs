@@ -15,12 +15,13 @@ const types = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".png": "image/png", ".svg": "image/svg+xml", ".wasm": "application/wasm", ".json": "application/json",
   ".webmanifest": "application/manifest+json", ".bcmap": "application/octet-stream", ".pfb": "application/octet-stream",
-  ".ttf": "font/ttf", ".icc": "application/octet-stream",
+  ".ttf": "font/ttf", ".icc": "application/octet-stream", ".jpg": "image/jpeg", ".woff2": "font/woff2", ".pdf": "application/pdf", ".txt": "text/plain; charset=utf-8",
 };
 
 createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
-  let file = normalize(join(root, path === "/" ? "/index.html" : path));
+  // A folder is its index.html, as on the real host.
+  let file = normalize(join(root, path.endsWith("/") ? `${path}index.html` : path));
   if (!file.startsWith(root)) return res.writeHead(403).end();
   try {
     if (!statSync(file).isFile()) throw new Error();
