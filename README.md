@@ -94,8 +94,10 @@ then go to System Settings → Privacy & Security and click **Open Anyway**. On 
 
 ## Publishing
 
-See `docs/STORE_LISTING.md` for every dashboard field, permission justifications and reviewer notes. The
-privacy policy (`docs/PRIVACY.md`) must be hosted at a public URL before submitting.
+`docs/store/` has a page for each store (Chrome Web Store, Edge Add-ons, Firefox Add-ons, Microsoft Store)
+with every dashboard field, the permission justifications and the reviewer notes, and says which package
+goes where. The privacy policy (`docs/PRIVACY.md`) is published at
+https://smart-dark-app.vercel.app/about/privacy.html.
 
 ## License
 

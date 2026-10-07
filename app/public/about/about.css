@@ -85,3 +85,13 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
   .top nav a:not(.keep) { display: none; }
   .actions .btn { flex: 1 1 100%; }
 }
+
+/* Long text: the privacy policy. */
+.prose { max-width: 720px; padding-block: 24px 64px; }
+.prose h1 { font-size: clamp(28px, 5vw, 40px); letter-spacing: -0.02em; margin: 24px 0 16px; }
+.prose h2 { font-size: 20px; margin: 36px 0 10px; }
+.prose p, .prose li { line-height: 1.65; }
+.prose ul { padding-inline-start: 22px; }
+.prose li { margin-block: 8px; }
+.prose a { color: var(--accent); overflow-wrap: anywhere; }
+.prose code { font-size: 0.92em; padding: 1px 5px; border-radius: 5px; background: var(--surface); border: 1px solid var(--border); }

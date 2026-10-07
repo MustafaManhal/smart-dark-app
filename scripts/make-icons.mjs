@@ -91,4 +91,42 @@ writeFileSync(new URL("maskable-512.png", web), encodePng(512, 512, draw(512, 0.
 // iOS home screen: opaque square, iOS rounds the corners itself.
 writeFileSync(new URL("apple-touch-icon.png", web), encodePng(180, 180, draw(180, 0.08, true), { alpha: false }));
 writeFileSync(new URL("favicon-32.png", web), encodePng(32, 32, draw(32)));
-console.log("icons written to src/icons/, build/icon.png and app/public/icons/");
+
+// Microsoft Store package (MSIX): the tiles Windows shows on Start, in the taskbar and in the Store.
+// The mark sits in the middle of the app's dark tile color; the names are the ones electron-builder looks for.
+function drawTile(width, height, share) {
+  const ss = 4;
+  const side = Math.min(width, height) * share;
+  const rgba = new Uint8Array(width * height * 4);
+  for (let py = 0; py < height; py++) {
+    for (let px = 0; px < width; px++) {
+      let r = 0, g = 0, b = 0;
+      for (let sy = 0; sy < ss; sy++) {
+        for (let sx = 0; sx < ss; sx++) {
+          const u = (px + (sx + 0.5) / ss - (width - side) / 2) / side;
+          const v = (py + (sy + 0.5) / ss - (height - side) / 2) / side;
+          const [cr, cg, cb] = sample(u, v, true);
+          r += cr; g += cg; b += cb;
+        }
+      }
+      const i = (py * width + px) * 4;
+      rgba[i] = Math.round(r / (ss * ss));
+      rgba[i + 1] = Math.round(g / (ss * ss));
+      rgba[i + 2] = Math.round(b / (ss * ss));
+      rgba[i + 3] = 255;
+    }
+  }
+  return rgba;
+}
+const appx = new URL("../build/appx/", import.meta.url);
+mkdirSync(appx, { recursive: true });
+for (const [name, width, height, share] of [
+  ["StoreLogo", 50, 50, 1.3], ["Square44x44Logo", 44, 44, 1.3], ["SmallTile", 71, 71, 1.25], ["Square150x150Logo", 150, 150, 1.1],
+  ["Wide310x150Logo", 310, 150, 1.1], ["LargeTile", 310, 310, 1.05], ["SplashScreen", 620, 300, 0.9],
+]) {
+  writeFileSync(new URL(`${name}.png`, appx), encodePng(width, height, drawTile(width, height, share), { alpha: false }));
+}
+// Store listings: Edge Add-ons asks for a square logo (300x300), the Microsoft Store takes the same as its app tile.
+mkdirSync(new URL("../store/", import.meta.url), { recursive: true });
+writeFileSync(new URL("../store/logo-300.png", import.meta.url), encodePng(300, 300, draw(300)));
+console.log("icons written to src/icons/, build/icon.png, build/appx/, store/logo-300.png and app/public/icons/");

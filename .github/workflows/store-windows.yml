@@ -1,0 +1,51 @@
+name: Microsoft Store package
+
+# Builds the MSIX packages for the Microsoft Store (x64 and arm64). Started by hand, with the three
+# values Partner Center shows under Product identity once the app's name is reserved. The packages
+# are not signed here: the Store signs them when they are submitted. See docs/store/microsoft-store.md.
+on:
+  workflow_dispatch:
+    inputs:
+      identity_name:
+        description: Package/Identity/Name
+        required: true
+        default: Reader343.Test
+      publisher:
+        description: Package/Identity/Publisher (starts with CN=)
+        required: true
+        default: CN=Reader343 Test
+      publisher_display_name:
+        description: Package/Properties/PublisherDisplayName
+        required: true
+        default: Mustafa Manhal
+
+permissions:
+  contents: read
+
+jobs:
+  appx:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run app:build
+      - name: Build the Store packages
+        shell: bash
+        env:
+          IDENTITY_NAME: ${{ inputs.identity_name }}
+          PUBLISHER: ${{ inputs.publisher }}
+          PUBLISHER_DISPLAY_NAME: ${{ inputs.publisher_display_name }}
+        run: >
+          npx electron-builder --win appx --x64 --arm64 --publish never
+          "-c.appx.identityName=$IDENTITY_NAME"
+          "-c.appx.publisher=$PUBLISHER"
+          "-c.appx.publisherDisplayName=$PUBLISHER_DISPLAY_NAME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reader343-microsoft-store
+          path: release/*.appx
+          if-no-files-found: error

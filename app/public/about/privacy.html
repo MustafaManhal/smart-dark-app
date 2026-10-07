@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reader343: Privacy Policy</title>
+<meta name="description" content="What Reader343 keeps on your device and the few cases in which something leaves it. No account, no analytics, no tracking.">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="stylesheet" href="about.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><img src="../icons/icon-192.png" alt="" width="32" height="32">Reader343</a>
+    <nav aria-label="Page">
+      <a class="keep" href="./">What Reader343 does</a>
+      <a href="https://github.com/MustafaManhal/smart-dark-app">Source</a>
+    </nav>
+  </header>
+
+  <main class="prose">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: October 7, 2026</p>
+    <p>Reader343 is a PDF reader: a web app, a desktop app for Windows and Mac, an app for the iPhone home screen, and a browser extension for Chrome, Edge and Firefox. It was called Smart Dark PDF Reader before.</p>
+    <p>There is no account, no analytics, no advertising and no tracking. Your books, notes and reading history are kept on your device. The developer receives nothing from the app or the extension.</p>
+    <h2>What is kept on your device</h2>
+    <ul>
+      <li>The PDF files you add, their covers, and where you stopped reading.</li>
+      <li>Your highlights, notes, sticky notes, bookmarks, drawings, filled form fields and signature.</li>
+      <li>Reading history (which pages, for how long), goals and review schedules.</li>
+      <li>Your settings.</li>
+      <li>The password of a protected PDF, so the book opens next time. It is not put in backups or in a sync folder.</li>
+    </ul>
+    <p>Removing a book removes its marks with it. Clearing the site's data in the browser, or removing the app, removes everything.</p>
+    <h2>When something leaves your device</h2>
+    <p>The app works without a connection after the first visit. It connects only in these cases:</p>
+    <ul>
+      <li><strong>Loading the app.</strong> The web app is served from smart-dark-app.vercel.app. Like any web server, the host (Vercel) sees your internet address and which files were asked for. No book and no note is part of that.</li>
+      <li><strong>Book details lookup</strong> (off until you turn it on). When you search for a title, the text you type is sent to Open Library and Google Books, and cover pictures come from them.</li>
+      <li><strong>Word lookup</strong> (off until you agree, the first time you ask for a meaning). The selected word is sent to en.wiktionary.org.</li>
+      <li><strong>Natural voices for read aloud</strong> (an optional download on computers). The speech model, about 102 MB, comes from the app's own site; if that fails, from Hugging Face, which then sees your internet address as with any download. Speech is made on your device. The text that is read is not sent anywhere.</li>
+      <li><strong>Text recognition for scanned pages.</strong> The recognition engine and its language files come from the app's own site. Recognition runs on your device. The pages are not sent anywhere.</li>
+      <li><strong>Summaries, explanations and translations</strong> use the model built into your browser (Chrome and Edge on computers), on your device. The browser may download that model from its maker. Reader343 sends the text to nobody.</li>
+      <li><strong>Sync through a folder</strong> (off until you choose a folder). The app writes your books, marks and reading places as files into the folder you chose, and reads the files other computers of yours wrote there. If that folder belongs to a service such as iCloud Drive, Dropbox or OneDrive, that service carries the files under its own privacy policy. The app itself makes no connection for this.</li>
+      <li><strong>Backups, saved PDFs and shared quotes</strong> go where you save or share them.</li>
+      <li><strong>The desktop app's update check</strong> asks GitHub for the number of the newest release when you press "Check for updates".</li>
+    </ul>
+    <h2>The browser extension</h2>
+    <ul>
+      <li><strong>PDF files you open.</strong> When you open a PDF link, the extension downloads that PDF from the website, the same way the browser's own viewer does, and draws it on your screen. PDFs are processed only in your browser.</li>
+      <li><strong>Preferences.</strong> Theme, image handling, contrast, and whether PDFs open automatically are saved with the browser's <code>storage.sync</code>, so they follow your browser profile if you use its sync. They hold no personal information and no document content.</li>
+      <li><strong>Access to websites</strong> is optional and granted by you. It is needed to send PDF links to the viewer and to download the PDF you are viewing. You can withdraw it at any time on the extension's page in the browser.</li>
+      <li>In Chrome and Edge the extension uses <code>declarativeNetRequestWithHostAccess</code> to send PDF responses to its viewer. In Firefox it uses <code>webRequest</code> for the same purpose: it looks at the content type of a response to tell whether it is a PDF. Nothing else about the pages you visit is read, kept or sent.</li>
+      <li>The extension has no analytics, no remote code, and does not read or change web pages.</li>
+    </ul>
+    <h2>What is never done</h2>
+    <ul>
+      <li>Your documents, their text, your notes and your reading history are not sent to the developer or sold or shared with anyone.</li>
+      <li>No advertising or analytics code is included.</li>
+    </ul>
+    <h2>Children</h2>
+    <p>The app and the extension collect no personal information from anyone, children included.</p>
+    <h2>Changes</h2>
+    <p>If this policy changes, the date at the top changes with it, and the new text is published at the address above.</p>
+    <h2>Contact</h2>
+    <p>Questions about this policy: open an issue at <a href="https://github.com/MustafaManhal/smart-dark-app/issues">https://github.com/MustafaManhal/smart-dark-app/issues</a></p>
+  </main>
+</div>
+<footer>
+  <div class="wrap">
+    <span>Reader343 is free software under the MIT license.</span>
+    <span><a href="./">What Reader343 does</a></span>
+  </div>
+</footer>
+</body>
+</html>

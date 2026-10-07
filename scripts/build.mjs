@@ -2,6 +2,7 @@
 // package for the Chrome Web Store.
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
 const dist = new URL("dist/", root);
@@ -9,7 +10,8 @@ const pdfjs = new URL("node_modules/pdfjs-dist/", root);
 const target = new URL("lib/pdfjs/", dist);
 
 rmSync(dist, { recursive: true, force: true });
-cpSync(new URL("src/", root), dist, { recursive: true });
+// background.firefox.js belongs to the Firefox build only (see below).
+cpSync(new URL("src/", root), dist, { recursive: true, filter: (src) => !src.endsWith("background.firefox.js") });
 mkdirSync(target, { recursive: true });
 
 // Legacy build: supports Chrome 125+ (our minimum is 128). Not minified, so
@@ -48,10 +50,43 @@ if (process.argv.includes("--e2e")) {
   console.log("built dist-e2e/ (test only)");
 }
 
-if (process.argv.includes("--zip")) {
-  const zipName = `reader343-extension-${manifest.version}.zip`;
+// Firefox build. Firefox runs the background as an event page and has no rule condition for
+// response headers, so it gets its own background script (webRequest) and manifest entries.
+// The id and the data declaration are what addons.mozilla.org asks of a new Manifest V3 extension.
+function firefoxManifest(base) {
+  const { minimum_chrome_version: _, incognito: __, ...rest } = base;
+  return {
+    ...rest,
+    background: { scripts: ["background.firefox.js"], type: "module" },
+    permissions: ["storage", "webRequest", "webRequestBlocking"],
+    browser_specific_settings: {
+      gecko: { id: "reader343@smart-dark-app", strict_min_version: "140.0", data_collection_permissions: { required: ["none"] } },
+    },
+  };
+}
+function buildFirefox(name, change = (m) => m) {
+  const out = new URL(`${name}/`, root);
+  rmSync(out, { recursive: true, force: true });
+  cpSync(dist, out, { recursive: true, filter: (src) => !src.endsWith("/background.js") });
+  cpSync(new URL("src/background.firefox.js", root), new URL("background.firefox.js", out));
+  writeFileSync(new URL("manifest.json", out), JSON.stringify(change(firefoxManifest(manifest)), null, 2));
+  console.log(`built ${name}/`);
+  return out;
+}
+const firefox = buildFirefox("dist-firefox");
+if (process.argv.includes("--e2e")) {
+  // Test only, like dist-e2e: host access is in the manifest, because a test cannot press the permission prompt.
+  buildFirefox("dist-firefox-e2e", ({ optional_host_permissions, ...m }) => ({ ...m, host_permissions: optional_host_permissions }));
+}
+
+function zip(folder, zipName) {
   const zipPath = new URL(zipName, root);
   if (existsSync(zipPath)) rmSync(zipPath);
-  execFileSync("zip", ["-qr", "-X", `../${zipName}`, ".", "-x", ".*", "-x", "*/.*"], { cwd: dist, stdio: "inherit" });
+  execFileSync("zip", ["-qr", "-X", fileURLToPath(zipPath), ".", "-x", ".*", "-x", "*/.*"], { cwd: fileURLToPath(folder), stdio: "inherit" });
   console.log(`packaged ${zipName}`);
+}
+if (process.argv.includes("--zip")) {
+  // The same package goes to the Chrome Web Store and to Edge Add-ons.
+  zip(dist, `reader343-extension-${manifest.version}.zip`);
+  zip(firefox, `reader343-firefox-${manifest.version}.zip`);
 }

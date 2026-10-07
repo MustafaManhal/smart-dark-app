@@ -145,7 +145,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | E2 (done 2026-10-07) | Look up a word (Wiktionary, opt-in because the word leaves the device) | S | on iPhone the system menu already offers Look Up and Translate |
 | E3 (done 2026-10-07; tested with a stand-in model, not with a real one) | Summarize a chapter, explain a passage, translate a selection with the browser's built-in model | M | Chrome on computers only: Summarizer and Translator since Chrome 138, Prompt API for web pages since 148 ([Chrome docs](https://developer.chrome.com/docs/ai/built-in-apis)). Not on phones, Safari, Firefox or the desktop app. Shown only where it works |
 | E4 (done 2026-10-07) | Contents generated for PDFs that have none | M | from heading sizes |
-| E5 | Natural Arabic voice | M | Supertonic 3 (MIT code, OpenRAIL-M model, about 404 MB); computers only |
+| E5 (not built, on purpose, 2026-10-07) | Natural Arabic voice | M | Supertonic 3 was read and does not fit: its weights are under [OpenRAIL-M](https://huggingface.co/Supertone/supertonic-3), which makes a redistributor bind users to use restrictions in an agreement, and the app has none; the ONNX files are 380 MB; the [code repository](https://github.com/supertone-inc/supertonic) was archived in September 2026. Arabic is read with device voices. Owner's call: a 380 MB download straight from Hugging Face, with the license shown first, would be possible |
 
 ### Phase F. More formats and PDF tools
 
@@ -159,12 +159,12 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | Slice | What | Cost | Notes |
 |---|---|---|---|
 | G1 | Make the repository public | free | open source builds trust in the privacy claim, makes desktop update checks work, and is needed for most listings. Owner's decision |
-| G2 | Windows: Microsoft Store | free | individual accounts are free since September 2025 ([Windows blog](https://blogs.windows.com/windowsdeveloper/2025/09/10/free-developer-registration-for-individual-developers-on-microsoft-store/)). A Store install has no SmartScreen warning |
-| G3 | Extension in Edge Add-ons and Firefox Add-ons | free | [Edge registration](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/create-dev-account) costs nothing. Firefox needs a port of the redirect rules |
-| G4 | Extension in the Chrome Web Store | $5 once | the largest audience for "dark mode PDF" |
+| G2 (prepared 2026-10-07: package workflow, listing text and pictures in `docs/store/`; not submitted) | Windows: Microsoft Store | free | individual accounts are free since September 2025 ([Windows blog](https://blogs.windows.com/windowsdeveloper/2025/09/10/free-developer-registration-for-individual-developers-on-microsoft-store/)). A Store install has no SmartScreen warning |
+| G3 (prepared 2026-10-07: Firefox build, listing text for both in `docs/store/`; not submitted) | Extension in Edge Add-ons and Firefox Add-ons | free | [Edge registration](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/create-dev-account) costs nothing. Firefox needs a port of the redirect rules |
+| G4 (prepared 2026-10-07: package and listing text in `docs/store/`; not submitted) | Extension in the Chrome Web Store | $5 once | the largest audience for "dark mode PDF" |
 | G5 (done 2026-10-07; tried with a stand-in queue, not with an installed app) | "Open with" on computers for the installed web app | free | File Handling API, Chrome and Edge on computers only ([Chrome docs](https://developer.chrome.com/docs/capabilities/web-apis/file-handling)). Not possible on iPhone |
 | G6 (done 2026-10-07; tried with test folders, not with a real cloud folder) | Sync between a person's computers through a folder they choose (iCloud Drive, Dropbox, OneDrive) | free | folder access works in Chrome, Edge and the desktop app only ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API)). On iPhone it stays "import a backup". Real sync for phones needs a server and accounts, which costs money and ends "no account" |
-| G7 | Launch: Show HN, AlternativeTo, GitHub topics | free | after B and A are live; a public repository and no sign-up wall are what these audiences reward |
+| G7 (texts written 2026-10-07 in `docs/launch/`; not posted) | Launch: Show HN, AlternativeTo, GitHub topics | free | after B and A are live; a public repository and no sign-up wall are what these audiences reward |
 | G8 | Android (Play Store, $25 once) and iPhone App Store ($99 a year) | paid | owner's decision; not planned |
 
 ### Always: quality

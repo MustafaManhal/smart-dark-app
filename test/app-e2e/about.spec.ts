@@ -57,3 +57,16 @@ test("Settings links to the public page", async ({ page }) => {
   await page.goto("./#/settings");
   await expect(page.getByRole("link", { name: "What Reader343 does" })).toHaveAttribute("href", /about\/$/);
 });
+
+test("the privacy policy is a page of its own, linked from the public page", async ({ page }) => {
+  await page.goto("./about/");
+  await page.locator("footer").getByRole("link", { name: "Privacy" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "When something leaves your device" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("There is no account, no analytics, no advertising and no tracking.");
+  // Every case the app's own security policy allows a connection for is named on the page.
+  for (const host of ["Open Library", "Google Books", "en.wiktionary.org", "Hugging Face", "GitHub"]) await expect(page.locator("main")).toContainText(host);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.goto("./about/ar.html");
+  await expect(page.locator("footer").getByRole("link", { name: "الخصوصية" })).toHaveAttribute("href", "privacy.html");
+});

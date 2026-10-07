@@ -110,17 +110,27 @@ function buildAdjustRows() {
     const { min, max, step } = ADJUST_RANGES[name];
     const row = document.createElement("div");
     row.dataset.adjust = name;
+    // The markup has no values in it; they are set below, one by one (add-on reviewers ask for this).
     row.innerHTML = `
-      <div class="adjust-head"><label for="${key}">${label}</label><span class="adjust-value" aria-hidden="true"></span></div>
+      <div class="adjust-head"><label></label><span class="adjust-value" aria-hidden="true"></span></div>
       <div class="adjust-line">
-        <button class="icon-btn" data-step="-${step}" title="${less}" aria-label="${less}">
+        <button class="icon-btn">
           <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
         </button>
-        <input id="${key}" type="range" min="${min}" max="${max}" step="${step}">
-        <button class="icon-btn" data-step="${step}" title="${more}" aria-label="${more}">
+        <input type="range">
+        <button class="icon-btn">
           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>`;
+    const title = row.querySelector("label");
+    title.htmlFor = key;
+    title.textContent = label;
+    Object.assign(row.querySelector("input"), { id: key, min, max, step });
+    for (const [button, by, name] of [[row.querySelector("button"), -step, less], [row.querySelector("button:last-of-type"), step, more]]) {
+      button.dataset.step = by;
+      button.title = name;
+      button.setAttribute("aria-label", name);
+    }
     const range = row.querySelector("input");
     const save = (value) => setSettings({ [key]: Math.min(max, Math.max(min, value)) });
     // Dragging only moves the number; the pages are drawn again on release.
@@ -289,8 +299,11 @@ async function handleLoadError(error, source) {
   if (source.url && !source.data) {
     const isFile = source.url.startsWith("file:");
     const granted = await hasSiteAccess();
-    if (isFile && isExtension) {
-      text = "Chrome blocks extensions from reading local files until you allow it. "
+    if (isFile && isExtension && location.protocol === "moz-extension:") {
+      text = "Firefox does not let extensions read local files by their address. Open the file with the button below.";
+      actions.push(["Choose the file", () => els.fileInput.click()]);
+    } else if (isFile && isExtension) {
+      text = "The browser blocks extensions from reading local files until you allow it. "
         + "Turn on “Allow access to file URLs” for Reader343, or open the file with the button below.";
       actions.push(["Open extension settings", () =>
         chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })]);

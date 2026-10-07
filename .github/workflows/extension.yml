@@ -1,0 +1,38 @@
+name: Extension
+
+# Checks the browser extension: its unit tests, Mozilla's linter on the Firefox build, and the
+# Firefox build running in a real Firefox. The Chrome build is tested on the developer's machine
+# (npm run e2e), where Chrome with extensions is at hand.
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "scripts/build.mjs", "test/e2e/**", "test/unit/**", ".github/workflows/extension.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node scripts/build.mjs --e2e
+      - name: Mozilla's add-on linter
+        run: npx --yes addons-linter dist-firefox
+      - name: Get Firefox
+        run: npx --yes @puppeteer/browsers install firefox@stable --path "$HOME/.cache/puppeteer"
+      - name: Run the Firefox build in Firefox
+        run: node test/e2e/firefox.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firefox-test-output
+          path: test/output/firefox-*.png
+          if-no-files-found: ignore

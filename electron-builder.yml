@@ -45,6 +45,14 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
+# Microsoft Store package (MSIX). Built on Windows only, by .github/workflows/store-windows.yml, which
+# passes the three values the Store gives after the name is reserved (identityName, publisher,
+# publisherDisplayName). The tiles are in build/appx/ (scripts/make-icons.mjs). The Store signs the package.
+appx:
+  displayName: Reader343
+  backgroundColor: "#12131a"
+  languages: [en-US, ar]
+  showNameOnTiles: false
 linux:
   target: [AppImage]
   category: Office

@@ -1,7 +1,7 @@
-# Chrome Web Store submission
+# Chrome Web Store
 
-Copy these fields into the [Developer Dashboard](https://chrome.google.com/webstore/devconsole).
-Upload `smart-dark-pdf-<version>.zip` (made by `npm run package`).
+Developer Dashboard: https://chrome.google.com/webstore/devconsole (registration costs $5, once).
+Upload `reader343-extension-<version>.zip`, made by `npm run package`.
 
 ## Store listing tab
 
@@ -18,7 +18,7 @@ Read PDFs in dark mode that keeps colors and photos intact. Text and pages go da
 ```
 Dark mode for PDFs that keeps the colors right.
 
-Most PDF dark modes invert the whole page. Black text turns white, but red turns cyan, blue turns orange, and every photo becomes a negative. Smart Dark PDF Reader works differently: it changes only how light or dark each color is and keeps its hue.
+Most PDF dark modes invert the whole page. Black text turns white, but red turns cyan, blue turns orange, and every photo becomes a negative. Reader343 works differently: it changes only how light or dark each color is and keeps its hue.
 
 • White paper becomes a calm dark background, black text becomes soft light text
 • Red stays red, blue links stay blue, chart colors stay recognizable
@@ -49,6 +49,9 @@ Built on Mozilla's open-source PDF.js.
 - Screenshots (1280x800): `screenshot-1-smart-dark.jpg`, `screenshot-2-before-after.jpg`, `screenshot-3-paper.jpg`
 - Small promo tile (440x280): `promo-small-440x280.jpg`
 
+**Official URL / Homepage URL:** https://smart-dark-app.vercel.app/about/
+**Support URL:** https://github.com/MustafaManhal/smart-dark-app/issues
+
 ## Privacy practices tab
 
 **Single purpose:**
@@ -67,7 +70,7 @@ Display PDF documents in a readable dark theme that keeps the document's colors 
 **Data usage:** check none of the data types. The extension does not collect or transmit user data.
 Certify the three disclosures (no selling, no unrelated use, no creditworthiness use).
 
-**Privacy policy URL:** host `docs/PRIVACY.md` publicly (GitHub Pages, a public Gist, or your site) and paste the URL.
+**Privacy policy URL:** https://smart-dark-app.vercel.app/about/privacy.html
 
 ## Notes for the reviewer (optional field)
 

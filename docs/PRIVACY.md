@@ -1,42 +1,80 @@
 # Reader343: Privacy Policy
 
-Last updated: October 2, 2026
+Last updated: October 7, 2026
 
-Reader343 (formerly Smart Dark PDF Reader) shows PDF files in a dark theme. This policy explains what the extension does with your data. The short version: nothing leaves your device.
+Reader343 is a PDF reader: a web app, a desktop app for Windows and Mac, an app for the iPhone home screen,
+and a browser extension for Chrome, Edge and Firefox. It was called Smart Dark PDF Reader before.
 
-## What the extension reads
+There is no account, no analytics, no advertising and no tracking. Your books, notes and reading history
+are kept on your device. The developer receives nothing from the app or the extension.
 
-- **PDF files you open.** When you open a PDF link, the extension downloads that PDF directly from the website, the same way the browser's built-in viewer does, and draws it on your screen. When you open a file from your computer, it reads that file. PDFs are processed only in your browser.
-- **The address of the PDF.** The viewer needs the PDF's web address to load it. The address stays in your browser tab.
+The same text is published at https://smart-dark-app.vercel.app/about/privacy.html
 
-## What the extension stores
+## What is kept on your device
 
-Your display preferences: theme, image handling, contrast, and whether PDFs open automatically. They are saved with Chrome's `storage.sync`, so they follow your Chrome profile if you use Chrome Sync. They contain no personal information and no document content.
+- The PDF files you add, their covers, and where you stopped reading.
+- Your highlights, notes, sticky notes, bookmarks, drawings, filled form fields and signature.
+- Reading history (which pages, for how long), goals and review schedules.
+- Your settings.
+- The password of a protected PDF, so the book opens next time. It is not put in backups or in a sync folder.
 
-## What the extension does not do
+Removing a book removes its marks with it. Clearing the site's data in the browser, or removing the app,
+removes everything.
 
-- It does not send PDFs, their contents, web addresses, or any other data to the developer or to anyone else.
-- It has no analytics, tracking, advertising, or remote code.
-- It does not sell or share data.
-- It does not read web pages other than PDF files.
+## When something leaves your device
 
-## Permissions
+The app works without a connection after the first visit. It connects only in these cases:
 
-- **Access to websites (optional, granted by you):** needed to open PDF links in the viewer and to download the PDF you are viewing. You can withdraw it at any time on the extension's details page in Chrome.
-- **declarativeNetRequestWithHostAccess:** lets the extension send PDF links to its viewer instead of the built-in one. It acts only on PDF responses.
-- **storage:** saves the preferences listed above.
+- **Loading the app.** The web app is served from smart-dark-app.vercel.app. Like any web server, the host
+  (Vercel) sees your internet address and which files were asked for. No book and no note is part of that.
+- **Book details lookup** (off until you turn it on). When you search for a title, the text you type is sent
+  to Open Library and Google Books, and cover pictures come from them.
+- **Word lookup** (off until you agree, the first time you ask for a meaning). The selected word is sent to
+  en.wiktionary.org.
+- **Natural voices for read aloud** (an optional download on computers). The speech model, about 102 MB,
+  comes from the app's own site; if that fails, from Hugging Face, which then sees your internet address as
+  with any download. Speech is made on your device. The text that is read is not sent anywhere.
+- **Text recognition for scanned pages.** The recognition engine and its language files come from the app's
+  own site. Recognition runs on your device. The pages are not sent anywhere.
+- **Summaries, explanations and translations** use the model built into your browser (Chrome and Edge on
+  computers), on your device. The browser may download that model from its maker. Reader343 sends the text
+  to nobody.
+- **Sync through a folder** (off until you choose a folder). The app writes your books, marks and reading
+  places as files into the folder you chose, and reads the files other computers of yours wrote there. If
+  that folder belongs to a service such as iCloud Drive, Dropbox or OneDrive, that service carries the files
+  under its own privacy policy. The app itself makes no connection for this.
+- **Backups, saved PDFs and shared quotes** go where you save or share them.
+- **The desktop app's update check** asks GitHub for the number of the newest release when you press
+  "Check for updates".
 
-## The reader app (web, iPhone, desktop)
+## The browser extension
 
-The app keeps books, notes and reading history on your device only.
+- **PDF files you open.** When you open a PDF link, the extension downloads that PDF from the website, the
+  same way the browser's own viewer does, and draws it on your screen. PDFs are processed only in your browser.
+- **Preferences.** Theme, image handling, contrast, and whether PDFs open automatically are saved with the
+  browser's `storage.sync`, so they follow your browser profile if you use its sync. They hold no personal
+  information and no document content.
+- **Access to websites** is optional and granted by you. It is needed to send PDF links to the viewer and to
+  download the PDF you are viewing. You can withdraw it at any time on the extension's page in the browser.
+- In Chrome and Edge the extension uses `declarativeNetRequestWithHostAccess` to send PDF responses to its
+  viewer. In Firefox it uses `webRequest` for the same purpose: it looks at the content type of a response to
+  tell whether it is a PDF. Nothing else about the pages you visit is read, kept or sent.
+- The extension has no analytics, no remote code, and does not read or change web pages.
 
-- **Book details lookup** is off until you turn it on. When you search, the text you type is sent to Open
-  Library and Google Books.
-- **Natural voices for read aloud** are an optional download on computers. The speech model (about 102 MB)
-  comes from the app's own site. If that fails, it comes from Hugging Face, which then sees your internet
-  address as with any download. The speech is made on your device. The text that is read is not sent
-  anywhere.
+## What is never done
+
+- Your documents, their text, your notes and your reading history are not sent to the developer or sold or
+  shared with anyone.
+- No advertising or analytics code is included.
+
+## Children
+
+The app and the extension collect no personal information from anyone, children included.
+
+## Changes
+
+If this policy changes, the date at the top changes with it, and the new text is published at the address above.
 
 ## Contact
 
-Questions about this policy: [your contact email]
+Questions about this policy: open an issue at https://github.com/MustafaManhal/smart-dark-app/issues
