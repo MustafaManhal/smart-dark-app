@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Smart Dark PDF Reader",
-  "short_name": "Smart Dark PDF",
+  "name": "Reader343: Smart Dark PDF Reader",
+  "short_name": "Reader343",
   "version": "1.0.0",
   "description": "Read PDFs in dark mode that keeps colors and photos intact. Text and pages go dark; no harsh color inversion.",
   "minimum_chrome_version": "128",
@@ -12,7 +12,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Smart Dark PDF",
+    "default_title": "Reader343",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

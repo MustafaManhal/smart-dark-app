@@ -1,7 +1,8 @@
-// Smart Dark Reader desktop app (Electron main process).
+// Reader343 desktop app (Electron main process).
 // Serves the built web app over a private app:// protocol, opens PDFs passed
 // by the OS (double-click, "Open with", dock drop), and adds native menus.
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, shell } from "electron";
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -28,6 +29,13 @@ const CSP = [
   "base-uri 'none'",
   "frame-ancestors 'none'",
 ].join("; ");
+
+// The app was called Smart Dark Reader before October 2026, and Electron names the data
+// folder after the product. A library made under the old name stays where it is.
+const legacyData = join(app.getPath("appData"), "Smart Dark Reader");
+if (app.isPackaged && !app.commandLine.hasSwitch("user-data-dir") && existsSync(legacyData)) {
+  app.setPath("userData", legacyData);
+}
 
 protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -90,7 +98,7 @@ async function createWindow() {
     ...bounds,
     minWidth: 360,
     minHeight: 480,
-    title: "Smart Dark Reader",
+    title: "Reader343",
     backgroundColor: "#111215",
     show: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",

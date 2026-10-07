@@ -51,7 +51,8 @@ test("menu navigation and the update check work", async () => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send("desktop:navigate", "#/settings"));
   await expect(win.getByRole("heading", { name: "Settings" })).toBeVisible();
   await win.getByRole("button", { name: "Check for updates" }).click();
-  await expect(win.getByRole("status")).toHaveText("Update checks are not set up for this build.");
+  // The check asks GitHub for the newest release; without a connection it says so.
+  await expect(win.getByRole("status")).toHaveText(/You have the latest version \(|Version .+ is available|Could not check for updates/, { timeout: 15_000 });
 });
 
 test("links open in the system browser, not inside the app", async () => {

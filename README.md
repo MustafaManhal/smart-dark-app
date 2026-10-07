@@ -1,6 +1,14 @@
-# Smart Dark PDF Reader
+# Reader343
 
-A Chrome extension that shows PDFs in dark mode without inverting their colors.
+A PDF reader with a dark mode that keeps colors: paper turns dark, ink turns light, red stays red and photos
+stay as they are. It runs as a web app (installable on iPhone), a desktop app for macOS and Windows, and a
+Chrome extension. Books, notes and reading history stay on the device.
+
+Live: https://smart-dark-app.vercel.app. The name Reader343 is shared, with its author's agreement, with the
+Android reader at https://github.com/LAITH343/Reader343; the two projects have separate code. Until October
+2026 this project was called Smart Dark Reader.
+
+The sections below describe the extension first, then the app.
 
 Plain inversion turns red into cyan and photos into negatives. This viewer renders each page with
 [PDF.js](https://github.com/mozilla/pdf.js), then recolors pixels in the OKLab color space: it flips
@@ -40,7 +48,7 @@ npm install
 npm run build          # dist/  -> load it at chrome://extensions with "Load unpacked"
 npm test               # unit tests
 npm run e2e            # end-to-end tests in your installed Chrome
-npm run package        # smart-dark-pdf-<version>.zip for the Chrome Web Store
+npm run package        # reader343-extension-<version>.zip for the Chrome Web Store
 npm run assets         # regenerate icons and the sample PDF
 npm run store-assets   # regenerate store screenshots
 ```
@@ -75,7 +83,7 @@ offline. Your books and notes stay on the phone.
 
 ```sh
 npm run desktop        # build the app and start it
-npm run desktop:mac    # release/Smart-Dark-Reader-<version>-mac-arm64.dmg and -x64.dmg
+npm run desktop:mac    # release/Reader343-<version>-mac-arm64.dmg and -x64.dmg
 npm run desktop:win    # Windows zip; the installer is built by .github/workflows/desktop.yml
 npm run desktop:e2e    # Electron end-to-end tests
 ```

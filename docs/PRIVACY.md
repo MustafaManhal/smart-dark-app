@@ -1,8 +1,8 @@
-# Smart Dark PDF Reader: Privacy Policy
+# Reader343: Privacy Policy
 
 Last updated: October 2, 2026
 
-Smart Dark PDF Reader shows PDF files in a dark theme. This policy explains what the extension does with your data. The short version: nothing leaves your device.
+Reader343 (formerly Smart Dark PDF Reader) shows PDF files in a dark theme. This policy explains what the extension does with your data. The short version: nothing leaves your device.
 
 ## What the extension reads
 

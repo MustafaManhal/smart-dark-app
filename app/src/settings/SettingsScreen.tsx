@@ -142,7 +142,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
 
       <section class="card about">
         <h2>{t("About")}</h2>
-        <p>{t("Smart Dark Reader, version {v}", { v: __APP_VERSION__ })}</p>
+        <p>{t("Reader343, version {v}", { v: __APP_VERSION__ })}</p>
         <p class="muted small">{t("MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0).")}</p>
       </section>
 

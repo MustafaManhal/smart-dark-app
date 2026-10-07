@@ -57,9 +57,9 @@ export async function restoreBackup(repos: Repos, zipBytes: Uint8Array): Promise
     files = unzipSync(zipBytes);
     manifest = JSON.parse(strFromU8(files["backup.json"]));
   } catch {
-    throw new Error("This file is not a Smart Dark Reader backup.");
+    throw new Error("This file is not a Reader343 backup.");
   }
-  if (manifest?.format !== FORMAT) throw new Error("This file is not a Smart Dark Reader backup.");
+  if (manifest?.format !== FORMAT) throw new Error("This file is not a Reader343 backup.");
   if (manifest.version > VERSION) throw new Error("This backup was made by a newer version of the app. Update the app first.");
 
   const idMap = new Map<string, string>();

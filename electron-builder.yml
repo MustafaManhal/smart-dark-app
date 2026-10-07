@@ -1,6 +1,6 @@
 appId: com.smartdarkreader.app
-productName: Smart Dark Reader
-artifactName: Smart-Dark-Reader-${version}-${os}-${arch}.${ext}
+productName: Reader343
+artifactName: Reader343-${version}-${os}-${arch}.${ext}
 copyright: Copyright © 2026 Mustafa Manhal
 directories:
   output: release
@@ -31,7 +31,7 @@ mac:
   hardenedRuntime: false
   gatekeeperAssess: false
 dmg:
-  title: Smart Dark Reader
+  title: Reader343
 win:
   target:
     - target: nsis

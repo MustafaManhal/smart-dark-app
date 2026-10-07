@@ -129,7 +129,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
       {installHint && (
         <div class="lib-install" role="note" aria-label={t("Install the app")}>
           <Icon name="share" size={22} />
-          <p>{t("Install Smart Dark on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.")}</p>
+          <p>{t("Install Reader343 on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.")}</p>
           <IconButton label={t("Dismiss")} icon="close" onClick={() => {
             setInstallHint(false);
             try { localStorage.setItem("installHintDismissed", "1"); } catch {}

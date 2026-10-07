@@ -89,7 +89,7 @@ onSettingsChanged((patch) => {
 
 // "Open in built-in viewer": let exactly this URL through once. The viewer
 // navigates right after we answer; the rule is removed a few seconds later so
-// the next visit opens in Smart Dark PDF again.
+// the next visit opens in Reader343 again.
 const BYPASS_RULE_ID = 1;
 let bypassTimer;
 

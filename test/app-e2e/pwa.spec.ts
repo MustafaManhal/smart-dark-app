@@ -5,7 +5,7 @@ test("web app manifest and iPhone icons are in place", async ({ page, request })
   await page.goto("./");
   const href = await page.locator('link[rel="manifest"]').getAttribute("href");
   const manifest = await (await request.get(href!)).json();
-  expect(manifest).toMatchObject({ name: "Smart Dark Reader", short_name: "Smart Dark", display: "standalone", start_url: "./" });
+  expect(manifest).toMatchObject({ name: "Reader343", short_name: "Reader343", display: "standalone", start_url: "./" });
   for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
   expect(manifest.icons.some((i: { purpose: string }) => i.purpose === "maskable")).toBe(true);
   const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");

@@ -44,7 +44,7 @@ if (process.argv.includes("--e2e")) {
 }
 
 if (process.argv.includes("--zip")) {
-  const zipName = `smart-dark-pdf-${manifest.version}.zip`;
+  const zipName = `reader343-extension-${manifest.version}.zip`;
   const zipPath = new URL(zipName, root);
   if (existsSync(zipPath)) rmSync(zipPath);
   execFileSync("zip", ["-qr", "-X", `../${zipName}`, ".", "-x", ".*", "-x", "*/.*"], { cwd: dist, stdio: "inherit" });

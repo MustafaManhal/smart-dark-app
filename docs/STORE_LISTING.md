@@ -5,7 +5,7 @@ Upload `smart-dark-pdf-<version>.zip` (made by `npm run package`).
 
 ## Store listing tab
 
-**Name** (from manifest): Smart Dark PDF Reader
+**Name** (from manifest): Reader343: Smart Dark PDF Reader
 
 **Summary** (from manifest, 132 characters max):
 Read PDFs in dark mode that keeps colors and photos intact. Text and pages go dark; no harsh color inversion.

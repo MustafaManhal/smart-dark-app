@@ -15,8 +15,8 @@ export default defineConfig({
       injectRegister: false,
       registerType: "autoUpdate",
       manifest: {
-        name: "Smart Dark Reader",
-        short_name: "Smart Dark",
+        name: "Reader343",
+        short_name: "Reader343",
         description: "PDF reader with a dark mode that keeps colors and photos.",
         start_url: "./",
         scope: "./",

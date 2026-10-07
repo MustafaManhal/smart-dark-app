@@ -263,7 +263,7 @@ async function closeDocument() {
 function setTitle(title, fileName) {
   els.title.textContent = title;
   els.title.title = fileName ? `${title} — ${fileName}` : title;
-  document.title = `${title} · Smart Dark PDF`;
+  document.title = `${title} · Reader343`;
 }
 
 async function handleLoadError(error, source) {
@@ -291,12 +291,12 @@ async function handleLoadError(error, source) {
     const granted = await hasSiteAccess();
     if (isFile && isExtension) {
       text = "Chrome blocks extensions from reading local files until you allow it. "
-        + "Turn on “Allow access to file URLs” for Smart Dark PDF, or open the file with the button below.";
+        + "Turn on “Allow access to file URLs” for Reader343, or open the file with the button below.";
       actions.push(["Open extension settings", () =>
         chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })]);
       actions.push(["Choose the file", () => els.fileInput.click()]);
     } else if (!granted) {
-      text = "Smart Dark PDF needs your permission to read PDFs from websites. "
+      text = "Reader343 needs your permission to read PDFs from websites. "
         + "It only reads the PDF you open, on this device.";
       actions.push(["Allow access", async () => {
         if (await requestSiteAccess()) openSource(source);

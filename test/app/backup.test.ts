@@ -55,5 +55,5 @@ test("restoring into a library that has the book keeps it and merges new annotat
 
 test("rejects files that are not backups", async () => {
   const target = createRepos(await openDb("backup-bad"));
-  await expect(restoreBackup(target, new Uint8Array([1, 2, 3]))).rejects.toThrow(/not a Smart Dark Reader backup/);
+  await expect(restoreBackup(target, new Uint8Array([1, 2, 3]))).rejects.toThrow(/not a Reader343 backup/);
 });

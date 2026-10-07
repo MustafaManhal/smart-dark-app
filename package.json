@@ -1,5 +1,5 @@
 {
-  "name": "smart-dark-pdf",
+  "name": "reader343",
   "version": "1.0.0",
   "scripts": {
     "test": "node --test test/unit/*.test.mjs",
@@ -43,11 +43,11 @@
     "preact": "^10.29.8"
   },
   "main": "desktop/main.mjs",
-  "description": "Smart Dark Reader: a PDF reader with a dark mode that keeps colors",
+  "description": "Reader343: a PDF reader with a dark mode that keeps colors",
   "author": {
     "name": "Mustafa Manhal"
   },
   "desktop": {
-    "updateRepo": ""
+    "updateRepo": "MustafaManhal/smart-dark-app"
   }
 }

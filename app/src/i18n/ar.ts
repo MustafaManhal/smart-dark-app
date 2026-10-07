@@ -53,7 +53,7 @@ export const AR: Record<string, string> = {
   "{n} highlights and notes": "{n} من التظليلات والملاحظات",
   "{n} already in your library were kept.": "أُبقي على {n} موجودة في مكتبتك.",
   "The backup could not be restored.": "تعذّرت استعادة النسخة الاحتياطية.",
-  "This file is not a Smart Dark Reader backup.": "هذا الملف ليس نسخة احتياطية من Smart Dark Reader.",
+  "This file is not a Reader343 backup.": "هذا الملف ليس نسخة احتياطية من Reader343.",
   "This backup was made by a newer version of the app. Update the app first.": "أُنشئت هذه النسخة بإصدار أحدث من التطبيق. حدّث التطبيق أولًا.",
 
   // Reader
@@ -326,7 +326,7 @@ export const AR: Record<string, string> = {
   "Your data": "بياناتك",
   "Books, notes and reading history are stored only on this device.": "الكتب والملاحظات وسجل القراءة محفوظة على هذا الجهاز فقط.",
   "About": "حول التطبيق",
-  "Smart Dark Reader, version {v}": "Smart Dark Reader، الإصدار {v}",
+  "Reader343, version {v}": "Reader343، الإصدار {v}",
   "MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0).": "رخصة MIT. عرض ملفات PDF بواسطة Mozilla PDF.js (Apache-2.0).",
   "Edit details of {title}": "تعديل تفاصيل {title}",
   "Author": "المؤلف",
@@ -349,8 +349,8 @@ export const AR: Record<string, string> = {
   "Download": "تنزيل",
 
   "Install the app": "تثبيت التطبيق",
-  "Install Smart Dark on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.":
-    "ثبّت Smart Dark على جهاز iPhone: انقر «مشاركة» ثم «إضافة إلى الشاشة الرئيسية». يفتح بملء الشاشة ويعمل دون اتصال.",
+  "Install Reader343 on your iPhone: tap Share, then Add to Home Screen. It opens full screen and works offline.":
+    "ثبّت Reader343 على جهاز iPhone: انقر «مشاركة» ثم «إضافة إلى الشاشة الرئيسية». يفتح بملء الشاشة ويعمل دون اتصال.",
   "Dismiss": "إخفاء",
   "Using {used} MB.": "المساحة المستخدمة {used} ميغابايت.",
   "Stored permanently: the browser will not clear it to save space.": "محفوظة بشكل دائم: لن يحذفها المتصفح لتوفير المساحة.",
@@ -375,7 +375,7 @@ export const DYNAMIC_KEYS = [
   "Morning", "Afternoon", "Evening", "Night",
   "Stops at chapter end", "Stops in {n} min", "Sleep timer ended", "Stopped at the end of the chapter",
   "This book is no longer in your library.", "This PDF could not be opened.",
-  "This file is not a Smart Dark Reader backup.", "This backup was made by a newer version of the app. Update the app first.",
+  "This file is not a Reader343 backup.", "This backup was made by a newer version of the app. Update the app first.",
   "Book details could not be reached. Check your connection.",
   // t(condition ? "a" : "b") calls
   "Copied", "Could not copy", "Undone", "Redone", "Nothing to undo", "Nothing to redo", "American", "British", "female", "male", "Try again", "Download natural voices ({n} MB)",

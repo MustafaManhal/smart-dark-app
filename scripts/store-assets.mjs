@@ -101,7 +101,7 @@ await worker.evaluate(() => chrome.storage.sync.set({ enabled: true, theme: "dar
     .dots{display:flex;gap:6px;margin-top:12px}
     .dots i{width:22px;height:6px;border-radius:3px;display:block}
   </style><div class="wrap"><img src="data:image/png;base64,${icon}">
-  <div><h1>Smart Dark PDF</h1><p>Dark pages, real colors.<br>Photos stay untouched.</p>
+  <div><h1>Reader343</h1><p>Dark pages, real colors.<br>Photos stay untouched.</p>
   <div class="dots"><i style="background:#ff7a6e"></i><i style="background:#7aa7ff"></i><i style="background:#60cd80"></i></div></div></div>`);
   await page.screenshot({ path: `${out}promo-small-440x280.jpg`, type: "jpeg", quality: 95 });
   await page.close();
