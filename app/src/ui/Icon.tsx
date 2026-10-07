@@ -27,6 +27,7 @@ const PATHS = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   notes: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  area: "M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3",
   rotateRight: "M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5",
   rotateLeft: "M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5",
   star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z",

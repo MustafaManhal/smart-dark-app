@@ -172,6 +172,13 @@
 @media (max-width: 400px) { .pop-style span { display: none; } }
 .pop-style[aria-checked="true"] { border-color: var(--border); background: var(--surface-2); font-weight: 600; }
 :is(.pop-style, .mode-style) b { font-weight: 700; padding: 0 3px; border-radius: 3px; }
+.mode-style.is-on { background: var(--accent-soft); color: var(--accent-strong); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.mode-style:disabled { opacity: 0.4; cursor: default; }
+.mode-area { display: inline-grid; place-items: center; }
+/* Drawing an area: the page takes the drag, its words are out of the way. */
+.reader-scroll.is-area .page { cursor: crosshair; touch-action: none; }
+.reader-scroll.is-area .textLayer { pointer-events: none; user-select: none; -webkit-user-select: none; }
+.area-ghost { position: absolute; z-index: 4; border: 1.5px dashed var(--hl); border-radius: 3px; background: color-mix(in srgb, var(--hl) 28%, transparent); pointer-events: none; }
 .mode-style { flex: none; width: 30px; height: 30px; padding: 0; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; }
 .mode-style .as-highlight { background: color-mix(in srgb, var(--hl) 55%, transparent); }
 .mode-style .as-underline { text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: 2px; text-underline-offset: 3px; }

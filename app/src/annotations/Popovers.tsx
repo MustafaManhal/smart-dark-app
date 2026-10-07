@@ -12,12 +12,14 @@ type Anchor = { left: number; top: number; right: number; bottom: number };
 /** Tap a highlight: recolor, copy, or remove it in one tap. */
 const STYLE_LABEL: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
 
-export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, onShare, onRemove, onClose }: {
+export function HighlightPopover({ highlight, anchor, isArea, onColor, onStyle, onCopy, onShare, onRemove, onClose }: {
   highlight: Highlight;
   anchor: Anchor;
   onColor: (c: HighlightColor) => void;
   onStyle: (s: MarkStyle) => void;
   onShare: () => void;
+  /** A marked rectangle has no words: nothing to copy, share or underline. */
+  isArea?: boolean;
   onCopy: () => void;
   onRemove: () => void;
   onClose: () => void;
@@ -43,14 +45,16 @@ export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, 
           ))}
         </div>
         <span class="pop-sep" />
-        <button type="button" class="pop-action" aria-label={t("Copy text")} onClick={onCopy}>
-          <Icon name="copy" size={18} />
-        </button>
+        {!isArea && (
+          <button type="button" class="pop-action" aria-label={t("Copy text")} onClick={onCopy}>
+            <Icon name="copy" size={18} />
+          </button>
+        )}
         <button type="button" class="pop-action is-danger" onClick={onRemove}>
           <Icon name="trash" size={18} /> {t("Remove")}
         </button>
       </div>
-      <div class="pop-styles" role="radiogroup" aria-label={t("Mark style")} style={{ "--hl": COLOR_HEX[highlight.color] }}>
+      {!isArea && <div class="pop-styles" role="radiogroup" aria-label={t("Mark style")} style={{ "--hl": COLOR_HEX[highlight.color] }}>
         {MARK_STYLES.map((s) => (
           <button type="button" role="radio" class="pop-style" aria-label={t(STYLE_LABEL[s])} title={t(STYLE_LABEL[s])}
             aria-checked={s === (highlight.style ?? "highlight")} onClick={() => onStyle(s)}>
@@ -61,7 +65,7 @@ export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, 
         <button type="button" class="pop-action" aria-label={t("Share as a quote")} title={t("Share as a quote")} onClick={onShare}>
           <Icon name="share" size={18} />
         </button>
-      </div>
+      </div>}
     </Popover>
   );
 }

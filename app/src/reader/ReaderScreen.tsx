@@ -118,6 +118,9 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [zoomMenu, setZoomMenu] = useState(false);
   const [progress, setProgress] = useState(0);
   const [highlightMode, setHighlightMode] = useState(false);
+  // With the highlighter on: mark a rectangle of the page instead of words (for scans and figures).
+  const [areaMode, setAreaMode] = useState(false);
+  const areaDrawnAt = useRef(-1000);
   const [penColor, setPenColor] = useState<HighlightColor>("yellow");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -616,6 +619,69 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor, settings.markStyle.value);
   }, [selection, highlightMode]);
 
+  // Area marks: with the highlighter in area mode, a drag on a page draws a rectangle that becomes a mark.
+  useEffect(() => {
+    const el = scroller.current;
+    const r = renderer.current;
+    if (!el || !r || !highlightMode || !areaMode) return;
+    let drag: { pageEl: HTMLElement; x: number; y: number; ghost: HTMLElement } | null = null;
+    const boxOf = (e: PointerEvent) => {
+      const page = drag!.pageEl.getBoundingClientRect();
+      const within = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+      const x1 = within(Math.min(drag!.x, e.clientX), page.left, page.right);
+      const x2 = within(Math.max(drag!.x, e.clientX), page.left, page.right);
+      const y1 = within(Math.min(drag!.y, e.clientY), page.top, page.bottom);
+      const y2 = within(Math.max(drag!.y, e.clientY), page.top, page.bottom);
+      return { page, left: x1 - page.left, top: y1 - page.top, width: x2 - x1, height: y2 - y1 };
+    };
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0 || !e.isPrimary || (e.target as Element).closest(".sticky, .pn-badge, button, a")) return;
+      const pageEl = (e.target as Element).closest<HTMLElement>(".page");
+      if (!pageEl) return;
+      e.preventDefault();
+      const ghost = document.createElement("div");
+      ghost.className = "area-ghost";
+      ghost.style.setProperty("--hl", COLOR_HEX[penColor]);
+      pageEl.append(ghost);
+      drag = { pageEl, x: e.clientX, y: e.clientY, ghost };
+      el.setPointerCapture(e.pointerId);
+    };
+    const move = (e: PointerEvent) => {
+      if (!drag) return;
+      const b = boxOf(e);
+      Object.assign(drag.ghost.style, { left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` });
+    };
+    const up = async (e: PointerEvent) => {
+      if (!drag) return;
+      const b = boxOf(e);
+      const pageNumber = Number(drag.pageEl.dataset.page);
+      drag.ghost.remove();
+      drag = null;
+      if (b.width < 8 || b.height < 8) return; // a tap, not a drag
+      areaDrawnAt.current = e.timeStamp;
+      const round = (v: number) => Math.round(v * 1e5) / 1e5;
+      const shown = { x: round(b.left / b.page.width), y: round(b.top / b.page.height), w: round(b.width / b.page.width), h: round(b.height / b.page.height) };
+      // An area has no words; it is kept like every mark, on the page as the PDF has it.
+      const saved = await annotations.saveHighlight({ bookId, page: pageNumber, rects: [fromViewRect(shown, r.turnValue)], text: "", color: penColor });
+      record({ undo: () => annotations.removeHighlight(saved), redo: () => annotations.saveHighlight(saved) });
+    };
+    const cancel = () => {
+      drag?.ghost.remove();
+      drag = null;
+    };
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", cancel);
+    return () => {
+      cancel();
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", cancel);
+    };
+  }, [highlightMode, areaMode, penColor, ready]);
+
   // The bar at a selection always highlights. The highlighter tool draws in its own style (see the tool's hint).
   async function highlightSelection(color: HighlightColor, style: MarkStyle = "highlight") {
     if (!selection) return;
@@ -719,6 +785,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
     const target = e.target as Element;
+    // The click that ends drawing an area (it follows the release at once) is not a tap on the new mark.
+    if (e.timeStamp - areaDrawnAt.current < 80) return;
     const link = target.closest(".pdf-link.is-inside");
     if (link) {
       // The tap that ends a long press only leaves the preview on screen.
@@ -906,8 +974,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {highlightMode && (
         <div class="mode-hint" role="status">
-          <span>{t(MODE_TEXT[markStyle])}</span>
-          <button type="button" class="mode-style" aria-label={t("Mark style: {style}", { style: t(MODE_STYLE[markStyle]) })}
+          <span>{t(areaMode ? "Drag over a part of the page" : MODE_TEXT[markStyle])}</span>
+          <button type="button" class={`mode-style mode-area ${areaMode ? "is-on" : ""}`} aria-pressed={areaMode}
+            aria-label={t("Mark an area")} title={t("Mark an area")} onClick={() => setAreaMode((on) => !on)}>
+            <Icon name="area" size={16} />
+          </button>
+          <button type="button" class="mode-style" disabled={areaMode} aria-label={t("Mark style: {style}", { style: t(MODE_STYLE[markStyle]) })}
             title={t("Mark style: {style}", { style: t(MODE_STYLE[markStyle]) })} style={{ "--hl": COLOR_HEX[penColor] }}
             onClick={() => saveSetting("markStyle", MARK_STYLES[(MARK_STYLES.indexOf(markStyle) + 1) % MARK_STYLES.length])}>
             <b class={`as-${markStyle}`} aria-hidden="true">A</b>
@@ -978,7 +1050,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {error
         ? <p class="reader-error" role="alert">{t(error)}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""}`}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""} ${highlightMode && areaMode ? "is-area" : ""}`}
             ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} {...linkPointer} />}
 
       {preview && renderer.current && (
@@ -1015,6 +1087,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
             onStyle={(s) => restyleHighlight(h, s)}
             onShare={() => { setQuote({ text: h.text, source: { title: book?.title ?? "", author: book?.author ?? "", page: h.page } }); setPopover(null); }}
             onCopy={() => { copy(h.text); setPopover(null); }}
+            isArea={!h.text}
             onRemove={() => { removeHighlight(h); setPopover(null); }} />
         );
       })()}

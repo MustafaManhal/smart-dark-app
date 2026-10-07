@@ -10,7 +10,10 @@ export function notesToMarkdown(title: string, data: BookAnnotations): string {
     if (!entries.length) return;
     lines.push(`## ${heading}`, "", ...entries, "");
   };
-  section(t("Highlights"), noteItems(data, all).map((e) => `- ${t("p. {n}", { n: e.page })}: “${(e.item as { text: string }).text}”`));
+  section(t("Highlights"), noteItems(data, all).map((e) => {
+    const text = (e.item as { text: string }).text;
+    return `- ${t("p. {n}", { n: e.page })}: ${text ? `“${text}”` : t("Marked area")}`; // an area mark has no words
+  }));
   section(t("Notes"), noteItems(data, { ...all, kind: "notes" }).flatMap((e) => {
     const n = e.item as { text: string; body: string; title?: string };
     const heading = t("Page {page}", { page: e.page }) + (n.title ? `: ${n.title}` : "");

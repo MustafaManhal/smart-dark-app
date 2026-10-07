@@ -96,3 +96,79 @@ test("the highlighter tool draws in the style chosen for it; the bar at a select
   await page.locator(".mode-hint").getByRole("button", { name: "Mark style: Strikethrough" }).click();
   await expect(page.locator(".mode-hint")).toContainText("Select text to highlight");
 });
+
+test("the highlighter can mark an area of the page, for scans and figures", async ({ page, isMobile }) => {
+  await openSample(page);
+  await page.getByRole("button", { name: "Highlight text" }).click();
+  const hint = page.locator(".mode-hint");
+  await hint.getByRole("button", { name: "Mark an area" }).click();
+  await expect(hint).toContainText("Drag over a part of the page");
+  await expect(hint).toBeInViewport({ ratio: 1 });
+
+  // Drag over the photo, which has no words to select.
+  const paper = (await page.locator('.page[data-page="1"]').boundingBox())!;
+  // (a part of the page that is on screen on a phone and on a wide window alike)
+  const from = { x: paper.x + paper.width * 0.58, y: 420 };
+  const to = { x: paper.x + paper.width * 0.9, y: 590 };
+  if (isMobile) {
+    const fire = (type: string, at: { x: number; y: number }) => page.locator('.page[data-page="1"] canvas').dispatchEvent(type, {
+      clientX: at.x, clientY: at.y, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, bubbles: true,
+    });
+    await fire("pointerdown", from);
+    await fire("pointermove", to);
+    await fire("pointerup", to);
+  } else {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move((from.x + to.x) / 2, (from.y + to.y) / 2);
+    await expect(page.locator(".area-ghost")).toBeVisible(); // the rectangle shows while it is drawn
+    await page.mouse.move(to.x, to.y);
+    await page.mouse.up();
+  }
+  await expect(page.locator(".area-ghost")).toHaveCount(0);
+  const area = page.locator('.page[data-page="1"] .hl').first();
+  await expect(area).toBeVisible();
+  const box = (await area.boundingBox())!;
+  expect(Math.abs(box.x - from.x)).toBeLessThan(4);
+  expect(Math.abs(box.y - from.y)).toBeLessThan(4);
+  expect(Math.abs(box.width - (to.x - from.x))).toBeLessThan(6);
+  expect(Math.abs(box.height - (to.y - from.y))).toBeLessThan(6);
+  await expect(page.getByRole("dialog", { name: "Highlight" })).toHaveCount(0); // drawing did not open its menu
+  await page.screenshot({ path: `test/output/mark-area-${test.info().project.name}.png` });
+  await hint.getByRole("button", { name: "Done" }).click();
+
+  // Its menu has colors and Remove, and nothing that needs words.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const menu = page.getByRole("dialog", { name: "Highlight" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Copy text" })).toHaveCount(0);
+  await expect(menu.getByRole("radiogroup", { name: "Mark style" })).toHaveCount(0);
+  await menu.getByRole("radio", { name: "Blue" }).click();
+  await page.locator(".reader-title").click();
+
+  // The notes panel lists it, and it stays after a reload.
+  await page.getByRole("button", { name: "Notes and highlights" }).click();
+  await expect(page.getByRole("complementary", { name: "Notes and highlights" }).getByRole("list", { name: "Highlights" })).toContainText("Marked area");
+  await page.reload();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
+});
+
+test("a tap in area mode draws nothing, and Undo takes an area back", async ({ page, isMobile }) => {
+  test.skip(isMobile, "mouse");
+  await openSample(page);
+  await page.getByRole("button", { name: "Highlight text" }).click();
+  await page.locator(".mode-hint").getByRole("button", { name: "Mark an area" }).click();
+  const paper = (await page.locator('.page[data-page="1"]').boundingBox())!;
+  await page.mouse.click(paper.x + paper.width * 0.5, paper.y + 300);
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(0);
+  await page.mouse.move(paper.x + paper.width * 0.3, paper.y + 300);
+  await page.mouse.down();
+  await page.mouse.move(paper.x + paper.width * 0.6, paper.y + 420);
+  await page.mouse.up();
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(0);
+  // Words are not selected by the drag.
+  expect(await page.evaluate(() => getSelection()!.toString())).toBe("");
+});

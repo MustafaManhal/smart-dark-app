@@ -75,7 +75,7 @@ export function NotesPanel({ title, data, onJump, onCopy, onRemove }: {
               <button type="button" class={`note-card is-${entry.type}`} onClick={() => onJump(entry)}
                 style={"color" in entry.item ? { "--c": COLOR_HEX[entry.item.color] } : undefined}>
                 <span class="note-meta">{t("Page {page}", { page: entry.page })}</span>
-                {entry.type === "highlight" && <blockquote dir="auto">{entry.item.text}</blockquote>}
+                {entry.type === "highlight" && <blockquote dir="auto">{entry.item.text || t("Marked area")}</blockquote>}
                 {entry.type === "note" && (
                   <>
                     {entry.item.title && <strong class="note-title" dir="auto">{entry.item.title}</strong>}
