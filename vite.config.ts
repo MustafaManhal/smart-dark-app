@@ -65,7 +65,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: "index.html",
         // The public page and the license texts are plain files, not screens of the app.
-        navigateFallbackDenylist: [/\/about\//, /\/licenses\//],
+        navigateFallbackDenylist: [/\/about\//, /\/licenses\//, /\/\.well-known\//],
         cleanupOutdatedCaches: true,
         // Take control right away, so the first visit is already available offline.
         clientsClaim: true,

@@ -14,3 +14,5 @@ release/
 app/public/tts/
 app/public/licenses/
 app/public/ocr/
+android/upload.keystore
+*.keystore

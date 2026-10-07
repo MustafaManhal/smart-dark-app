@@ -1,0 +1,61 @@
+name: Google Play package
+
+# Builds the Android package (a Trusted Web Activity around the web app) with Bubblewrap.
+# Started by hand. With the secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD and
+# ANDROID_KEY_PASSWORD set, it signs with the owner's upload key and the result can go to Google Play.
+# Without them it signs with a key made for this one run: good for trying the app on a phone, not for
+# the Play Store. See docs/store/google-play.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    env:
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'reader343-test' }}
+      BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'reader343-test' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install Bubblewrap and point it at the runner's JDK and Android SDK
+        run: |
+          npm install --global @bubblewrap/cli
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+          cat "$HOME/.bubblewrap/config.json"
+      - name: Signing key
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > upload.keystore
+            echo "Signing with the owner's upload key."
+          else
+            keytool -genkeypair -keystore upload.keystore -alias reader343 -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" -keypass "$BUBBLEWRAP_KEY_PASSWORD" \
+              -dname "CN=Reader343 test build, O=Reader343, C=US"
+            echo "::warning::Signed with a key made for this run. This package is for trying on a phone, not for Google Play."
+          fi
+          keytool -list -v -keystore upload.keystore -alias reader343 -storepass "$BUBBLEWRAP_KEYSTORE_PASSWORD" | grep "SHA256:"
+      - name: Write the Android project from twa-manifest.json
+        run: yes "" | bubblewrap update --skipVersionUpgrade --manifest=./twa-manifest.json
+      - name: Build
+        run: yes "" | bubblewrap build --skipPwaValidation --manifest=./twa-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reader343-google-play
+          path: |
+            android/app-release-bundle.aab
+            android/app-release-signed.apk
+          if-no-files-found: error
