@@ -1,28 +1,38 @@
 :root {
   color-scheme: light;
-  /* Surfaces, from the screen itself up to things that float. Depth comes from these steps and from
-     hairlines, not from shadows (docs/brand.md). */
-  --bg: #f3f1ec;
-  --surface: #fbfaf7;
-  --surface-2: #ece9e2;
-  --surface-3: #e0dcd3;
+  /* "Open desk" (docs/plans/2026-10-07-open-desk-redesign.md): white cards on a cool ground, with a real
+     shadow under what floats. Surfaces go from the screen itself up to things that float. */
+  --bg: #f3f4f8;
+  --surface: #ffffff;
+  --surface-2: #eceef4;
+  --surface-3: #dfe2eb;
   --raised: #ffffff;
-  --text: #1b1a17;
-  --muted: #68655e;
-  --faint: #8d897f;
-  --border: #e2ded5;
-  --border-strong: #cfcabf;
-  /* The one action color. -strong is for words on the soft tint. */
-  --accent: #4353d8;
-  --accent-strong: #3442b8;
+  --text: #14151a;
+  --muted: #595d6b;
+  --faint: #6f7382;
+  --border: #e2e4ec;
+  --border-strong: #cbcfda;
+  /* The action color, and the second color of the brand's gradient. -strong is for words on the soft tint. */
+  --accent: #4f46e5;
+  --accent-2: #7c3aed;
+  --accent-strong: #4038c7;
   --accent-text: #ffffff;
-  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --accent-soft: color-mix(in srgb, var(--accent) 11%, var(--surface));
+  --brand: linear-gradient(135deg, var(--accent), var(--accent-2));
   --danger: #c2372f;
-  --shadow-sm: 0 1px 2px rgb(30 25 15 / 0.08);
-  --shadow: 0 1px 2px rgb(30 25 15 / 0.05), 0 12px 32px rgb(30 25 15 / 0.1);
-  --radius: 16px;
-  --radius-sm: 10px;
-  --radius-xs: 6px;
+  /* A color for each family of features, so the eye learns where things are. */
+  --c-mark: #d99a00;
+  --c-draw: #e5534b;
+  --c-listen: #159a6c;
+  --c-find: #2380dd;
+  --c-files: #7c3aed;
+  --c-learn: #d6478f;
+  --shadow-sm: 0 1px 2px rgb(20 22 40 / 0.07), 0 1px 1px rgb(20 22 40 / 0.04);
+  --shadow: 0 1px 2px rgb(20 22 40 / 0.06), 0 10px 30px rgb(20 22 40 / 0.1);
+  --shadow-lg: 0 2px 6px rgb(20 22 40 / 0.08), 0 24px 60px rgb(20 22 40 / 0.16);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-xs: 7px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   /* Motion: fast for color and opacity, slow (with --ease) for things that move. See docs/brand.md. */
   --fast: 0.15s;
@@ -32,7 +42,7 @@
   --text-sm: 13px;
   --text-md: 15px;
   --text-lg: 18px;
-  --text-xl: clamp(26px, 4vw, 34px);
+  --text-xl: clamp(28px, 4vw, 38px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Inter comes with the app (main.tsx); it has no Arabic letters, so Arabic falls to the system's font. */
@@ -41,23 +51,31 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e0f11;
-  --surface: #16171a;
-  --surface-2: #1f2024;
-  --surface-3: #2a2b31;
-  --raised: #1c1d21;
-  --text: #ececef;
-  --muted: #9c9da6;
-  --faint: #73747d;
-  --border: #26272c;
-  --border-strong: #37383f;
-  --accent: #9aa5ff;
-  --accent-strong: #b6bdff;
-  --accent-text: #0b1026;
-  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --bg: #0b0c11;
+  --surface: #14161d;
+  --surface-2: #1d2029;
+  --surface-3: #2a2e3a;
+  --raised: #191b23;
+  --text: #eef0f6;
+  --muted: #a1a6b6;
+  --faint: #7f8496;
+  --border: #242836;
+  --border-strong: #363b4c;
+  --accent: #a5abff;
+  --accent-2: #c9a8ff;
+  --accent-strong: #bfc3ff;
+  --accent-text: #0b0d26;
+  --accent-soft: color-mix(in srgb, var(--accent) 17%, var(--surface));
   --danger: #ff8a80;
+  --c-mark: #f5c043;
+  --c-draw: #ff8078;
+  --c-listen: #4fd6a5;
+  --c-find: #6cb4ff;
+  --c-files: #b79bff;
+  --c-learn: #ff8cc4;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 36px rgb(0 0 0 / 0.4);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 36px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.5), 0 28px 70px rgb(0 0 0 / 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -98,8 +116,9 @@ button, input, select { font: inherit; color: inherit; }
 .btn:hover:not(:disabled) { background: var(--surface-2); }
 .btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:disabled { opacity: 0.55; cursor: default; }
-.btn-primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
-.btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
+.btn-primary { background: var(--brand); color: var(--accent-text); border-color: transparent; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent); }
+.btn-primary:hover:not(:disabled) { background: var(--brand); filter: brightness(1.07); }
+.btn-primary:disabled { box-shadow: none; }
 .btn-danger { background: var(--danger); color: #fff; border-color: transparent; }
 :root[data-theme="dark"] .btn-danger { color: #2a0d0a; }
 .btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, var(--text)); }
@@ -236,3 +255,6 @@ input[type="range"] { accent-color: var(--accent); }
 :root[data-density="compact"] .seg { margin: 10px 0; }
 :root[data-density="compact"] .toc button { padding-block: 8px; }
 @media (max-width: 480px) { :root[data-density="compact"] .grid:not(.is-list) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 12px; } }
+
+/* An icon button that also carries a word (ui/Button.tsx). */
+.icon-btn.has-text { width: auto; min-width: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }

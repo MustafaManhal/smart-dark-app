@@ -108,8 +108,10 @@ test("the highlighter can mark an area of the page, for scans and figures", asyn
   // Drag over the photo, which has no words to select.
   const paper = (await page.locator('.page[data-page="1"]').boundingBox())!;
   // (a part of the page that is on screen on a phone and on a wide window alike)
-  const from = { x: paper.x + paper.width * 0.58, y: 420 };
-  const to = { x: paper.x + paper.width * 0.9, y: 590 };
+  // The same part of the page as before the toolbar of a wide window got its second row: the page starts lower there.
+  const lower = Math.max(0, paper.y - 107);
+  const from = { x: paper.x + paper.width * 0.58, y: 420 + lower };
+  const to = { x: paper.x + paper.width * 0.9, y: 590 + lower };
   if (isMobile) {
     const fire = (type: string, at: { x: number; y: number }) => page.locator('.page[data-page="1"] canvas').dispatchEvent(type, {
       clientX: at.x, clientY: at.y, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, bubbles: true,

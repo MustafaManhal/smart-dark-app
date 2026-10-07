@@ -13,8 +13,8 @@ async function openScan(page: Page) {
 }
 
 async function recognize(page: Page) {
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Recognize text/ }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Recognize text/ }).click();
   const sheet = page.getByRole("dialog", { name: "Recognize text" });
   await expect(sheet.getByRole("radio", { name: "English", exact: true })).toBeChecked();
   await expect(sheet).toBeInViewport({ ratio: 1 });
@@ -71,8 +71,8 @@ test("a scanned book gets words: they can be searched, selected and are kept", a
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.locator('.page[data-page="1"] .textLayer span', { hasText: "Lighthouse" }).first()).toBeVisible();
   // A second run has nothing left to do.
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Recognize text/ }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Recognize text/ }).click();
   await page.getByRole("dialog", { name: "Recognize text" }).getByRole("button", { name: "Start" }).click();
   await expect(page.getByRole("dialog", { name: "Recognize text" }).getByRole("status")).toHaveText("No new scanned pages with words were found.", { timeout: 60_000 });
   expect(errors).toEqual([]);

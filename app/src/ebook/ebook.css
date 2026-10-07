@@ -46,3 +46,17 @@
   .ebook-title { flex-basis: calc(100% - 48px); }
   .ebook-tools { flex-basis: 100%; justify-content: space-between; }
 }
+
+/* "Open desk": the tools carry their names, under the icon, in the colors of their families. */
+.ebook-top { flex-wrap: wrap; }
+.ebook-tools { gap: 2px; }
+.ebook-tools .icon-btn.has-text { flex-direction: column; justify-content: center; gap: 3px; min-width: 62px; height: 52px; padding: 0 6px; border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.ebook-tools .icon-btn.has-text:hover { color: var(--text); }
+.ebook-tools .icon-btn.has-text.is-on { color: var(--accent-strong); }
+@media (max-width: 720px) {
+  .ebook-title { flex-basis: calc(100% - 48px); }
+  .ebook-tools { flex-basis: 100%; justify-content: space-between; }
+  .ebook-tools .icon-btn.has-text { flex: 1 1 0; min-width: 0; padding: 0 2px; }
+  .ebook-tools .btn-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 400px) { .ebook-tools .icon-btn.has-text { font-size: 10px; letter-spacing: -0.01em; } }

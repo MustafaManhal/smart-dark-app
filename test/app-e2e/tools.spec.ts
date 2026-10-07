@@ -127,7 +127,7 @@ test("from a book: chosen pages are taken out into a new book of the library", a
   await (await chooser).setFiles("test/fixtures/links.pdf");
   await page.getByRole("list", { name: "Books" }).getByText("Links sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
-  await page.getByRole("button", { name: "Book menu" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
   await page.getByRole("button", { name: /^Edit pages/ }).click();
 
   await expect(page.getByRole("heading", { name: "PDF tools" })).toBeVisible();

@@ -1179,24 +1179,34 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const offModes = () => { setHighlightMode(false); setPlacing(false); setErasing(false); setDrawMode(false); };
   const tools = (
     <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
-      <IconButton data-tool="highlight" label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
+      <IconButton data-tool="highlight" text={t("Highlight")} label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
         aria-pressed={highlightMode} disabled={!ready} onClick={() => { const on = !highlightMode; offModes(); setHighlightMode(on); }} />
-      <IconButton data-tool="erase" label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
+      <IconButton data-tool="erase" text={t("Erase")} label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
         aria-pressed={erasing} disabled={!ready} onClick={() => { const on = !erasing; offModes(); setErasing(on); }} />
-      <IconButton data-tool="sticky" label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
+      <IconButton data-tool="sticky" text={t("Sticky note")} label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
         aria-pressed={placing} disabled={!ready} onClick={() => { const on = !placing; offModes(); setPlacing(on); }} />
-      <IconButton data-tool="draw" label={t("Draw")} icon="draw" class={drawMode ? "is-on" : ""}
+      <IconButton data-tool="draw" text={t("Draw")} label={t("Draw")} icon="draw" class={drawMode ? "is-on" : ""}
         aria-pressed={drawMode} disabled={!ready} onClick={() => { const on = !drawMode; offModes(); setDrawMode(on); }} />
-      <IconButton data-tool="bookmark" label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
+      <IconButton data-tool="bookmark" text={t("Bookmark")} label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
         class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
         onClick={() => toggleBookmark(page)} />
-      <IconButton data-tool="read" label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
+      <IconButton data-tool="read" text={t("Read aloud")} label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
         disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
-      <IconButton data-tool="notes" label={t("Notes and highlights")} icon="notes" class={panel === "notes" ? "is-on fill-on" : ""} aria-pressed={panel === "notes"}
+      <IconButton data-tool="autoscroll" text={t("Auto-scroll")} label={t("Auto-scroll")} icon="autoScroll" class={auto.open ? "is-on" : ""}
+        aria-pressed={auto.open} disabled={!ready} onClick={() => (auto.open ? auto.stop() : startAuto())} />
+      <IconButton data-tool="notes" text={t("Notes")} label={t("Notes and highlights")} icon="notes" class={panel === "notes" ? "is-on fill-on" : ""} aria-pressed={panel === "notes"}
         onClick={() => togglePanel("notes")} />
-      <IconButton data-tool="contents" label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
+      <IconButton data-tool="contents" text={t("Contents")} label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
         onClick={() => togglePanel("contents")} disabled={!outline.length} />
-      <IconButton data-tool="appearance" label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
+      <IconButton data-tool="appearance" text={t("Appearance")} label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
+      <IconButton data-tool="crop" text={t("Crop")} label={t("Crop margins")} icon="area" class={crop?.on ? "is-on" : ""}
+        aria-pressed={!!crop?.on} disabled={!ready} onClick={() => toggleCrop(!crop?.on)} />
+      <IconButton data-tool="rotate" text={t("Rotate")} label={t("Rotate right")} icon="rotateRight" disabled={!ready} onClick={() => rotate(90)} />
+      <IconButton data-tool="ocr" text={t("Scan text")} label={t("Recognize the text of scanned pages")} icon="scan" disabled={!ready}
+        onClick={() => { setMarked(null); setSheet("ocr"); }} />
+      <IconButton data-tool="print" text={t("Print")} label={t("Print the book")} icon="print" disabled={!ready} onClick={() => { setSheet("menu"); print(); }} />
+      <IconButton data-tool="save" text={t("Save")} label={t("Save a copy of the file")} icon="download" disabled={!ready} onClick={saveCopy} />
+      <IconButton data-tool="pages" text={t("Pages")} label={t("Edit the pages")} icon="pages" disabled={!ready} onClick={() => navigate({ name: "tools", bookId })} />
     </div>
   );
 
@@ -1208,9 +1218,9 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           <strong>{book?.title ?? ""}</strong>
           {chapter && <span>{chapter.item.title}</span>}
         </div>
-        <IconButton label={t("Search in book")} icon="search" class={`top-search ${search.open ? "is-on" : ""}`}
+        <IconButton label={t("Search in book")} text={t("Search")} icon="search" class={`top-search ${search.open ? "is-on" : ""}`}
           aria-pressed={search.open} disabled={!ready} onClick={() => (search.open ? search.close() : search.show())} />
-        <IconButton label={t("Book menu")} icon="more" class="top-menu" disabled={!ready} onClick={() => setSheet("menu")} />
+        <IconButton label={t("All tools")} text={t("All tools")} icon="grid" class="top-menu" disabled={!ready} onClick={() => setSheet("menu")} />
         {!narrow && tools}
         <div class={`book-progress ${scrub ? "is-scrubbing" : ""}`} role="slider" tabIndex={ready ? 0 : -1} aria-label={t("Book progress")}
           aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}
@@ -1461,7 +1471,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         )}
       </Sheet>
 
-      <Sheet open={sheet === "menu"} title={t("Book menu")} onClose={closeMenu}>
+      <Sheet open={sheet === "menu"} title={t("All tools")} onClose={closeMenu}>
         {printing ? (
           <div class="print-progress" role="status">
             <p>{t("Preparing page {n} of {total} for printing…", { n: printing.done, total: printing.total })}</p>
@@ -1481,6 +1491,24 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
               <button type="button" onClick={startAuto}>
                 <Icon name="autoScroll" />
                 <span><strong>{t("Auto-scroll")}</strong><small>{t("The pages move by themselves, at the speed you set.")}</small></span>
+              </button>
+            </li>
+            <li>
+              <button type="button" aria-pressed={!!crop?.on} onClick={() => { setSheet(null); toggleCrop(!crop?.on); }}>
+                <Icon name="area" />
+                <span><strong>{t(crop?.on ? "Show the margins again" : "Crop the margins")}</strong><small>{t("Cuts the empty edges of the pages, so the text is larger.")}</small></span>
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={() => rotate(90)}>
+                <Icon name="rotateRight" />
+                <span><strong>{t("Turn the pages")}</strong><small>{t("A quarter turn to the right, for a book that lies on its side.")}</small></span>
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={() => setSheet("appearance")}>
+                <Icon name="palette" />
+                <span><strong>{t("Page style and colors")}</strong><small>{t("Dark, sepia or original pages, and brightness and contrast.")}</small></span>
               </button>
             </li>
             <li>

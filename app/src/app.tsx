@@ -2,6 +2,7 @@ import { effect } from "@preact/signals";
 import { useEffect, useState } from "preact/hooks";
 import { route, type Route } from "./router";
 import { EbookScreen } from "./ebook/EbookScreen";
+import { Shell } from "./ui/Shell";
 import { settings } from "./settings";
 import { dir, lang } from "./i18n/i18n";
 import { SettingsScreen } from "./settings/SettingsScreen";
@@ -52,10 +53,12 @@ export function App({ repos }: { repos: Repos }) {
   }
   const r = route.value;
   if (r.name === "reader") return <BookGate key={`${r.bookId}-${r.page ?? ""}-${r.find ?? ""}`} repos={repos} route={r} />;
-  if (r.name === "stats") return <StatsScreen repos={repos} />;
-  if (r.name === "settings") return <SettingsScreen repos={repos} />;
-  if (r.name === "notebook") return <NotebookScreen repos={repos} />;
-  if (r.name === "review") return <ReviewScreen repos={repos} />;
-  if (r.name === "tools") return <ToolsScreen key={r.bookId ?? ""} repos={repos} bookId={r.bookId} />;
-  return <LibraryScreen repos={repos} />;
+  // Every screen but the readers sits in the shell, which keeps the places of the app on screen.
+  const screen = r.name === "stats" ? <StatsScreen repos={repos} />
+    : r.name === "settings" ? <SettingsScreen repos={repos} />
+    : r.name === "notebook" ? <NotebookScreen repos={repos} />
+    : r.name === "review" ? <ReviewScreen repos={repos} />
+    : r.name === "tools" ? <ToolsScreen key={r.bookId ?? ""} repos={repos} bookId={r.bookId} />
+    : <LibraryScreen repos={repos} />;
+  return <Shell repos={repos} current={r.name}>{screen}</Shell>;
 }

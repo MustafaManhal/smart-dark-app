@@ -5,8 +5,8 @@ const scrollTop = (page: Page) => page.locator(".reader-scroll").evaluate((el) =
 const palette = (page: Page) => page.getByRole("dialog", { name: "Commands" });
 
 async function openMenu(page: Page) {
-  await page.getByRole("button", { name: "Book menu" }).click();
-  return page.getByRole("dialog", { name: "Book menu" });
+  await page.getByRole("button", { name: "All tools" }).click();
+  return page.getByRole("dialog", { name: "All tools" });
 }
 
 test("the command list runs actions, chapters and page numbers from the keyboard", async ({ page, isMobile }) => {

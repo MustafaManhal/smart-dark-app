@@ -3,9 +3,11 @@ import { t } from "../i18n/i18n";
 import { isEbook, type Book, type Progress, type Repos } from "../db/repos";
 import { incoming } from "../platform/incoming";
 import { autoSync, syncNow, syncStatus } from "../sync/sync";
+import { restored } from "../ui/Shell";
+import { useMedia } from "../ui/useMedia";
 import { navigate } from "../router";
 import { Button, IconButton } from "../ui/Button";
-import { Icon } from "../ui/Icon";
+import { Icon, type IconName } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
 import { BackupSheet } from "../backup/BackupSheet";
 import { BookDetailsSheet } from "./BookDetailsSheet";
@@ -24,6 +26,17 @@ import { notebookItems } from "../notebook/items";
 import { buildQueue } from "../review/schedule";
 import "../review/review.css";
 import "./library.css";
+
+/** What the app can do besides reading, as cards on the home screen: where it leads, icon, color family, name, one line. */
+const TILES: [string, IconName, string, string, string][] = [
+  ["#/tools", "pages", "files", "Join PDFs", "Several files become one."],
+  ["#/tools", "rows", "files", "Split and reorder pages", "Take pages out, turn them, change their order."],
+  ["#/tools", "upload", "files", "Pictures to PDF", "Photos and scans become one PDF."],
+  ["#/notes", "highlighter", "mark", "All your marks", "Every highlight and note of every book."],
+  ["#/review", "sparkle", "learn", "Daily review", "Your highlights come back before you forget them."],
+  ["#/stats", "chart", "find", "Your reading", "Time, pages, your streak and your goal."],
+  ["#/settings", "backup", "listen", "Sync and backups", "Between your computers, through a folder you choose."],
+];
 
 const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"], ["favorites", "Favorites"]];
 const SORTS: [SortKey, string][] = [["recent", "Recent"], ["title", "Title"], ["progress", "Progress"]];
@@ -123,6 +136,13 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     reload();
   }
 
+  const wide = useMedia("(min-width: 900px)");
+  // A backup restored from the shell's own sheet: the books are read again.
+  const restoredCount = restored.value;
+  useEffect(() => {
+    if (restoredCount) reload();
+  }, [restoredCount]);
+
   // Sync with the chosen folder when the library opens; what a round brought is shown when it ends.
   const sync = syncStatus.value;
   useEffect(() => autoSync(repos), []);
@@ -211,11 +231,8 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
           <Brand />
           <h1>{t("Your library")}</h1>
         </div>
-        <IconButton label={t("Notebook")} icon="notes" onClick={() => navigate({ name: "notebook" })} />
-        <IconButton label={t("PDF tools")} icon="pages" onClick={() => navigate({ name: "tools" })} />
-        <IconButton label={t("Reading stats")} icon="chart" onClick={() => navigate({ name: "stats" })} />
-        <IconButton label={t("Settings")} icon="settings" onClick={() => navigate({ name: "settings" })} />
-        <IconButton label={t("Back up and restore")} icon="backup" class="lib-backup" onClick={() => setBackupOpen(true)} />
+        {/* The places of the app are in the shell around this screen. A phone's tab bar has no room for backups. */}
+        {!wide && <IconButton label={t("Back up and restore")} text={t("Back up")} icon="backup" class="lib-backup" onClick={() => setBackupOpen(true)} />}
         <Button variant="primary" onClick={pick} disabled={busy}>
           <Icon name="plus" size={18} /> {t(busy ? "Importing" : "Add PDF")}
         </Button>
@@ -253,6 +270,9 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         </div>
       )}
 
+      {/* The books on one side, what the app can do on the other (under the books on a narrow screen). */}
+      <div class="lib-body">
+      <div class="lib-main">
       {resume.length > 0 && (
         <section class="lib-continue" aria-label={t("Continue reading")}>
           <h2>{t("Continue reading")}</h2>
@@ -327,6 +347,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
           <p class="welcome-drop">{t("Or drop a PDF or an e-book (EPUB) anywhere on this page.")}</p>
         </section>
       )}
+
 
       {books && books.length > 0 && visible.length === 0 && (
         <p class="lib-none">{t(searching ? "No title, author or tag matches." : "No books match.")}</p>
@@ -407,6 +428,21 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
           </section>
         </>
       )}
+      </div>
+      <nav class="lib-tiles" aria-label={t("What you can do")}>
+        <h2>{t("What you can do")}</h2>
+        <ul>
+          {TILES.map(([href, icon, family, title, line]) => (
+            <li>
+              <a class="do-tile" href={href} data-family={family}>
+                <span class="tile-icon"><Icon name={icon} size={22} /></span>
+                <span class="tile-text"><strong>{t(title)}</strong><small>{t(line)}</small></span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      </div>
 
       <BookDetailsSheet repos={repos} book={editing} knownTags={tags} onClose={() => setEditing(null)} onSaved={reload} />
       <BackupSheet repos={repos} open={backupOpen} onClose={() => setBackupOpen(false)} onRestored={reload} />

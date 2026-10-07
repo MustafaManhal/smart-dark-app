@@ -80,11 +80,11 @@ test("print prepares every page in its own colors", async ({ page, browserName }
     (window as unknown as { printed: number }).printed = 0;
     window.print = () => { (window as unknown as { printed: number }).printed++; };
   });
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Print/ }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Print/ }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
   await expect(page.locator(".print-root img")).toHaveCount(2);
-  await expect(page.getByRole("dialog", { name: "Book menu" })).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "All tools" })).toBeHidden();
   // On screen the prepared pages stay out of sight.
   await expect(page.locator(".print-root")).toBeHidden();
   // The paper is white with dark text even though the reader shows a dark page.
@@ -112,9 +112,9 @@ test("print prepares every page in its own colors", async ({ page, browserName }
 test("save a copy gives back the PDF file", async ({ page, isMobile }) => {
   test.skip(isMobile, "the iPhone share sheet cannot be driven by tests; the save path is the same code");
   await openSample(page);
-  await page.getByRole("button", { name: "Book menu" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
   const download = page.waitForEvent("download");
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Save a copy(?! with)/ }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Save a copy(?! with)/ }).click();
   const file = await download;
   expect(file.suggestedFilename()).toBe("sample.pdf");
   const path = test.info().outputPath("copy.pdf");
@@ -126,8 +126,8 @@ test("save a copy gives back the PDF file", async ({ page, isMobile }) => {
 test("a copy with the marks inside is a PDF that carries them", async ({ page, isMobile }) => {
   await openSample(page);
   // Without marks there is nothing to put in.
-  await page.getByRole("button", { name: "Book menu" }).click();
-  const menu = page.getByRole("dialog", { name: "Book menu" });
+  await page.getByRole("button", { name: "All tools" }).click();
+  const menu = page.getByRole("dialog", { name: "All tools" });
   await expect(menu.getByRole("button", { name: /^Save a copy with your marks/ })).toBeDisabled();
   await expect(menu).toContainText("This book has no marks or notes yet.");
   await menu.getByRole("button", { name: "Close" }).click();
@@ -141,7 +141,7 @@ test("a copy with the marks inside is a PDF that carries them", async ({ page, i
   await page.getByRole("toolbar", { name: "Selected text" }).locator(".swatch").first().click();
   await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Book menu" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
   await menu.getByRole("button", { name: /^Save a copy with your marks/ }).click();
   const save = menu.getByRole("button", { name: /^Save the PDF with your marks/ });
   await expect(save).toBeVisible({ timeout: 20_000 });

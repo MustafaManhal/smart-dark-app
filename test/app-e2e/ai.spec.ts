@@ -42,8 +42,8 @@ test("a browser without its own model shows none of this", async ({ page }) => {
   await expect(bar).toBeVisible();
   await expect(bar.getByRole("button", { name: "Explain or translate" })).toHaveCount(0);
   await page.locator(".reader-title").click();
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await expect(page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Summarize/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "All tools" }).click();
+  await expect(page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Summarize/ })).toHaveCount(0);
 });
 
 test("with the browser's model: a passage is explained and translated", async ({ page }) => {
@@ -67,11 +67,11 @@ test("with the browser's model: a passage is explained and translated", async ({
   await page.screenshot({ path: `test/output/ai-${test.info().project.name}.png` });
 });
 
-test("with the browser's model: the chapter being read is summarized from the Book menu", async ({ page }) => {
+test("with the browser's model: the chapter being read is summarized from the All tools", async ({ page }) => {
   await withModel(page);
   await openSample(page);
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Summarize this chapter/ }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Summarize this chapter/ }).click();
   const sheet = page.getByRole("dialog", { name: "Quarterly report" }); // the chapter's name
   await expect(sheet).toBeVisible();
   await sheet.getByRole("button", { name: "Summarize" }).click();
@@ -86,9 +86,9 @@ test("a model that cannot run on this computer keeps the features hidden; one th
       LanguageModel: { availability: async () => "available", create: async () => ({ prompt: async () => { throw new Error("out of memory"); } }) } });
   });
   await openSample(page);
-  await page.getByRole("button", { name: "Book menu" }).click();
-  await expect(page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Summarize/ })).toHaveCount(0);
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
+  await expect(page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: /^Summarize/ })).toHaveCount(0);
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: "Close" }).click();
   await select(page, "colored words keep their hue");
   await page.getByRole("toolbar", { name: "Selected text" }).getByRole("button", { name: "Explain or translate" }).click();
   const sheet = page.getByRole("dialog", { name: "Ask the browser's model" });

@@ -27,25 +27,35 @@ These are the rules the app follows on every screen. They describe what is built
 
 | Token | Light | Dark | Used for |
 | --- | --- | --- | --- |
-| `--bg` | `#f3f1ec` | `#0e0f11` | the screen behind everything |
-| `--surface` | `#fbfaf7` | `#16171a` | cards, bars |
-| `--surface-2` | `#ece9e2` | `#1f2024` | hover, quiet fills |
-| `--surface-3` | `#e0dcd3` | `#2a2b31` | pressed, switch tracks |
-| `--raised` | `#ffffff` | `#1c1d21` | sheets and menus, which float |
-| `--text` | `#1b1a17` | `#ececef` | words |
-| `--muted` | `#68655e` | `#9c9da6` | second-line words, labels |
-| `--faint` | `#8d897f` | `#73747d` | placeholders only |
-| `--border`, `--border-strong` | `#e2ded5`, `#cfcabf` | `#26272c`, `#37383f` | hairlines; the strong one outlines controls |
-| `--accent` | `#4353d8` | `#9aa5ff` | the one action color, focus rings, progress |
-| `--accent-soft`, `--accent-strong` | tint, `#3442b8` | tint, `#b6bdff` | the chosen option: soft fill with strong words |
+| `--bg` | `#f3f4f8` | `#0b0c11` | the screen behind everything |
+| `--surface` | `#ffffff` | `#14161d` | cards, bars, the sidebar |
+| `--surface-2` | `#eceef4` | `#1d2029` | hover, quiet fills |
+| `--surface-3` | `#dfe2eb` | `#2a2e3a` | pressed, switch tracks |
+| `--raised` | `#ffffff` | `#191b23` | sheets and menus, which float |
+| `--text` | `#14151a` | `#eef0f6` | words |
+| `--muted` | `#595d6b` | `#a1a6b6` | second-line words, labels |
+| `--faint` | `#6f7382` | `#7f8496` | placeholders only |
+| `--border`, `--border-strong` | `#e2e4ec`, `#cbcfda` | `#242836`, `#363b4c` | hairlines; the strong one outlines controls |
+| `--accent`, `--accent-2` | `#4f46e5`, `#7c3aed` | `#a5abff`, `#c9a8ff` | the action color and its partner in the brand's gradient (`--brand`) |
+| `--accent-soft`, `--accent-strong` | tint, `#4038c7` | tint, `#bfc3ff` | the chosen option: soft fill with strong words |
 | `--danger` | `#c2372f` | `#ff8a80` | removing things |
+| `--c-mark` | `#d99a00` | `#f5c043` | marking: highlight, erase, sticky notes |
+| `--c-draw` | `#e5534b` | `#ff8078` | drawing |
+| `--c-listen` | `#159a6c` | `#4fd6a5` | read aloud, auto-scroll, sync |
+| `--c-find` | `#2380dd` | `#6cb4ff` | bookmark, notes, contents, stats |
+| `--c-files` | `#7c3aed` | `#b79bff` | files and pages: scan text, print, save, PDF tools |
+| `--c-learn` | `#d6478f` | `#ff8cc4` | look of the page, daily review |
 
 The reader has its own sets of the same tokens for dark and sepia pages (`reader.css`), because its chrome
 follows the page style and not the app theme. A new token must be added to all of them; the layout audit
 catches a missed one as low contrast.
 
-- The light theme is warm paper, the dark theme is neutral near-black. One accent color; a screen does not
-  get a second one. Highlight colors (yellow, green, blue, pink, purple) belong to the reader's marks only.
+- Since the second redesign ("Open desk", `docs/plans/2026-10-07-open-desk-redesign.md`) the light theme is
+  white cards on a cool gray ground and the dark theme a blue-black. The main action carries the brand's
+  gradient.
+- **A color for each family of features.** The icon of a tool has its family's color; its word stays in the
+  text color. The same colors mark the cards of the home screen. Highlight colors (yellow, green, blue,
+  pink, purple) belong to the reader's marks only.
 - Text on its background meets WCAG AA (4.5 to 1) in both themes.
 
 ## Type
@@ -62,8 +72,9 @@ catches a missed one as low contrast.
 ## Shape
 
 - Buttons and icon buttons have 12px corners, option tiles and fields 10px, filter chips are pills. Cards use
-  `--radius` (16px), sheets 22px at the top, pages of a book 4px.
-- One shadow, `--shadow`, for things that float (sheets, bars, covers). Flat things have a hairline border.
+  `--radius` (18px), sheets 22px at the top, pages of a book 4px.
+- Three shadows: `--shadow-sm` under every card, `--shadow` under what floats or is hovered, `--shadow-lg`
+  for the largest things. Cards also keep a hairline border, so they hold on a dark ground.
 - Touch targets are at least 40px, 44px on the phone for the main ones.
 
 ## Motion
@@ -86,3 +97,11 @@ catches a missed one as low contrast.
   at 320, 390, 768 and 1280px in English and Arabic and fails on anything cut off, covered or stretched.
 - Every feature has a visible control with a name. Keys and the command list are a second way, never the
   only one.
+- **Every control has a word.** An icon alone is allowed for back, close, and the plus and minus of a number.
+  `IconButton` takes `text` for the word; `label` stays the full name for screen readers.
+- **The places of the app are always on screen** (`ui/Shell.tsx`): a sidebar with names on wide screens, a
+  bar of five named tabs on phones. The readers are the only screens outside it.
+- **The reader's tools are on a named toolbar:** a second row of the top bar on wide screens (sixteen tools
+  in groups), two rows of five in the dock on phones. "All tools" lists everything as cards with a line each.
+- The home screen says what the app can do: the cards of "What you can do", beside the books on wide screens.
+- Bars push the page and leave with a tap on it. Nothing lies over the page while it is read.

@@ -37,9 +37,9 @@ test("every screen passes the checks for screen readers and keyboards", async ({
   await page.getByRole("button", { name: "Notes and highlights" }).click();
   found.push(...await problems(page, "reader notes"));
   await page.getByRole("button", { name: "Close panel" }).click();
-  await page.getByRole("button", { name: "Book menu" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
   found.push(...await problems(page, "book menu"));
-  await page.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: "Close" }).click();
+  await page.getByRole("dialog", { name: "All tools" }).getByRole("button", { name: "Close" }).click();
   await page.locator(".top-search").click();
   found.push(...await problems(page, "reader search"));
   await page.keyboard.press("Escape");

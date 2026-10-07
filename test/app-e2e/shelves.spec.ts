@@ -11,7 +11,10 @@ async function addBooks(page: Page) {
 }
 
 async function setTags(page: Page, title: string, tags: string) {
-  await page.getByRole("button", { name: `Edit details of ${title}` }).click({ force: true });
+  // On a phone the bar of places lies over the bottom of the screen: the card is brought to the middle first.
+  const edit = page.getByRole("button", { name: `Edit details of ${title}` });
+  await edit.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await edit.click({ force: true });
   const sheet = page.getByRole("dialog", { name: "Book details" });
   await sheet.getByLabel("Tags, with commas between them").fill(tags);
   await sheet.getByRole("button", { name: "Save" }).click();
@@ -114,7 +117,9 @@ for (const width of [320, 390, 1280]) {
     await addBooks(page);
     await setTags(page, "Links sample", "study, Exam 2026, a rather long tag name here");
     await setTags(page, "Reader343 sample", "study");
-    await page.getByRole("button", { name: "Add Links sample to favorites" }).click({ force: true });
+    const star = page.getByRole("button", { name: "Add Links sample to favorites" });
+    await star.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await star.click({ force: true });
     await list(page).getByText("Links sample").click();
     await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
     await page.locator(".reader-scroll").evaluate((el) => { el.scrollTop = 400; });

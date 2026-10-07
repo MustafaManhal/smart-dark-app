@@ -47,15 +47,15 @@ test("a PDF form can be filled in on the page, and what was typed is kept", asyn
 
 test("the filled form is saved into a copy of the PDF", async ({ page, isMobile }) => {
   await openForm(page);
-  await page.getByRole("button", { name: "Book menu" }).click();
-  const menu = page.getByRole("dialog", { name: "Book menu" });
+  await page.getByRole("button", { name: "All tools" }).click();
+  const menu = page.getByRole("dialog", { name: "All tools" });
   await expect(menu.getByRole("button", { name: /^Save a copy with the form and your marks/ })).toBeDisabled();
   await expect(menu).toContainText("Fill in the form on the page first.");
   await menu.getByRole("button", { name: "Close" }).click();
 
   await page.locator('.annotationLayer input[type="text"]').first().fill("Grace Hopper");
   await page.locator('.annotationLayer input[type="checkbox"]').check();
-  await page.getByRole("button", { name: "Book menu" }).click();
+  await page.getByRole("button", { name: "All tools" }).click();
   await menu.getByRole("button", { name: /^Save a copy with the form and your marks/ }).click();
   const save = menu.getByRole("button", { name: /^Save the PDF with your marks/ });
   await expect(save).toContainText("the filled form is inside", { timeout: 20_000 });

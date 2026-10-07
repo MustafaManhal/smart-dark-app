@@ -4,6 +4,7 @@
    a token left out would keep the app theme's value and put light words on light sheets. */
 .reader[data-style="dark"] {
   color-scheme: dark;
+  --c-mark: #f5c043; --c-draw: #ff8078; --c-listen: #4fd6a5; --c-find: #6cb4ff; --c-files: #b79bff; --c-learn: #ff8cc4;
   --bg: #0e0f11;
   --surface: #16171a;
   --surface-2: #1f2024;
@@ -23,6 +24,7 @@
   --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 36px rgb(0 0 0 / 0.4);
 }
 .reader[data-style="sepia"] {
+  --c-mark: #a87400; --c-draw: #c2443d; --c-listen: #0f7d57; --c-find: #1c68b8; --c-files: #6a32c9; --c-learn: #b53a78;
   color-scheme: light;
   --bg: #e9e0cc;
   --surface: #f6efdf;
@@ -449,3 +451,56 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 .annotationLayer [hidden] { display: none; }
 /* While a tool is on, the fields are out of its way. */
 .reader-scroll:is(.is-placing, .is-erasing, .is-highlighting, .is-drawing) .annotationLayer section { pointer-events: none; }
+
+/* "Open desk": every tool of the reader has its name on it (docs/plans/2026-10-07-open-desk-redesign.md).
+   Wide screens: the top bar has a second row, a toolbar of named tools in groups, with what used to be
+   only in the menu. Phones: ten of them in the dock, in two rows. */
+.tools { gap: 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.tools::-webkit-scrollbar { display: none; }
+.tools .icon-btn.has-text { flex: none; flex-direction: column; justify-content: center; gap: 3px; width: auto; min-width: 62px; height: 52px; padding: 0 6px; border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.005em; color: var(--muted); }
+.tools .icon-btn.has-text:hover:not(:disabled) { color: var(--text); }
+.tools .icon-btn.has-text .icon { color: var(--c, currentColor); }
+.tools .icon-btn.has-text.is-on { color: var(--accent-strong); }
+.tools .icon-btn.has-text.is-on .icon { color: currentColor; }
+.tools .icon-btn.has-text:disabled .icon { color: currentColor; }
+.tools :is([data-tool="highlight"], [data-tool="erase"], [data-tool="sticky"]) { --c: var(--c-mark); }
+.tools [data-tool="draw"] { --c: var(--c-draw); }
+.tools :is([data-tool="read"], [data-tool="autoscroll"]) { --c: var(--c-listen); }
+.tools :is([data-tool="bookmark"], [data-tool="notes"], [data-tool="contents"]) { --c: var(--c-find); }
+.tools :is([data-tool="appearance"], [data-tool="crop"], [data-tool="rotate"]) { --c: var(--c-learn); }
+.tools :is([data-tool="ocr"], [data-tool="print"], [data-tool="save"], [data-tool="pages"]) { --c: var(--c-files); }
+.top-search.has-text, .top-menu.has-text { height: 36px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); }
+.top-menu.has-text { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+
+@media (min-width: 721px) {
+  .reader { --bar-top: calc(110px + var(--safe-top)); }
+  .reader-top { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "back title search menu" "tools tools tools tools"; row-gap: 4px; padding-bottom: 5px; }
+  .reader-top .tools { justify-content: safe center; padding-top: 4px; border-top: 1px solid var(--border); }
+  /* Groups: marking, bookmark, listening, lists, look, file. */
+  .reader-top .tools .icon-btn:is([data-tool="bookmark"], [data-tool="read"], [data-tool="notes"], [data-tool="appearance"], [data-tool="ocr"]) { margin-inline-start: 13px; }
+  .reader-top .tools .icon-btn:is([data-tool="bookmark"], [data-tool="read"], [data-tool="notes"], [data-tool="appearance"], [data-tool="ocr"])::before { inset-block: 12px; inset-inline-start: -8px; }
+}
+@media (max-width: 720px) {
+  /* A phone: two rows of five named tools, all on screen (nothing to scroll to). The tools for the file
+     (crop, rotate, scan text, print, save, pages) are under "All tools" in the top bar. */
+  .reader { --bar-bottom: calc(var(--safe-bottom) + 112px); }
+  .dock { padding: 4px 4px calc(4px + var(--safe-bottom)); }
+  .dock .tools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; overflow: visible; }
+  .dock .tools .icon-btn.has-text { width: auto; min-width: 0; height: 52px; padding: 0 2px; }
+  .dock .tools .btn-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 400px) { .dock .tools .icon-btn.has-text { font-size: 10px; letter-spacing: -0.01em; } }
+  .dock .tools :is([data-tool="crop"], [data-tool="rotate"], [data-tool="ocr"], [data-tool="print"], [data-tool="save"], [data-tool="pages"]) { display: none; }
+  .top-search.has-text .btn-text { display: none; }
+  .top-search.has-text { width: 36px; min-width: 36px; padding: 0; justify-content: center; }
+  .top-menu.has-text { padding: 0 10px; gap: 5px; }
+  .reader-top { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+}
+
+/* "All tools": everything the reader can do, as cards with a name and a line. */
+.book-menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; border: 0; background: none; overflow: visible; border-radius: 0; }
+.book-menu li + li { border-top: 0; }
+.book-menu button { height: 100%; min-height: 72px; align-items: flex-start; padding: 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); transition: transform var(--fast) var(--ease), border-color var(--fast), box-shadow var(--fast); }
+.book-menu button:hover:not(:disabled) { background: var(--surface); border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
+.book-menu button > .icon { width: 22px; height: 22px; margin-top: 1px; }
+.book-menu kbd { align-self: flex-start; }
+@media (min-width: 721px) { .sheet:has(.book-menu) { width: min(880px, calc(100vw - 48px)); max-width: none; } }

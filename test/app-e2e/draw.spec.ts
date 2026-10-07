@@ -109,16 +109,17 @@ test("a text box is written where the page is tapped, can be changed, and the er
   await expect(text).toHaveText("Check this figure again");
   expect(await page.locator(".reader-scroll").evaluate((el) => el.scrollTop)).toBe(before);
   await hint(page).getByRole("radio", { name: "Line", exact: true }).click();
-  await page.mouse.move(paper.x + paper.width * 0.2, 560);
+  // (above the phone's dock of tools, which is two rows high)
+  await page.mouse.move(paper.x + paper.width * 0.2, 510);
   await page.mouse.down();
-  await page.mouse.move(paper.x + paper.width * 0.5, 560, { steps: 3 });
+  await page.mouse.move(paper.x + paper.width * 0.5, 510, { steps: 3 });
   await page.mouse.up();
   await expect(shapes(page)).toHaveCount(1);
   await hint(page).getByRole("button", { name: "Done" }).click();
 
   // The eraser: one tap on the line, one on the text.
   await page.getByRole("button", { name: "Erase highlights and notes" }).click();
-  await page.mouse.click(paper.x + paper.width * 0.35, 562);
+  await page.mouse.click(paper.x + paper.width * 0.35, 512);
   await expect(shapes(page)).toHaveCount(0);
   await expect(page.locator(".toast")).toContainText("Drawing removed");
   await text.click();
@@ -191,7 +192,7 @@ test("a signature is written once and then placed on a page with a tap", async (
 
   // A tap puts it on the page, about 30% of the page wide, around the tap.
   const paper = (await page.locator('.page[data-page="1"]').boundingBox())!;
-  const tap = { x: paper.x + paper.width * 0.5, y: 500 };
+  const tap = { x: paper.x + paper.width * 0.5, y: 440 };
   await page.mouse.click(tap.x, tap.y);
   await expect(shapes(page)).toHaveCount(1);
   await expect(shapes(page).locator("path:not(.draw-hit)")).toHaveCount(2); // both strokes
@@ -200,7 +201,7 @@ test("a signature is written once and then placed on a page with a tap", async (
   expect(first.x + first.width).toBeLessThan(tap.x + paper.width * 0.16);
   expect(Math.abs(first.y + first.height / 2 - tap.y)).toBeLessThan(paper.width * 0.06);
   // A second tap places it again; the signature is remembered after a reload.
-  await page.mouse.click(tap.x, tap.y + 90);
+  await page.mouse.click(tap.x, tap.y + 60);
   await expect(shapes(page)).toHaveCount(2);
   await page.reload();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();

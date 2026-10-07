@@ -400,15 +400,15 @@ export function EbookScreen({ repos, book, startPage }: { repos: Repos; book: Bo
           {place?.chapter && <small dir="auto">{place.chapter}</small>}
         </div>
         <div class="ebook-tools" role="toolbar" aria-label={t("Reading tools")}>
-          <IconButton label={t("Search")} icon="search" onClick={() => setSheet("search")} />
-          <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("contents")} />
-          <IconButton label={t(marked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark" class={marked ? "is-on" : ""} aria-pressed={!!marked} onClick={toggleBookmark} />
+          <IconButton label={t("Search")} text={t("Search")} icon="search" onClick={() => setSheet("search")} />
+          <IconButton label={t("Contents")} text={t("Contents")} icon="list" onClick={() => setSheet("contents")} />
+          <IconButton label={t(marked ? "Remove bookmark" : "Bookmark this page")} text={t("Bookmark")} icon="bookmark" class={marked ? "is-on" : ""} aria-pressed={!!marked} onClick={toggleBookmark} />
           {"speechSynthesis" in window && (
-            <IconButton label={t(speaking === "playing" ? "Pause reading" : "Read aloud")} icon={speaking === "playing" ? "pause" : "headphones"} class={speaking !== "off" ? "is-on" : ""} onClick={toggleSpeech} />
+            <IconButton label={t(speaking === "playing" ? "Pause reading" : "Read aloud")} text={t(speaking === "playing" ? "Pause" : "Read aloud")} icon={speaking === "playing" ? "pause" : "headphones"} class={speaking !== "off" ? "is-on" : ""} onClick={toggleSpeech} />
           )}
-          {speaking !== "off" && <IconButton label={t("Stop")} icon="close" onClick={stopSpeech} />}
-          <IconButton label={t("Notes and highlights")} icon="notes" onClick={() => setSheet("notes")} />
-          <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("look")} />
+          {speaking !== "off" && <IconButton label={t("Stop")} text={t("Stop")} icon="close" onClick={stopSpeech} />}
+          <IconButton label={t("Notes and highlights")} text={t("Notes")} icon="notes" onClick={() => setSheet("notes")} />
+          <IconButton label={t("Appearance")} text={t("Appearance")} icon="palette" onClick={() => setSheet("look")} />
         </div>
       </header>
 

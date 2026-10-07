@@ -10,7 +10,7 @@ async function noHorizontalOverflow(page: Page, where: string) {
     const vw = document.documentElement.clientWidth;
     const offenders: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
-      if (el.closest(".page, .chips, .zoom-chips, .reader-scroll, .heat-scroll")) continue; // these scroll sideways on purpose
+      if (el.closest(".page, .chips, .zoom-chips, .reader-scroll, .heat-scroll, .tools")) continue; // these scroll sideways on purpose
       const r = el.getBoundingClientRect();
       if (r.width && (r.right > vw + 1 || r.left < -1)) offenders.push(`${el.tagName.toLowerCase()}.${el.className}`);
     }
@@ -37,7 +37,7 @@ for (const width of WIDTHS) {
     await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
     await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
     await noHorizontalOverflow(page, "reader");
-    const tools = ["Back to library", "Search in book", "Book menu", "Highlight text", "Erase highlights and notes", "Add sticky note", "Draw", "Bookmark this page", "Read aloud", "Notes and highlights", "Contents", "Appearance"];
+    const tools = ["Back to library", "Search in book", "All tools", "Highlight text", "Erase highlights and notes", "Add sticky note", "Draw", "Bookmark this page", "Read aloud", "Notes and highlights", "Contents", "Appearance"];
     for (const name of [...tools, "Zoom in", "Zoom out", "Fit width", "Fit page", "Undo", "Redo"]) {
       await expect(page.getByRole("button", { name, exact: true })).toBeInViewport();
     }

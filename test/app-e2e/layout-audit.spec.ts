@@ -40,6 +40,10 @@ async function check(page: Page, where: string, findings: Finding[]) {
       // Things inside scrolling areas may be off screen on purpose.
       const scroller = el.closest(".reader-scroll, .sheet, .notes-panel .panel-body, .voice-list, .search-results, .zoom-chips, .chips, .heat-scroll, .pop-quote, .panel-tabs, .toc");
       const inPage = el.closest(".page");
+      // The reader's tools are a strip that scrolls sideways (the toolbar on a narrow window, the dock on a
+      // phone): a tool beyond its edge is reached by scrolling the strip.
+      const strip = el.closest(".tools")?.getBoundingClientRect();
+      if (strip && (r.left + r.width / 2 < strip.left || r.left + r.width / 2 > strip.right || r.right > vw || r.left < 0)) continue;
       if (!scroller || el.closest(".float-tools, .reader-top, .read-bar, .selection-bar, .popover, .toast, .mode-hint, .place-hint, .search-row")) {
         if (r.right > vw + 1 || r.left < -1) res.push({ kind: "outside screen (x)", detail: `${name(el)} ${Math.round(r.left)}..${Math.round(r.right)} of ${vw}` });
         if (!inPage && (r.bottom > vh + 1 || r.top < -1) && getComputedStyle(el.closest(".settings, .library, .stats") ?? document.body).position !== "static")
@@ -54,6 +58,8 @@ async function check(page: Page, where: string, findings: Finding[]) {
       if (!top) continue;
       if (el.contains(top) || top === el) continue;
       if (top.closest("label")?.contains(el)) continue; // visually hidden radio inside its label
+      // The bar of places at the bottom of a phone stays put while the screen scrolls under it.
+      if (top.closest(".shell-nav") && el.closest(".shell-main")) continue;
       if (el.closest(".sheet") && !top.closest(".sheet-backdrop")) { res.push({ kind: "covered", detail: `${name(el)} under ${name(top)}` }); continue; }
       // Scrolled out of its sheet (above the top edge or under the fold) is fine.
       const sheetBox = el.closest(".sheet")?.getBoundingClientRect();
