@@ -137,3 +137,30 @@ test("text recognition runs inside the desktop app", async () => {
   await expect(sheet.getByRole("status")).toHaveText("Text was recognized on 2 pages.", { timeout: 150_000 });
   await expect(win.locator('.page[data-page="1"] .textLayer span', { hasText: "Lighthouse" }).first()).toBeVisible();
 });
+
+test("the desktop app syncs with a folder", async () => {
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+  // The app has the folder picker of its own. The test cannot press it, so it hands over a folder itself.
+  expect(await win.evaluate(() => typeof (window as never as { showDirectoryPicker?: unknown }).showDirectoryPicker)).toBe("function");
+  await win.evaluate(() => {
+    Object.defineProperty(window, "showDirectoryPicker", {
+      configurable: true,
+      value: async () => (await navigator.storage.getDirectory()).getDirectoryHandle("Shared", { create: true }),
+    });
+  });
+  await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("src/sample/sample.pdf"));
+  await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send("desktop:navigate", "#/settings"));
+  const card = win.locator("#set-sync");
+  await card.getByRole("button", { name: "Choose a folder" }).click();
+  await expect(card).toContainText("Folder: Shared");
+  await expect(card).toContainText("1 book put in the folder. No other computer has used this folder yet.");
+  const files = await win.evaluate(async () => {
+    const root = await (await (await navigator.storage.getDirectory()).getDirectoryHandle("Shared")).getDirectoryHandle("Reader343");
+    const names: string[] = [];
+    for await (const name of (root as never as { keys(): AsyncIterable<string> }).keys()) names.push(name);
+    return names.sort();
+  });
+  expect(files).toEqual(["books", "covers", "state"]);
+});

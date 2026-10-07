@@ -17,6 +17,8 @@ export type Book = {
   addedAt: number;
   lastOpenedAt: number | null;
   finishedAt: number | null;
+  /** When the record last changed here. Sync between computers keeps the newer one. */
+  updatedAt?: number;
   /** Marked with a star in the library. */
   favorite?: boolean;
   /** The reader's own labels, as typed. A book can be on several shelves this way. */
@@ -75,12 +77,13 @@ export class BooksRepo {
       request<Book | undefined>(tx.objectStore("books").index("hash").get(hash)));
   }
 
-  update(id: string, patch: Partial<Book>) {
+  /** `keepTime`: the patch carries its own time of change (a change that came from another computer). */
+  update(id: string, patch: Partial<Book>, { keepTime = false } = {}) {
     return transaction(this.db, ["books"], "readwrite", async (tx) => {
       const store = tx.objectStore("books");
       const current = await request<Book | undefined>(store.get(id));
       if (!current) throw new Error(`No book ${id}`);
-      const next = { ...current, ...patch, id };
+      const next = { ...current, ...patch, id, ...(keepTime ? {} : { updatedAt: Date.now() }) };
       await request(store.put(next));
       return next;
     });
@@ -125,6 +128,13 @@ export class ProgressRepo {
 
   all() {
     return transaction(this.db, ["progress"], "readonly", (tx) => request<Progress[]>(tx.objectStore("progress").getAll()));
+  }
+
+  /** A reading place as another computer saved it, with its own time. */
+  restore(progress: Progress) {
+    return transaction(this.db, ["progress"], "readwrite", async (tx) => {
+      await request(tx.objectStore("progress").put(progress));
+    });
   }
 
   save(bookId: string, page: number, offset: number) {

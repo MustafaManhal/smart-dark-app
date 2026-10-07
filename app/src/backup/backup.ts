@@ -9,6 +9,9 @@ import type { Drawing } from "../db/drawings";
 const FORMAT = "smart-dark-reader-backup";
 const VERSION = 1;
 
+/** Settings without what belongs to one computer: its sync folder and what it remembers about it. */
+const travelling = (settings: Record<string, unknown>) => Object.fromEntries(Object.entries(settings).filter(([key]) => !key.startsWith("sync")));
+
 type BackupManifest = {
   format: typeof FORMAT;
   version: number;
@@ -44,7 +47,7 @@ export async function createBackup(repos: Repos, { now = Date.now } = {}): Promi
   }
   // A backup can travel; the passwords of protected books stay on the device.
   const bookList = books.map(({ password: _, ...book }) => book);
-  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books: bookList, progress, annotations, sessions, reviews, drawings, settings, covers };
+  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books: bookList, progress, annotations, sessions, reviews, drawings, settings: travelling(settings), covers };
   entries["backup.json"] = strToU8(JSON.stringify(manifest));
   const date = new Date(now()).toISOString().slice(0, 10);
   return new File([zipSync(entries) as Uint8Array<ArrayBuffer>], `reader343-backup-${date}.zip`, { type: "application/zip" });
@@ -135,6 +138,6 @@ export async function restoreBackup(repos: Repos, zipBytes: Uint8Array): Promise
   const scheduled = new Set((await repos.reviews.all()).map((x) => x.id));
   await repos.reviews.restore((manifest.reviews ?? []).filter((x) => !scheduled.has(x.id)));
 
-  for (const [key, value] of Object.entries(manifest.settings ?? {})) await repos.settings.set(key, value);
+  for (const [key, value] of Object.entries(travelling(manifest.settings ?? {}))) await repos.settings.set(key, value);
   return summary;
 }

@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { SyncCard } from "../sync/SyncCard";
 import { BackupSheet } from "../backup/BackupSheet";
 import type { Repos } from "../db/repos";
 import { lang, t } from "../i18n/i18n";
@@ -147,6 +148,8 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         )}
         <Button onClick={() => setBackupOpen(true)}><Icon name="backup" size={18} /> {t("Back up and restore")}</Button>
       </section>
+
+      <SyncCard repos={repos} />
 
       {desktop && (
         <section class="card" id="set-updates">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import type { Book, Progress, Repos } from "../db/repos";
 import { incoming } from "../platform/incoming";
+import { autoSync, syncNow, syncStatus } from "../sync/sync";
 import { navigate } from "../router";
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -121,6 +122,15 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     if (open && added.length === 1 && !notes.length) return navigate({ name: "reader", bookId: added[0].id });
     reload();
   }
+
+  // Sync with the chosen folder when the library opens; what a round brought is shown when it ends.
+  const sync = syncStatus.value;
+  useEffect(() => autoSync(repos), []);
+  const syncedAt = sync.last?.at;
+  const firstSync = useRef(syncedAt);
+  useEffect(() => {
+    if (syncedAt !== firstSync.current) reload();
+  }, [syncedAt]);
 
   // Files the system handed over that need the library: a password to ask for, or a problem to tell.
   const waiting = incoming.value;
@@ -289,6 +299,12 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <div class="lib-review" role="status">
           <span>{t(dueCount === 1 ? "1 mark to review today." : "{n} marks to review today.", { n: dueCount })}</span>
           <Button variant="primary" onClick={() => navigate({ name: "review" })}>{t("Review")}</Button>
+        </div>
+      )}
+      {sync.state === "needs-permission" && (
+        <div class="lib-review" role="status">
+          <span>{t("Sync is waiting: allow the folder “{name}” again.", { name: sync.folder ?? "" })}</span>
+          <Button variant="primary" onClick={() => syncNow(repos, { ask: true })}>{t("Allow")}</Button>
         </div>
       )}
       {message && <p class="lib-message" role="status">{message}</p>}

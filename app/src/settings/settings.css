@@ -24,3 +24,7 @@
 }
 .settings .card { scroll-margin-top: calc(16px + var(--safe-top)); }
 .settings .card h2 { font-size: var(--text-lg); margin-bottom: 8px; }
+
+/* Sync through a folder */
+.sync-folder { margin: 0 0 4px; overflow-wrap: anywhere; }
+.sync-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
