@@ -1,0 +1,48 @@
+/* The e-book reader: a top bar, the book, and a line at the bottom that says how far the reader is. */
+.ebook { position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--ebook-paper, var(--bg)); color: var(--text); }
+.ebook-top { display: flex; align-items: center; gap: 4px; padding: calc(6px + var(--safe-top)) 8px 6px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.ebook-title { flex: 1; min-width: 0; display: grid; padding-inline: 6px; line-height: 1.25; }
+.ebook-title strong, .ebook-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ebook-title small { color: var(--muted); font-size: var(--text-sm); }
+.ebook-tools { display: flex; flex: none; }
+.ebook-tools .icon-btn.is-on { background: var(--accent-soft); color: var(--accent-strong); }
+.ebook-page { position: relative; min-height: 0; }
+.ebook-page foliate-view { display: block; width: 100%; height: 100%; }
+/* Smart dark: the page is inverted with its hues kept (see look.ts). */
+.ebook[data-page-style="dark"] foliate-view::part(filter) { filter: invert(1) hue-rotate(180deg); }
+.ebook-status { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; margin: 0; padding: 24px; text-align: center; color: var(--ebook-ink, var(--muted)); }
+.ebook-status p { margin: 0; }
+.ebook-foot { display: flex; align-items: center; gap: 6px; padding: 4px 8px calc(4px + var(--safe-bottom)); background: var(--surface); border-top: 1px solid var(--border); }
+.ebook-slider { flex: 1; min-width: 0; accent-color: var(--accent); }
+.ebook-percent { flex: none; min-width: 3.2em; text-align: end; color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.ebook-note { margin: 6px 0; color: var(--muted); font-size: var(--text-sm); min-height: 1.4em; }
+.ebook-toc, .ebook-found ul, .ebook-marks { list-style: none; margin: 0; padding: 0; }
+.ebook-toc { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.ebook-toc li + li { border-top: 1px solid var(--border); }
+.ebook-toc button { width: 100%; min-height: 46px; padding: 8px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.ebook-toc button:hover { background: var(--surface-2); }
+.ebook-toc button.is-current { color: var(--accent-strong); font-weight: 600; background: var(--accent-soft); }
+.ebook-search { display: flex; gap: 8px; align-items: center; }
+.ebook-search .search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 44px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface); }
+.ebook-search .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--text); font: inherit; }
+.ebook-found h3 { margin: 14px 0 6px; font-size: var(--text-sm); color: var(--muted); font-weight: 600; }
+.ebook-found button { width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
+.ebook-found button:hover { background: var(--surface-2); }
+.ebook-found mark { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.ebook-marks li { display: flex; align-items: center; gap: 4px; }
+.ebook-marks li + li { border-top: 1px solid var(--border); }
+.ebook-mark { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 10px 4px; border: 0; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.ebook-mark-kind { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); color: #1b1a17; }
+.ebook-mark-kind:not([style]) { color: var(--accent); }
+.ebook-mark-text { display: grid; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.ebook-mark-text > span { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ebook-mark-text small { color: var(--muted); font-size: var(--text-sm); }
+.ebook-font { display: flex; align-items: center; gap: 6px; margin: 12px 0; }
+.ebook-font > span { flex: 1; color: var(--muted); font-size: var(--text-sm); font-weight: 500; }
+.ebook-font output { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+  /* A phone: the title on its own row, the tools under it. */
+  .ebook-top { flex-wrap: wrap; }
+  .ebook-title { flex-basis: calc(100% - 48px); }
+  .ebook-tools { flex-basis: 100%; justify-content: space-between; }
+}

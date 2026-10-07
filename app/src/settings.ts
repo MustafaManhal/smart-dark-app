@@ -27,6 +27,9 @@ const defaults = {
   spreadCover: true, // in two-page view the first page stands alone, as the cover of a book does
   spreadRtl: false, // two-page view with the first page on the right, for books read right to left
   libraryView: "grid" as "grid" | "list",
+  // E-books (EPUB and the like): the size of the text in percent, and pages turned or one long scroll.
+  ebookFontSize: 100,
+  ebookFlow: "paginated" as "paginated" | "scrolled",
   // The drawing tool as it was last used.
   drawTool: "pen" as "pen" | "line" | "arrow" | "rect" | "ellipse" | "text" | "sign",
   signature: [] as number[], // the reader's signature: strokes in a box 1 by 1 (see draw/SignaturePad.tsx)

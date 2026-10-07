@@ -21,14 +21,20 @@ const TEST_ORIGIN = /^http:\/\/localhost:\d+$/.test(process.env.SMART_DARK_TEST_
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  // blob: for styles, fonts, sound and frames: the sections of an e-book are shown from the book's own files.
+  // Scripts stay limited to the app's own, so a script inside a book does not run.
+  "style-src 'self' 'unsafe-inline' blob:",
+  "media-src 'self' blob:",
+  "frame-src 'self' blob:",
   "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com",
-  "font-src 'self' data:",
+  "font-src 'self' data: blob:",
   "worker-src 'self' blob:",
   "connect-src 'self' data: blob: https://en.wiktionary.org https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://smart-dark-app.vercel.app https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
   "object-src 'none'",
   "base-uri 'none'",
-  "frame-ancestors 'none'",
+  // 'self', not 'none': a section of an e-book is a frame made by the app, and Safari's engine applies this
+  // rule to such frames too. Other sites still cannot put the app in a frame.
+  "frame-ancestors 'self'",
 ].join("; ");
 
 // The app was called Smart Dark Reader before October 2026, and Electron names the data
@@ -48,7 +54,8 @@ let win = null;
 let rendererReady = false;
 const pendingFiles = [];
 
-const isPdfPath = (p) => typeof p === "string" && extname(p).toLowerCase() === ".pdf";
+// The files the app opens: PDFs, and e-books (EPUB, MOBI, FB2, CBZ).
+const isPdfPath = (p) => typeof p === "string" && [".pdf", ".epub", ".mobi", ".azw", ".azw3", ".fb2", ".fbz", ".cbz"].includes(extname(p).toLowerCase());
 
 async function openPdfPath(path) {
   try {
@@ -138,7 +145,7 @@ async function createWindow() {
 async function chooseFiles() {
   const result = await dialog.showOpenDialog(win, {
     title: "Open PDF",
-    filters: [{ name: "PDF", extensions: ["pdf"] }],
+    filters: [{ name: "PDF and e-books", extensions: ["pdf", "epub", "mobi", "azw", "azw3", "fb2", "fbz", "cbz"] }],
     properties: ["openFile", "multiSelections"],
   });
   if (!result.canceled) result.filePaths.forEach(openPdfPath);

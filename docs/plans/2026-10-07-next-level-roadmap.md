@@ -152,7 +152,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | Slice | What | Size | Notes |
 |---|---|---|---|
 | F1 (done 2026-10-07) | Merge, split, reorder, rotate, extract and delete pages; pictures to PDF | M | same library as C3 |
-| F2 | EPUB (and MOBI, FB2, CBZ) | L | [foliate-js](https://github.com/johnfactotum/foliate-js), MIT. A second renderer: highlights, read aloud and search must be wired again for it. Worth it only if the owner wants a general book reader, not a PDF reader |
+| F2 (done 2026-10-07; tried with small made-up books, not with books from a store) | EPUB (and MOBI, FB2, CBZ) | L | [foliate-js](https://github.com/johnfactotum/foliate-js), MIT. A second renderer: highlights, read aloud and search must be wired again for it. Worth it only if the owner wants a general book reader, not a PDF reader |
 
 ### Phase G. Reach: easy to find, easy to install
 

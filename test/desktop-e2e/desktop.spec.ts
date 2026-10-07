@@ -164,3 +164,19 @@ test("the desktop app syncs with a folder", async () => {
   });
   expect(files).toEqual(["books", "covers", "state"]);
 });
+
+test("an EPUB opened from the operating system is shown by the e-book reader", async () => {
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+  await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("test/fixtures/sample.epub"));
+  await expect(win.locator(".ebook-title strong")).toHaveText("The Lighthouse Ledger", { timeout: 20_000 });
+  // The chapter is a frame made from the book's own files: the app's security policy must let it in, and it does.
+  await expect.poll(async () => {
+    for (const frame of win.frames().filter((f) => f.url().startsWith("blob:"))) {
+      if (await frame.getByText("The first chapter opens with a walrus on the rocks.").isVisible().catch(() => false)) return true;
+    }
+    return false;
+  }, { timeout: 15_000 }).toBe(true);
+  await expect(win.locator(".ebook-title small")).toHaveText("One: The Keeper");
+  await win.screenshot({ path: "test/output/desktop-ebook.png" });
+});

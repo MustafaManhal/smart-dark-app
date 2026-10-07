@@ -11,6 +11,8 @@ export function shelfOf(book: Book, progress?: Progress): Exclude<Shelf, "all" |
 export function percentRead(book: Book, progress?: Progress): number {
   if (book.finishedAt) return 100;
   if (!progress || book.pageCount <= 0) return 0;
+  // An e-book has no pages: it keeps how far through the text the reader is.
+  if (progress.fraction !== undefined) return Math.round(progress.fraction * 100);
   return Math.round(Math.min(1, progress.page / book.pageCount) * 100);
 }
 

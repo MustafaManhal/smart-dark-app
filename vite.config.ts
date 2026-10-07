@@ -31,7 +31,7 @@ export default defineConfig({
         ],
         // "Open with Reader343" for PDF files once the app is installed (Chrome and Edge on computers).
         // The file arrives in the window that is already open, through launchQueue (platform/incoming.ts).
-        file_handlers: [{ action: "./", accept: { "application/pdf": [".pdf"] } }],
+        file_handlers: [{ action: "./", accept: { "application/pdf": [".pdf"], "application/epub+zip": [".epub"] } }],
         launch_handler: { client_mode: "focus-existing" },
       },
       workbox: {

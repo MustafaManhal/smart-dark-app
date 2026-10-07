@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
-import type { Book, Progress, Repos } from "../db/repos";
+import { isEbook, type Book, type Progress, type Repos } from "../db/repos";
 import { incoming } from "../platform/incoming";
 import { autoSync, syncNow, syncStatus } from "../sync/sync";
 import { navigate } from "../router";
@@ -175,7 +175,8 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     if (!books) return;
     const stop = (insideStop.current = { now: false });
     setInside({ found: [], done: 0, now: books[0] ?? null, running: true });
-    const found = await searchInsideBooks(repos, books, query, (list, done, now) => !stop.now && setInside({ found: list, done, now, running: true }), stop);
+    // The text of PDFs is searched here. An e-book is searched from inside its own reader.
+    const found = await searchInsideBooks(repos, books.filter((b) => !isEbook(b)), query, (list, done, now) => !stop.now && setInside({ found: list, done, now, running: true }), stop);
     if (!stop.now) setInside({ found, done: books.length, now: null, running: false });
   }
   const titleOf = (bookId: string) => books?.find((b) => b.id === bookId)?.title ?? "";
@@ -218,7 +219,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <Button variant="primary" onClick={pick} disabled={busy}>
           <Icon name="plus" size={18} /> {t(busy ? "Importing" : "Add PDF")}
         </Button>
-        <input ref={fileInput} type="file" accept="application/pdf,.pdf" multiple hidden
+        <input ref={fileInput} type="file" accept="application/pdf,.pdf,application/epub+zip,.epub,.mobi,.azw,.azw3,.fb2,.fbz,.cbz" multiple hidden
           onChange={(e) => { const f = e.currentTarget.files; if (f?.length) importFiles(f); e.currentTarget.value = ""; }} />
       </header>
 
@@ -267,7 +268,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
                     <span class="resume-text">
                       <strong>{book.title}</strong>
                       {book.author && <span class="resume-author">{book.author}</span>}
-                      <span class="resume-at">{t("Page {page} of {total}", { page: at.page, total: book.pageCount })}<b dir="ltr">{pct}%</b></span>
+                      <span class="resume-at">{isEbook(book) ? t("E-book") : t("Page {page} of {total}", { page: at.page, total: book.pageCount })}<b dir="ltr">{pct}%</b></span>
                       <span class="bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
                     </span>
                     <span class="resume-go">{t("Continue")}<Icon name="chevronRight" size={16} /></span>
@@ -323,7 +324,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
             <Button variant="primary" onClick={pick} disabled={busy}>{t("Choose a PDF")}</Button>
             <Button onClick={trySample} disabled={busy}>{t("Try the sample book")}</Button>
           </div>
-          <p class="welcome-drop">{t("Or drop a PDF anywhere on this page.")}</p>
+          <p class="welcome-drop">{t("Or drop a PDF or an e-book (EPUB) anywhere on this page.")}</p>
         </section>
       )}
 

@@ -127,7 +127,7 @@ After the redesign, so new screens are built once, in the new look.
 | 15 | G2, G3, G4 (prepared 2026-10-07, see `docs/store/`; not submitted) | Store packages: Microsoft Store (MSIX), Edge Add-ons, Firefox port, Chrome Web Store | built, listed text and pictures ready; **the owner pays the $5 for Chrome and presses submit** |
 | 16 | G7 (written 2026-10-07, see `docs/launch/`; not posted) | Launch texts: Show HN, AlternativeTo, GitHub topics | written and saved; the owner posts them |
 | 17 | E5 (not built: the license, the size and the archived repository did not fit; see the roadmap row) | Natural Arabic voice | Supertonic 3; the model's license (OpenRAIL-M) is read first, and it is dropped with a note if it does not fit |
-| 18 | F2 | EPUB (and MOBI, FB2, CBZ) | foliate-js (MIT); a second renderer |
+| 18 | F2 (done 2026-10-07) | EPUB (and MOBI, FB2, CBZ) | foliate-js (MIT); a second renderer |
 | 19 | G8 | Android and iPhone stores | packages prepared; fees ($25, $99 a year) and accounts are the owner's |
 | always | Quality | speed with a 1,000-page book, screen reader pass, a written checklist for a real iPhone | |
 

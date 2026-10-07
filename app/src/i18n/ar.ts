@@ -334,7 +334,7 @@ export const AR: Record<string, string> = {
   "Highlights, notes and sticky notes, all in one list": "تظليلات وملاحظات وملاحظات لاصقة، كلها في قائمة واحدة",
   "Read aloud, with natural voices on a computer": "قراءة بصوت مسموع، بأصوات طبيعية على الحاسوب",
   "Try the sample book": "جرّب الكتاب التجريبي",
-  "Or drop a PDF anywhere on this page.": "أو أفلت ملف PDF في أي مكان من هذه الصفحة.",
+  "Or drop a PDF or an e-book (EPUB) anywhere on this page.": "أو أفلت ملف PDF أو كتابًا إلكترونيًا (EPUB) في أي مكان من هذه الصفحة.",
   "The sample book could not be loaded.": "تعذّر تحميل الكتاب التجريبي.",
   "Quick tour": "جولة سريعة",
   "Step {n} of {total}": "الخطوة {n} من {total}",
@@ -684,6 +684,17 @@ export const AR: Record<string, string> = {
   "{n} books are still on their way to this folder.": "{n} كتب ما زالت في طريقها إلى هذا المجلد.",
   "No other computer has used this folder yet.": "لم يستخدم أي حاسوب آخر هذا المجلد بعد.",
   "Sync is waiting: allow the folder “{name}” again.": "المزامنة تنتظر: اسمح باستخدام المجلد «{name}» من جديد.",
+  // E-books
+  "E-book": "كتاب إلكتروني",
+  "This book could not be opened. The file may be damaged.": "تعذّر فتح هذا الكتاب. قد يكون الملف تالفًا.",
+  "Place in the book": "الموضع في الكتاب",
+  "Search in the book": "البحث في الكتاب",
+  "Select text to highlight it or to write a note. Bookmarks are listed here too.": "حدّد نصًا لتظليله أو لكتابة ملاحظة عليه. الإشارات تظهر هنا أيضًا.",
+  "Text size": "حجم النص",
+  "Smaller text": "نص أصغر",
+  "Larger text": "نص أكبر",
+  "Bookmark": "إشارة",
+  "Remove highlight": "إزالة التظليل",
 };
 
 /** Keys built at run time (not literal strings passed to t), checked by the i18n test. */
@@ -739,4 +750,5 @@ export const DYNAMIC_KEYS = [
   "1 page left for today's goal.", "{n} pages left for today's goal.", "{name} is not a PDF.", "{name} could not be opened.",
   "Choose all", "Choose none", "It is in your library now.", "They are in your library now.", "It could not be added to the library.", "Adding…", "Add to library", "Back to the book", "{name} was not added: it needs its password.",
   "Allow", "Sync now", "1 book received.", "{n} books received.", "1 mark received.", "{n} marks received.", "1 book put in the folder.", "{n} books put in the folder.", "1 book is still on its way to this folder.", "{n} books are still on their way to this folder.", "Syncing…", "The browser needs your OK to use the folder again.", "The folder could not be read or written. Check that it is still there.", "Not synced yet.",
+  "Delete note", "Remove highlight", "Remove bookmark", "Bookmark this page", "Pause reading", "Read aloud", "E-book",
 ];

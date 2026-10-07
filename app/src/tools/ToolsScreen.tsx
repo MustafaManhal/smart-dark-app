@@ -1,6 +1,6 @@
 import { zipSync, type Zippable } from "fflate";
 import { useEffect, useRef, useState } from "preact/hooks";
-import type { Book, Repos } from "../db/repos";
+import { isEbook, type Book, type Repos } from "../db/repos";
 import { t } from "../i18n/i18n";
 import { makeCover } from "../library/cover";
 import { importPdf } from "../library/importer";
@@ -275,7 +275,8 @@ export function ToolsScreen({ repos, bookId }: { repos: Repos; bookId?: string }
   const nameOf = (id: string) => sources.find((s) => s.id === id);
   const leave = () => navigate(bookId ? { name: "reader", bookId } : { name: "library" });
   const pickFiles = () => fileInput.current?.click();
-  const openLibrary = () => repos.books.all().then((all) => setLibrary(all.sort((a, b) => (b.lastOpenedAt ?? b.addedAt) - (a.lastOpenedAt ?? a.addedAt))));
+  // Only PDFs have pages to take: e-books are left out of the list.
+  const openLibrary = () => repos.books.all().then((all) => setLibrary(all.filter((b) => !isEbook(b)).sort((a, b) => (b.lastOpenedAt ?? b.addedAt) - (a.lastOpenedAt ?? a.addedAt))));
   const pageWord = (n: number) => (n === 1 ? t("1 page") : t("{n} pages", { n }));
 
   return (

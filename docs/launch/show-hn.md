@@ -40,8 +40,11 @@ It is a web app (works offline, installs on iPhone from Safari), an Electron app
 and a browser extension that opens PDF links in the dark viewer. MIT licensed:
 https://github.com/MustafaManhal/smart-dark-app
 
-Things I know are missing: no EPUB yet, no sync for phones (that would need a server), and the natural
-read-aloud voices are English only.
+It also opens EPUB, MOBI, FB2 and CBZ through foliate-js, with the same dark page (there it is a CSS
+filter that inverts the page and turns the hues back, applied twice to pictures so they stay as they are).
+
+Things I know are missing: no sync for phones (that would need a server), the natural read-aloud voices
+are English only, and e-books have fewer tools than PDFs (no drawing, no sticky notes).
 
 I would like to hear where the recoloring gets a page wrong. A PDF that looks bad is the most useful
 thing you can send me.

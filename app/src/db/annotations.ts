@@ -10,20 +10,25 @@ export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 export const MARK_STYLES = ["highlight", "underline", "strike"] as const;
 export type MarkStyle = (typeof MARK_STYLES)[number];
 
+/**
+ * In an e-book a mark has no rectangles: `cfi` says which passage it is (an EPUB CFI), and `page` is the
+ * section counted from 1.
+ */
 export type Highlight = {
   id: string; bookId: string; page: number; rects: NormRect[]; color: HighlightColor;
-  text: string; style?: MarkStyle; createdAt: number; updatedAt: number;
+  text: string; style?: MarkStyle; cfi?: string; createdAt: number; updatedAt: number;
 };
 /** A note attached to a passage of text (separate from highlights). The title is optional. */
 export type PassageNote = {
   id: string; bookId: string; page: number; rects: NormRect[]; text: string; body: string;
-  title?: string; createdAt: number; updatedAt: number;
+  title?: string; cfi?: string; createdAt: number; updatedAt: number;
 };
 export type Sticky = {
   id: string; bookId: string; page: number; x: number; y: number; color: HighlightColor;
   text: string; title?: string; collapsed: boolean; createdAt: number; updatedAt: number;
 };
-export type Bookmark = { id: string; bookId: string; page: number; createdAt: number };
+/** In an e-book a bookmark keeps the exact place (`cfi`), the "location" number it stands at and the chapter's name. */
+export type Bookmark = { id: string; bookId: string; page: number; createdAt: number; cfi?: string; loc?: number; label?: string };
 
 export type BookAnnotations = { highlights: Highlight[]; notes: PassageNote[]; stickies: Sticky[]; bookmarks: Bookmark[] };
 export const ANNOTATION_STORES = ["highlights", "notes", "stickies", "bookmarks"] as const;
@@ -101,6 +106,11 @@ export class AnnotationsRepo {
     return transaction(this.db, [store], "readwrite", async (tx) => {
       await request(tx.objectStore(store).delete(id));
     });
+  }
+
+  /** A bookmark at an exact place of an e-book. */
+  putBookmark(bookmark: Omit<Bookmark, "id" | "createdAt">): Promise<Bookmark> {
+    return this.put("bookmarks", { ...bookmark, id: crypto.randomUUID(), createdAt: Date.now() });
   }
 
   /** Adds a bookmark for the page, or removes it if there is one. Returns true when added. */

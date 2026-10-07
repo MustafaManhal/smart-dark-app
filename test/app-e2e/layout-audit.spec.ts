@@ -404,6 +404,22 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await expect(page.locator(".tools-ready")).toBeVisible();
       await check(page, `${tag}-30-tools-ready`, findings);
 
+      // An e-book: the reader, its contents, search, notes list and appearance.
+      await page.locator(".sheet-head .icon-btn").click();
+      await page.locator(".tools-head .icon-btn").first().click();
+      const epub = page.waitForEvent("filechooser");
+      await page.getByRole("button", { name: /Add PDF|إضافة PDF/ }).first().click();
+      await (await epub).setFiles("test/fixtures/sample.epub");
+      await page.getByRole("list").getByText("The Lighthouse Ledger").click();
+      await expect.poll(() => page.frames().some((f) => f.url().startsWith("blob:"))).toBe(true);
+      await expect(page.locator(".ebook-title small")).toHaveText("One: The Keeper");
+      await check(page, `${tag}-31-ebook`, findings);
+      for (const [i, name] of ["search", "contents", "notes", "appearance"].entries()) {
+        await page.locator(".ebook-tools .icon-btn").nth(i === 0 ? 0 : i === 1 ? 1 : i === 2 ? -2 : -1).click();
+        await check(page, `${tag}-32-ebook-${name}`, findings);
+        await page.locator(".sheet-head .icon-btn").click();
+      }
+
       writeFileSync(`${out}/${tag}.json`, JSON.stringify({ errors, findings }, null, 1));
       expect([...new Set(errors)], "console errors").toEqual([]);
       expect(findings.map((f) => `${f.where} | ${f.kind} | ${f.detail}`), "layout problems").toEqual([]);

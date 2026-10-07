@@ -19,6 +19,8 @@ Its dark mode does not invert the page. It flips how light or dark each color is
 
 It also has highlights, underlines, notes, pen drawings and bookmarks; a notebook of everything you marked with export to Markdown, CSV and Anki; a daily review of your highlights; read aloud that follows the text; search inside a book and across the library; text recognition for scans; form filling and signing; and tools to join, split, reorder and turn pages.
 
+It opens e-books as well: EPUB, MOBI, FB2 and CBZ.
+
 There is no account. Books and notes stay on your device. Sync between your computers goes through a folder you choose.
 ```
 

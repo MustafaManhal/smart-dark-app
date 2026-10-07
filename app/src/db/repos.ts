@@ -6,6 +6,10 @@ import { OcrRepo } from "./ocr";
 import { DrawingsRepo } from "./drawings";
 import type { Crop } from "../reader/crop";
 
+export type BookFormat = "pdf" | "epub" | "mobi" | "fb2" | "cbz";
+/** True for a book that flows (EPUB and the like): it has no fixed pages and is shown by the e-book reader. */
+export const isEbook = (book: Pick<Book, "format">) => !!book.format && book.format !== "pdf";
+
 export type Book = {
   id: string;
   hash: string;
@@ -17,6 +21,8 @@ export type Book = {
   addedAt: number;
   lastOpenedAt: number | null;
   finishedAt: number | null;
+  /** What kind of file the book is. A book without it is a PDF (every book added before e-books existed). */
+  format?: BookFormat;
   /** When the record last changed here. Sync between computers keeps the newer one. */
   updatedAt?: number;
   /** Marked with a star in the library. */
@@ -35,7 +41,11 @@ export type Book = {
   password?: string;
 };
 
-export type Progress = { bookId: string; page: number; offset: number; updatedAt: number };
+/**
+ * Where the reader stopped. For a PDF: the page and how far down it. For an e-book: `page` is the section
+ * (chapter file) counted from 1, `cfi` the exact place, `fraction` how far through the whole book (0 to 1).
+ */
+export type Progress = { bookId: string; page: number; offset: number; updatedAt: number; cfi?: string; fraction?: number };
 
 // Binary data is stored as { type, data: ArrayBuffer }, not as Blob: WebKit
 // cannot store Blobs in IndexedDB in private/ephemeral contexts.
@@ -137,12 +147,13 @@ export class ProgressRepo {
     });
   }
 
-  save(bookId: string, page: number, offset: number) {
+  save(bookId: string, page: number, offset: number, place?: { cfi: string; fraction: number }) {
     const progress: Progress = {
       bookId,
       page: Math.max(1, Math.round(page)),
       offset: Math.min(1, Math.max(0, offset)),
       updatedAt: Date.now(),
+      ...(place ? { cfi: place.cfi, fraction: Math.min(1, Math.max(0, place.fraction)) } : {}),
     };
     return transaction(this.db, ["progress"], "readwrite", async (tx) => {
       await request(tx.objectStore("progress").put(progress));

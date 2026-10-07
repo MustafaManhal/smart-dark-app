@@ -19,6 +19,11 @@ fileAssociations:
     description: PDF Document
     mimeType: application/pdf
     role: Viewer
+  - ext: epub
+    name: EPUB Book
+    description: EPUB Book
+    mimeType: application/epub+zip
+    role: Viewer
 mac:
   category: public.app-category.productivity
   target:

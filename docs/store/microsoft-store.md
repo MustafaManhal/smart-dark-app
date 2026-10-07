@@ -83,6 +83,8 @@ Work with the file. Fill in forms and sign them, save a copy with your highlight
 
 Private by design. There is no account. Your books, notes and reading history stay on your computer. You can sync between your own computers through a folder you choose, and back up everything to one file.
 
+E-books open too: EPUB, MOBI, FB2 and CBZ, with the same dark page, highlights, notes, search and read aloud.
+
 The interface is in English and Arabic. Reader343 is free and open source.
 ```
 
@@ -100,6 +102,7 @@ Search inside a book and across the library
 Text recognition for scanned pages, on your computer
 Fill in forms, sign, print, and save a copy with your marks
 Join, split, reorder and turn pages; pictures to PDF
+Opens e-books too: EPUB, MOBI, FB2 and CBZ
 No account: books and notes stay on your computer
 English and Arabic
 ```

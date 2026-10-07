@@ -1,5 +1,7 @@
 import { effect } from "@preact/signals";
-import { route } from "./router";
+import { useEffect, useState } from "preact/hooks";
+import { route, type Route } from "./router";
+import { EbookScreen } from "./ebook/EbookScreen";
 import { settings } from "./settings";
 import { dir, lang } from "./i18n/i18n";
 import { SettingsScreen } from "./settings/SettingsScreen";
@@ -10,7 +12,7 @@ import { LibraryScreen } from "./library/LibraryScreen";
 import { ReaderScreen } from "./reader/ReaderScreen";
 import { StatsScreen } from "./stats/StatsScreen";
 import { startReminders } from "./stats/reminders";
-import type { Repos } from "./db/repos";
+import { isEbook, type Book, type Repos } from "./db/repos";
 
 // Follow the system theme unless the user picked one.
 const media = matchMedia("(prefers-color-scheme: dark)");
@@ -30,6 +32,17 @@ effect(() => {
 });
 media.addEventListener("change", applyTheme);
 
+/** A book opens in the reader made for its kind: the PDF reader, or the e-book reader for EPUB and the like. */
+function BookGate({ repos, route: r }: { repos: Repos; route: Extract<Route, { name: "reader" }> }) {
+  const [book, setBook] = useState<Book | null | undefined>(undefined);
+  useEffect(() => {
+    repos.books.get(r.bookId).then((found) => setBook(found ?? null));
+  }, []);
+  if (book === undefined) return null;
+  if (book && isEbook(book)) return <EbookScreen repos={repos} book={book} startPage={r.page} />;
+  return <ReaderScreen repos={repos} bookId={r.bookId} startPage={r.page} startFind={r.find} tour={r.tour} />;
+}
+
 let remindersStarted = false;
 
 export function App({ repos }: { repos: Repos }) {
@@ -38,7 +51,7 @@ export function App({ repos }: { repos: Repos }) {
     startReminders(repos);
   }
   const r = route.value;
-  if (r.name === "reader") return <ReaderScreen key={`${r.bookId}-${r.page ?? ""}-${r.find ?? ""}`} repos={repos} bookId={r.bookId} startPage={r.page} startFind={r.find} tour={r.tour} />;
+  if (r.name === "reader") return <BookGate key={`${r.bookId}-${r.page ?? ""}-${r.find ?? ""}`} repos={repos} route={r} />;
   if (r.name === "stats") return <StatsScreen repos={repos} />;
   if (r.name === "settings") return <SettingsScreen repos={repos} />;
   if (r.name === "notebook") return <NotebookScreen repos={repos} />;

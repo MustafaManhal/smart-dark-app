@@ -2,7 +2,8 @@
 
 A PDF reader with a dark mode that keeps colors: paper turns dark, ink turns light, red stays red and photos
 stay as they are. It runs as a web app (installable on iPhone), a desktop app for macOS and Windows, and a
-Chrome extension. Books, notes and reading history stay on the device.
+browser extension for Chrome, Edge and Firefox. The app also opens e-books (EPUB, MOBI, FB2, CBZ). Books,
+notes and reading history stay on the device.
 
 Live: https://smart-dark-app.vercel.app. The name Reader343 is shared, with its author's agreement, with the
 Android reader at https://github.com/LAITH343/Reader343; the two projects have separate code. Until October

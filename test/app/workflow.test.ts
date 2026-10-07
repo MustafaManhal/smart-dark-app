@@ -29,5 +29,5 @@ test("vercel.json builds the web app, keeps the service worker fresh and sends a
   const all = v.headers.find((h: { source: string }) => h.source === "/(.*)");
   const csp = all.headers.find((h: { key: string }) => h.key === "Content-Security-Policy").value;
   expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval'");
-  expect(csp).toContain("frame-ancestors 'none'");
+  expect(csp).toContain("frame-ancestors 'self'"); // the app frames the sections of an e-book itself; other sites cannot frame the app
 });

@@ -24,12 +24,17 @@ export async function importPdf(
   password?: string,
 ): Promise<{ book: Book; duplicate: boolean }> {
   const bytes = await file.arrayBuffer();
-  const head = new TextDecoder().decode(new Uint8Array(bytes, 0, Math.min(1024, bytes.byteLength)));
-  if (!head.includes("%PDF-")) throw new ImportError("not-pdf", `${file.name} is not a PDF.`);
+  const start = new Uint8Array(bytes, 0, Math.min(1024, bytes.byteLength));
+  const isPdf = new TextDecoder().decode(start).includes("%PDF-");
+  // An e-book (EPUB, MOBI, FB2, CBZ) goes to the e-book reader's own import. Anything else is refused.
+  const { ebookFormat, importEbook } = await import("../ebook/importEbook");
+  const format = isPdf ? null : ebookFormat(file.name, start);
+  if (!isPdf && !format) throw new ImportError("not-pdf", `${file.name} is not a PDF.`);
 
   const hash = await sha256(bytes);
   const existing = await deps.books.findByHash(hash);
   if (existing) return { book: existing, duplicate: true };
+  if (format) return { book: await importEbook(file, format, hash, deps), duplicate: false };
 
   let doc: PDFDocumentProxy;
   try {

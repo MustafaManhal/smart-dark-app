@@ -102,7 +102,7 @@ test("the installed app offers itself for PDF files, and opens the file it is ha
   });
   await page.goto("./");
   const manifest = await (await request.get((await page.locator('link[rel="manifest"]').getAttribute("href"))!)).json();
-  expect(manifest.file_handlers).toEqual([{ action: "./", accept: { "application/pdf": [".pdf"] } }]);
+  expect(manifest.file_handlers).toEqual([{ action: "./", accept: { "application/pdf": [".pdf"], "application/epub+zip": [".epub"] } }]);
   expect(manifest.launch_handler).toEqual({ client_mode: "focus-existing" });
 
   // The app takes the queue once its library is open.
