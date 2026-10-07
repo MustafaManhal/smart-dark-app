@@ -94,8 +94,18 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     setToast((current) => (current?.undo ? null : current));
     history.current!.push(step);
   };
-  const undo = async () => setToast({ text: t((await history.current!.undo()) ? "Undone" : "Nothing to undo") });
-  const redo = async () => setToast({ text: t((await history.current!.redo()) ? "Redone" : "Nothing to redo") });
+  // Undo and redo rewrite stored notes; an open sticky note shows the stored text again when this changes.
+  const [editEpoch, setEditEpoch] = useState(0);
+  const undo = async () => {
+    const done = await history.current!.undo();
+    setEditEpoch((e) => e + 1);
+    setToast({ text: t(done ? "Undone" : "Nothing to undo") });
+  };
+  const redo = async () => {
+    const done = await history.current!.redo();
+    setEditEpoch((e) => e + 1);
+    setToast({ text: t(done ? "Redone" : "Nothing to redo") });
+  };
   const [focusStickyId, setFocusStickyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -213,13 +223,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     if (!ready || !renderer.current) return;
     renderOverlays(renderer.current, annotations.data, {
       focusStickyId,
+      epoch: editEpoch,
       onStickyChange: (s) => changeSticky(s),
       onStickyDelete: (s) => removeSticky(s),
       onNoteOpen: (n, b) => (erasing
         ? removeNote(n)
         : setPopover({ type: "note", draft: n, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } })),
     });
-  }, [ready, annotations.data, focusStickyId, erasing]);
+  }, [ready, annotations.data, focusStickyId, erasing, editEpoch]);
 
   // Messages leave by themselves; one with Undo stays a little longer.
   useEffect(() => {
@@ -234,7 +245,10 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
 
   // Every change goes into the history. A removal also shows a message with Undo,
   // so one tap is enough to remove.
-  const takeBack = () => history.current!.undo();
+  const takeBack = async () => {
+    await history.current!.undo();
+    setEditEpoch((e) => e + 1);
+  };
   async function removeHighlight(h: Highlight) {
     await annotations.removeHighlight(h);
     record({ undo: () => annotations.saveHighlight(h), redo: () => annotations.removeHighlight(h) });

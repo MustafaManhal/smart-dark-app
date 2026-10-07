@@ -64,7 +64,11 @@ export function NotePopover({ note, anchor, onSave, onDelete, onClose }: {
   const [title, setTitle] = useState(note.title ?? "");
   const area = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-    setTimeout(() => area.current?.focus(), 30);
+    // Not if the reader has already gone to the title or the text.
+    const timer = setTimeout(() => {
+      if (!area.current?.closest(".popover")?.contains(document.activeElement)) area.current?.focus();
+    }, 30);
+    return () => clearTimeout(timer);
   }, []);
   const close = () => {
     // Clicking away keeps what was typed; an empty new note is simply dropped.

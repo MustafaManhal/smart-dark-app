@@ -9,6 +9,8 @@ import { StickyNote } from "./StickyNote";
 
 type Handlers = {
   focusStickyId: string | null;
+  /** Bumped by undo and redo. */
+  epoch: number;
   onStickyChange: (s: Sticky) => void;
   onStickyDelete: (s: Sticky) => void;
   onNoteOpen: (n: PassageNote, anchor: DOMRect) => void;
@@ -51,7 +53,7 @@ export function renderOverlays(renderer: Renderer, data: BookAnnotations, handle
       <>
         {data.notes.filter((x) => x.page === n).map((x) => <NoteBadge key={x.id} note={x} onOpen={handlers.onNoteOpen} />)}
         {data.stickies.filter((s) => s.page === n).map((s) => (
-          <StickyNote key={s.id} note={s} autoFocus={s.id === handlers.focusStickyId}
+          <StickyNote key={s.id} note={s} epoch={handlers.epoch} autoFocus={s.id === handlers.focusStickyId}
             onChange={handlers.onStickyChange} onDelete={handlers.onStickyDelete} />
         ))}
       </>,

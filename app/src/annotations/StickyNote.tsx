@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import { HIGHLIGHT_COLORS, type Sticky } from "../db/annotations";
 import { IconButton } from "../ui/Button";
@@ -7,13 +7,15 @@ import { COLOR_HEX, COLOR_LABEL } from "./colors";
 
 type Props = {
   note: Sticky;
+  /** Changes when undo or redo rewrote notes: the note then shows what is stored, not what was typed. */
+  epoch: number;
   autoFocus: boolean;
   onChange: (note: Sticky) => void;
   onDelete: (note: Sticky) => void;
 };
 
 /** A sticky note on the page: drag by its header, type in its body. */
-export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
+export function StickyNote({ note, epoch, autoFocus, onChange, onDelete }: Props) {
   const [text, setText] = useState(note.text);
   const [title, setTitle] = useState(note.title ?? "");
   const [pos, setPos] = useState({ x: note.x, y: note.y });
@@ -23,22 +25,20 @@ export function StickyNote({ note, autoFocus, onChange, onDelete }: Props) {
   const saveTimer = useRef(0);
 
   useEffect(() => setPos({ x: note.x, y: note.y }), [note.x, note.y]);
-  // Undo and redo change the note from outside. What this note saved itself comes back
-  // unchanged and is ignored, so typing ahead of a save is never overwritten.
-  const sent = useRef({ text: note.text, title: note.title ?? "" });
+  // What is typed here is ahead of what is stored, and a save can come back late, so stored
+  // text never replaces typed text. Only undo and redo do that, and they say so through `epoch`.
+  const seenEpoch = useRef(epoch);
   useEffect(() => {
-    const incoming = { text: note.text, title: note.title ?? "" };
-    if (incoming.text === sent.current.text && incoming.title === sent.current.title) return;
-    sent.current = incoming;
-    setText(incoming.text);
-    setTitle(incoming.title);
-  }, [note.text, note.title]);
-  const send = (next: Sticky) => {
-    sent.current = { text: next.text, title: next.title ?? "" };
-    onChange(next);
-  };
-  useEffect(() => {
-    if (autoFocus && !note.collapsed) area.current?.focus();
+    if (seenEpoch.current === epoch) return; // not on first show: the reader may already be typing
+    seenEpoch.current = epoch;
+    setText(note.text);
+    setTitle(note.title ?? "");
+  }, [epoch]);
+  const send = onChange;
+  // A new note takes the keyboard, unless the reader is already in one of its fields
+  // (the request to focus can arrive a moment after the note is on screen).
+  useLayoutEffect(() => {
+    if (autoFocus && !note.collapsed && !root.current?.contains(document.activeElement)) area.current?.focus();
   }, [autoFocus]);
 
   const save = (patch: Partial<Sticky>) => send({ ...note, text, title, ...pos, ...patch });
