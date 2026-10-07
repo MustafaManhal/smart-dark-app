@@ -9,6 +9,8 @@ do: open the developer account, pay the fee where there is one, paste the texts,
 | Edge Add-ons | the same zip | `npm run package` | Microsoft Partner Center, free | [edge-addons.md](edge-addons.md) |
 | Firefox Add-ons | `reader343-firefox-<version>.zip` | `npm run package` | Firefox account, free | [firefox-addons.md](firefox-addons.md) |
 | Microsoft Store | `Reader343-<version>-win-x64.appx` and `-arm64.appx` | the "Microsoft Store package" workflow on GitHub | Microsoft Partner Center, free for individuals | [microsoft-store.md](microsoft-store.md) |
+| Google Play | `app-release-bundle.aab` | the "Google Play package" workflow on GitHub | Play Console, $25 once | [google-play.md](google-play.md) |
+| App Store | an archive made in Xcode from `ios/` | the owner, on a Mac | Apple Developer Program, $99 a year | [app-store.md](app-store.md) |
 
 The zip files and the `.appx` files are not kept in the repository. Make them fresh before uploading.
 
@@ -23,6 +25,9 @@ All in `store/`. `npm run store-assets` makes them again after the look of the a
 | `logo-300.png` | 300x300 | Edge extension logo, Microsoft Store app tile icon |
 | `microsoft/1-reader.png` to `5-pdf-tools.png` | 1920x1080 PNG | Microsoft Store (the desktop app) |
 | `src/icons/icon128.png` | 128x128 | Chrome store icon |
+| `google-play/1-reader.png` to `5-ebook.png` | 1080x1920 PNG | Google Play phone screenshots |
+| `google-play/feature-1024x500.png`, `google-play/icon-512.png` | 1024x500, 512x512 | Google Play feature graphic and icon |
+| `app-store/1-reader.png` to `5-ebook.png` | 1290x2796 PNG | App Store, 6.9-inch iPhone |
 
 ## Addresses to paste
 
@@ -49,4 +54,9 @@ All in `store/`. `npm run store-assets` makes them again after the look of the a
 - The Microsoft Store package is built by the workflow on a Windows machine of GitHub. Nobody has
   installed that package on Windows yet. Install it once from the workflow's download before submitting
   (see microsoft-store.md).
+- The Google Play package was built by its workflow with a key made for the run. Nobody has installed
+  it on an Android phone.
+- The iPhone project is built for the simulator by the "iPhone app" workflow, which also starts the app
+  and keeps a picture of its first screen. Nobody has run it on a real iPhone; `docs/iphone-checklist.md`
+  is the list to go through.
 - No store has seen any of this. A reviewer may still ask for changes.

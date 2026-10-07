@@ -12,9 +12,12 @@ export async function registerServiceWorker() {
   }
 }
 
-/** True when running as an installed app (home screen, dock, or desktop app). */
+/** True inside the iPhone or Android app from a store (the shell puts `Capacitor` on the window). */
+const inNativeShell = () => (globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() === true;
+
+/** True when running as an installed app (home screen, dock, desktop app, or an app from a store). */
 export function isInstalled() {
-  return !!desktop || matchMedia("(display-mode: standalone)").matches ||
+  return !!desktop || inNativeShell() || matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 

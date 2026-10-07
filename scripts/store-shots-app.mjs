@@ -1,5 +1,5 @@
-// Takes the Microsoft Store screenshots of the app (store/microsoft/, PNG, 1920x1080) from the built app.
-// The Store asks for PNG files of 1366x768 or larger and shows up to ten of them.
+// Takes the store screenshots of the app from the built app: store/microsoft/ (PNG, 1920x1080; the
+// Microsoft Store asks for 1366x768 or larger), store/google-play/ (1080x1920) and store/app-store/ (1290x2796).
 // Run after `npm run app:build`: node scripts/store-shots-app.mjs
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
@@ -84,8 +84,43 @@ try {
   await page.locator(".tool-page").nth(3).click();
   await page.mouse.move(640, 690);
   await shot("5-pdf-tools");
+
+  // Phones. Google Play wants 9:16 (1080x1920 here); the App Store wants the size of its largest iPhone (1290x2796).
+  for (const [folder, width, height] of [["google-play", 360, 640], ["app-store", 430, 932]]) {
+    const dir = fileURLToPath(new URL(`../store/${folder}/`, import.meta.url));
+    mkdirSync(dir, { recursive: true });
+    const phone = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 3, colorScheme: "dark", isMobile: true, hasTouch: true, serviceWorkers: "block" });
+    const p = await phone.newPage();
+    const snap = async (name) => {
+      await p.waitForTimeout(700);
+      await p.screenshot({ path: `${dir}${name}.png` });
+    };
+    await p.goto(`http://localhost:${PORT}/`);
+    const pick = p.waitForEvent("filechooser");
+    await p.getByRole("button", { name: "Choose a PDF" }).click();
+    await (await pick).setFiles(["src/sample/sample.pdf", "test/fixtures/links.pdf", "test/fixtures/sample.epub"]);
+    await p.getByRole("list", { name: "Books" }).getByRole("listitem").nth(2).waitFor();
+    await p.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
+    await p.locator('.page[data-page="1"] canvas').waitFor();
+    await snap("1-reader");
+    await p.getByRole("button", { name: "Appearance" }).click();
+    await snap("2-appearance");
+    await p.getByRole("dialog", { name: "Appearance" }).getByRole("button", { name: "Close" }).click();
+    await p.getByRole("button", { name: "Contents" }).click();
+    await snap("3-contents");
+    await p.getByRole("button", { name: "Close panel" }).click();
+    await p.locator(".reader-scroll").evaluate((el) => { el.scrollTop = 400; });
+    await p.waitForTimeout(600);
+    await p.getByRole("button", { name: "Back to library" }).click();
+    await p.getByRole("list", { name: "Books" }).getByRole("listitem").nth(2).waitFor();
+    await snap("4-library");
+    await p.getByRole("list", { name: "Books" }).getByText("The Lighthouse Ledger").click();
+    await p.locator(".ebook-title small").waitFor();
+    await snap("5-ebook");
+    await phone.close();
+  }
 } finally {
   await browser.close();
   server.kill();
 }
-console.log(`pictures written to ${out}`);
+console.log(`pictures written to ${out} and to store/google-play/, store/app-store/`);

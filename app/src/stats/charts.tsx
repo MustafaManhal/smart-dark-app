@@ -97,7 +97,7 @@ export function Heatmap({ days, unit, now }: { days: Map<string, DayTotal>; unit
         <div class="heat-months" style={{ gridTemplateColumns: `repeat(${weeks}, var(--cell))` }} aria-hidden="true">
           {months.map((m) => <span style={{ gridColumn: `${m.col + 1} / span 3` }}>{m.label}</span>)}
         </div>
-        <div class="heat-grid" role="grid" aria-label={t("Reading per day, last {n} weeks", { n: weeks })}>
+        <div class="heat-grid" role="group" aria-label={t("Reading per day, last {n} weeks", { n: weeks })}>
           {cells.map((c) => (
             <button type="button" class={`heat-cell l${level(c.v)} ${c.future ? "is-future" : ""}`} tabIndex={c.future ? -1 : 0}
               aria-label={c.future ? undefined : `${fmtDay(c.t)}: ${unitLabel(c.v, unit)}`} disabled={c.future}

@@ -137,4 +137,8 @@ if (existsSync(iosAssets)) {
 // Store listings: Edge Add-ons asks for a square logo (300x300), the Microsoft Store takes the same as its app tile.
 mkdirSync(new URL("../store/", import.meta.url), { recursive: true });
 writeFileSync(new URL("../store/logo-300.png", import.meta.url), encodePng(300, 300, draw(300)));
+// Google Play: the "feature graphic" shown at the top of the listing (1024x500), and its 512 icon without see-through corners.
+mkdirSync(new URL("../store/google-play/", import.meta.url), { recursive: true });
+writeFileSync(new URL("../store/google-play/feature-1024x500.png", import.meta.url), encodePng(1024, 500, drawTile(1024, 500, 0.62, 2), { alpha: false }));
+writeFileSync(new URL("../store/google-play/icon-512.png", import.meta.url), encodePng(512, 512, draw(512, 0.08, true), { alpha: false }));
 console.log("icons written to src/icons/, build/icon.png, build/appx/, store/logo-300.png and app/public/icons/");

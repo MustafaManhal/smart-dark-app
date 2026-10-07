@@ -165,7 +165,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | G5 (done 2026-10-07; tried with a stand-in queue, not with an installed app) | "Open with" on computers for the installed web app | free | File Handling API, Chrome and Edge on computers only ([Chrome docs](https://developer.chrome.com/docs/capabilities/web-apis/file-handling)). Not possible on iPhone |
 | G6 (done 2026-10-07; tried with test folders, not with a real cloud folder) | Sync between a person's computers through a folder they choose (iCloud Drive, Dropbox, OneDrive) | free | folder access works in Chrome, Edge and the desktop app only ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API)). On iPhone it stays "import a backup". Real sync for phones needs a server and accounts, which costs money and ends "no account" |
 | G7 (texts written 2026-10-07 in `docs/launch/`; not posted) | Launch: Show HN, AlternativeTo, GitHub topics | free | after B and A are live; a public repository and no sign-up wall are what these audiences reward |
-| G8 | Android (Play Store, $25 once) and iPhone App Store ($99 a year) | paid | owner's decision; not planned |
+| G8 (prepared 2026-10-07: Android package workflow, iPhone project in `ios/`, listing text and pictures in `docs/store/`; no account, nothing submitted) | Android (Play Store, $25 once) and iPhone App Store ($99 a year) | paid | owner's decision; not planned |
 
 ### Always: quality
 

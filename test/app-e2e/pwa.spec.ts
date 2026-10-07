@@ -90,6 +90,14 @@ test("iPhone Safari shows how to install, once", async ({ page, isMobile }) => {
   await expect(hint).toHaveCount(0);
 });
 
+test("inside the app from a store, nobody is told to add it to the Home Screen", async ({ page }) => {
+  // The store app's shell (Capacitor) puts this object on the window.
+  await page.addInitScript(() => { (window as never as { Capacitor: unknown }).Capacitor = { isNativePlatform: () => true }; });
+  await page.goto("./");
+  await expect(page.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
+  await expect(page.getByRole("note", { name: "Install the app" })).toHaveCount(0);
+});
+
 test("settings show how much space the library uses", async ({ page }) => {
   await page.goto("./#/settings");
   await expect(page.getByText(/Using \d+(\.\d)? MB\./)).toBeVisible();

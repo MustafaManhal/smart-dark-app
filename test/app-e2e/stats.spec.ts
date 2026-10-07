@@ -40,7 +40,7 @@ test("stats show streak, goal progress, charts and a table", async ({ page }) =>
   await expect(page.getByText("Goal reached today")).toBeVisible();
   await expect(page.locator(".goal-line")).toContainText("Goal 20 min");
   await expect(page.getByRole("button", { name: /: 25 min$/ }).first()).toBeVisible();
-  await expect(page.getByRole("grid", { name: /Reading per day/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /Reading per day/ })).toBeVisible();
   await page.screenshot({ path: `test/output/stats-${test.info().project.name}.png`, fullPage: true });
 
   await page.getByRole("button", { name: "Show as table" }).click();
