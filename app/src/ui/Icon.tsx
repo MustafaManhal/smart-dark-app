@@ -27,6 +27,8 @@ const PATHS = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   notes: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  keyboard: "M3 7h18v10H3zM7 10.5h.01M11 10.5h.01M15 10.5h.01M8 14h8",
+  autoScroll: "M12 4v14M7 13l5 5 5-5M5 21h14M9 4h6",
   print: "M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z",
   backup: "M4 7h16v3H4zM5 10v9h14v-9M10 14h4",
   chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",

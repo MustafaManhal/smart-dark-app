@@ -106,7 +106,7 @@ that ship on their own.
 | A4 (done 2026-10-07) | Crop margins: "fit text" zoom that cuts the white border, per book | S | measured by drawing each page small and finding its ink, which also sees charts and rules; kept with the book |
 | A5 (done 2026-10-07) | Links: tap an internal link to jump, a Back button to return, and a preview of the target (figure, footnote, reference) on hover or long press | M | the Sioyek and Zotero favorite |
 | A6 (done 2026-10-07) | Password PDFs, print, save a copy | S | the password stays on the device and out of backups; print uses the book's own colors |
-| A7 | Auto-scroll with speed control; keyboard shortcut sheet; command palette (Ctrl/Cmd+K) | S | |
+| A7 (done 2026-10-07) | Auto-scroll with speed control; keyboard shortcut sheet; command palette (Ctrl/Cmd+K) | S | |
 
 ### Phase B. New look, welcome, library (the "modern" part)
 

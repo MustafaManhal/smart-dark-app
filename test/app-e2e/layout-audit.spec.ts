@@ -26,7 +26,7 @@ async function check(page: Page, where: string, findings: Finding[]) {
     // The layer on top: a sheet, else the whole page.
     const backdrop = document.querySelector<HTMLElement>(".panel-backdrop");
     const panelModal = backdrop && getComputedStyle(backdrop).display !== "none" ? document.querySelector(".notes-panel") : null;
-    const modal = [...document.querySelectorAll(".sheet-backdrop")].at(-1) ?? panelModal ?? null;
+    const modal = [...document.querySelectorAll(".sheet-backdrop, .palette-backdrop")].at(-1) ?? panelModal ?? null;
     const scope = modal ?? document.body;
     const controls = [...scope.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea")];
     for (const el of controls) {
@@ -255,6 +255,24 @@ for (const lang of ["en", "ar"] as const) {
       await page.locator(".top-menu").click();
       await expect(page.locator(".book-menu")).toBeVisible();
       await check(page, `${tag}-18b-book-menu`, findings);
+      // From the book menu: the command list, auto-scroll and (with a keyboard) the shortcut sheet.
+      await page.locator(".book-menu button").first().click();
+      await expect(page.locator(".palette")).toBeVisible();
+      await check(page, `${tag}-18c-commands`, findings);
+      await page.locator(".palette input").fill("page");
+      await check(page, `${tag}-18d-commands-found`, findings);
+      await page.keyboard.press("Escape");
+      await page.locator(".top-menu").click();
+      await page.locator(".book-menu button").nth(1).click();
+      await expect(page.locator(".auto-bar")).toBeVisible();
+      await page.locator(".auto-bar .read-play").click(); // hold still for the picture
+      await check(page, `${tag}-18e-auto-scroll`, findings);
+      await page.locator(".auto-bar .icon-btn").last().click();
+      await page.keyboard.press("?");
+      await expect(page.locator(".shortcuts")).toBeVisible();
+      await check(page, `${tag}-18f-shortcuts`, findings);
+      await page.locator(".sheet").evaluate((s) => s.scrollTo(0, s.scrollHeight));
+      await check(page, `${tag}-18g-shortcuts-end`, findings);
       await page.locator(".sheet-head .icon-btn").click();
       await page.locator(".page-pill").click();
       await check(page, `${tag}-19-goto`, findings);

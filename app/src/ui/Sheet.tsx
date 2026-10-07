@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { t } from "../i18n/i18n";
-import { useEffect } from "preact/hooks";
+import { useLayoutEffect } from "preact/hooks";
 import { IconButton } from "./Button";
 
 // Bottom sheet on phones, centered panel on wide screens (see .sheet in app.css).
@@ -8,7 +8,8 @@ import { IconButton } from "./Button";
 export function Sheet({ open, title, onClose, peek, children }: {
   open: boolean; title: string; onClose: () => void; peek?: boolean; children: ComponentChildren;
 }) {
-  useEffect(() => {
+  // A layout effect: Escape works from the moment the sheet is on screen.
+  useLayoutEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);

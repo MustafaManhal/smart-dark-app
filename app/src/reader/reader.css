@@ -361,3 +361,30 @@
 .link-preview-view canvas { display: block; }
 .link-preview-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; padding: 4px 10px; color: var(--muted); font-size: 13px; }
 .link-preview-foot .btn { height: 32px; padding: 0 12px; }
+
+/* Auto-scroll: the bar is the read-aloud bar with other buttons; page-by-page snapping would fight the movement */
+.reader-scroll.is-autoscrolling { scroll-snap-type: none; }
+.auto-speed { min-width: 26px; text-align: center; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+/* Command list (Ctrl/Cmd+K) */
+.palette-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center; align-items: start; padding: max(10vh, calc(var(--safe-top) + 12px)) 12px 12px; background: rgb(0 0 0 / 0.35); animation: fade 0.15s; }
+.palette { width: min(560px, 100%); max-height: min(70vh, 520px); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+.palette-field { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
+.palette-field input { flex: 1; min-width: 0; height: 50px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 16px; }
+.palette-list { list-style: none; margin: 0; padding: 6px; overflow: auto; overscroll-behavior: contain; }
+.palette-list li { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 6px 10px; border-radius: 10px; cursor: pointer; }
+.palette-list li.is-active { background: var(--surface-2); }
+.palette-icon { flex: none; width: 18px; height: 18px; color: var(--muted); }
+.palette-title { flex: 1; min-width: 0; display: grid; overflow-wrap: anywhere; }
+.palette-title small { color: var(--muted); font-size: 12px; }
+.palette-empty { color: var(--muted); cursor: default !important; }
+kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font: 12px/1.5 var(--font); white-space: nowrap; }
+.book-menu kbd { margin-inline-start: auto; }
+
+/* Keyboard shortcuts */
+.shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 24px; }
+.shortcuts h3 { margin: 12px 0 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.shortcuts dl { margin: 0; display: grid; gap: 6px; }
+.shortcuts dl div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shortcuts dt, .shortcuts dd { margin: 0; }
+.shortcuts dd { order: -1; }

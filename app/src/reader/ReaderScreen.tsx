@@ -25,6 +25,9 @@ import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, PasswordError, type OutlineItem, type PDFDocumentProxy, type Target } from "./pdf";
 import { LinkPreview } from "./LinkPreview";
 import { measureCrop } from "./crop";
+import { AutoScrollBar, useAutoScroll } from "./autoscroll";
+import { CommandPalette, type Command } from "./CommandPalette";
+import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
 import { saveFile } from "../platform/saveFile";
@@ -77,7 +80,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
-  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | "menu" | null>(null);
+  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | "menu" | "shortcuts" | null>(null);
+  const [palette, setPalette] = useState(false);
   // A protected book whose password is not stored here (for example after a backup was restored).
   const [locked, setLocked] = useState<{ wrong: boolean } | null>(null);
   const [attempt, setAttempt] = useState<{ password: string } | null>(null);
@@ -275,6 +279,10 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [barsHidden, setBarsHidden] = useState(false);
   const readAloud = useReadAloud(renderer, outline, book?.pageCount ?? 0);
   const search = useBookSearch(bookSearch, renderer, page);
+  // Auto-scroll and read aloud both move the page, so only one runs at a time.
+  const auto = useAutoScroll(scroller);
+  const startAuto = () => { readAloud.close(); setSheet(null); auto.start(); };
+  const startReadAloud = () => { auto.stop(); readAloud.show(); readAloud.toggle(page); };
   const chapter = currentChapter(outline, page, total);
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
@@ -289,11 +297,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     if (to !== from.page || Math.abs(offset - from.offset) > 0.25) setBackStack((stack) => [...stack.slice(-19), from]);
     r.scrollToPage(to, offset);
   };
-  // Read through a ref, so a key pressed right after a jump already sees it.
-  const backRef = useRef(backStack);
-  backRef.current = backStack;
   const goBack = () => {
-    const last = backRef.current.at(-1);
+    const last = backStack.at(-1);
     if (!last) return;
     setBackStack((stack) => stack.slice(0, -1));
     renderer.current?.scrollToPage(last.page, last.offset);
@@ -597,51 +602,70 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     else removeBookmark(entry.item);
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && placing) return setPlacing(false);
-      if (e.key === "Escape" && erasing) return setErasing(false);
-      // Ctrl/Cmd+Z undoes the last edit, with Shift (or Ctrl+Y) it is done again. Text fields keep their own undo.
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
-        e.preventDefault();
-        if (e.key.toLowerCase() === "y" || e.shiftKey) redo();
-        else undo();
-        return;
-      }
-      // Ctrl/Cmd+F searches the book instead of the browser's own find, which only sees the pages on screen.
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        search.show();
-        return;
-      }
-      // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
-      if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
-        e.preventDefault();
-        if (e.key === "0") renderer.current?.fitWidth();
-        else renderer.current?.zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP);
-        return;
-      }
-      // Alt+Left returns from the last jump, as Back does in a browser.
-      if (e.altKey && e.key === "ArrowLeft" && backRef.current.length && !isTyping(e.target)) {
-        e.preventDefault();
-        goBack();
-        return;
-      }
-      if (sheet || popover || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const actions: Record<string, () => void> = {
-        ArrowRight: () => go(page + 1), j: () => go(page + 1),
-        ArrowLeft: () => go(page - 1), k: () => go(page - 1),
-        Home: () => go(1), End: () => go(total),
-      };
-      const action = actions[e.key];
-      if (action) {
-        e.preventDefault();
-        action();
-      }
+  // The keys always run the handler of the latest render. An effect that swaps the listener would lag a
+  // moment behind each change (effects run after the paint), long enough for a quick second key press.
+  const onKey = useRef<(e: KeyboardEvent) => void>(() => {});
+  onKey.current = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && placing) return setPlacing(false);
+    if (e.key === "Escape" && erasing) return setErasing(false);
+    // Ctrl/Cmd+Z undoes the last edit, with Shift (or Ctrl+Y) it is done again. Text fields keep their own undo.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
+      e.preventDefault();
+      if (e.key.toLowerCase() === "y" || e.shiftKey) redo();
+      else undo();
+      return;
+    }
+    // Ctrl/Cmd+F searches the book instead of the browser's own find, which only sees the pages on screen.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      search.show();
+      return;
+    }
+    // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
+    if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
+      e.preventDefault();
+      if (e.key === "0") renderer.current?.fitWidth();
+      else renderer.current?.zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP);
+      return;
+    }
+    // Ctrl/Cmd+K: every action in one list.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      setPalette((on) => !on);
+      return;
+    }
+    // Alt+Left returns from the last jump, as Back does in a browser.
+    if (e.altKey && e.key === "ArrowLeft" && backStack.length && !isTyping(e.target)) {
+      e.preventDefault();
+      goBack();
+      return;
+    }
+    if (sheet || popover || palette || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === " " && auto.open) {
+      e.preventDefault(); // Space would page down under the moving text
+      auto.toggle();
+      return;
+    }
+    const actions: Record<string, () => void> = {
+      "?": () => setSheet("shortcuts"),
+      a: () => (auto.open ? auto.stop() : startAuto()), A: () => (auto.open ? auto.stop() : startAuto()),
+      b: () => toggleBookmark(page), B: () => toggleBookmark(page),
+      g: () => setSheet("goto"), G: () => setSheet("goto"),
+      ArrowRight: () => go(page + 1), j: () => go(page + 1),
+      ArrowLeft: () => go(page - 1), k: () => go(page - 1),
+      Home: () => go(1), End: () => go(total),
     };
-    addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
-  }, [page, total, sheet, popover, placing, erasing, search.open]);
+    const action = actions[e.key];
+    if (action) {
+      e.preventDefault();
+      action();
+    }
+  };
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onKey.current(e);
+    addEventListener("keydown", listener);
+    return () => removeEventListener("keydown", listener);
+  }, []);
 
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
@@ -684,6 +708,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects) });
       if (h) return setPopover({ type: "highlight", id: h.id, anchor: anchorFor(pageEl, h.rects) });
     }
+    // While the pages move by themselves, a tap on the page holds them and lets them go again.
+    if (auto.open) return auto.toggle();
     if (matchMedia("(hover: none)").matches) setBarsHidden((hidden) => !hidden);
   };
 
@@ -701,12 +727,54 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   };
 
   const zoomPercent = Math.round((zoom.scale / CSS_UNITS) * 100);
+  const touchOnly = matchMedia("(hover: none)").matches;
+
+  /** Everything the reader can do, for the command list (Ctrl/Cmd+K). Built when the list opens. */
+  const commands = (): Command[] => {
+    const tool = (on: boolean, set: (on: boolean) => void) => () => {
+      setHighlightMode(false); setPlacing(false); setErasing(false);
+      set(!on);
+    };
+    const list: (Command | false)[] = [
+      { id: "search", title: t("Search in book"), icon: "search", keys: keys("Mod+F"), run: search.show },
+      { id: "goto", title: t("Go to page"), icon: "chevronRight", keys: "G", run: () => setSheet("goto") },
+      outline.length > 0 && { id: "toc", title: t("Contents"), icon: "list", run: () => setSheet("toc") },
+      backStack.length > 0 && { id: "back", title: t("Back to page {n}", { n: backStack.at(-1)!.page }), icon: "back", keys: keys("Alt+←"), run: goBack },
+      { id: "highlight", title: t("Highlight text"), icon: "highlighter", run: tool(highlightMode, setHighlightMode) },
+      { id: "erase", title: t("Erase highlights and notes"), icon: "eraser", run: tool(erasing, setErasing) },
+      { id: "sticky", title: t("Add sticky note"), icon: "sticky", run: tool(placing, setPlacing) },
+      { id: "bookmark", title: t(bookmarked ? "Remove bookmark" : "Bookmark this page"), icon: "bookmark", keys: "B", run: () => toggleBookmark(page) },
+      { id: "notes", title: t("Notes and highlights"), icon: "notes", run: () => setPanelOpen(true) },
+      { id: "read", title: t("Read aloud"), icon: "headphones", run: () => (readAloud.open ? readAloud.close() : startReadAloud()) },
+      { id: "auto", title: t("Auto-scroll"), icon: "autoScroll", keys: "A", run: () => (auto.open ? auto.stop() : startAuto()) },
+      { id: "appearance", title: t("Appearance"), icon: "palette", run: () => setSheet("appearance") },
+      { id: "zoom-in", title: t("Zoom in"), icon: "plus", keys: keys("Mod++"), run: () => renderer.current?.zoomBy(ZOOM_STEP) },
+      { id: "zoom-out", title: t("Zoom out"), icon: "minus", keys: keys("Mod+-"), run: () => renderer.current?.zoomBy(1 / ZOOM_STEP) },
+      { id: "fit-width", title: t("Fit width"), keys: keys("Mod+0"), run: () => renderer.current?.fitWidth() },
+      { id: "fit-page", title: t("Fit page"), run: () => renderer.current?.fitPage() },
+      ...LAYOUTS.map(([value, label]): Command => ({ id: `layout-${value}`, title: `${t("Layout")}: ${t(label)}`, run: () => saveSetting("viewLayout", value) })),
+      ...STYLES.map(([value, label]): Command => ({ id: `style-${value}`, title: `${t("Page")}: ${t(label)}`, run: () => saveSetting("pageStyle", value) })),
+      { id: "crop", title: t("Crop margins"), run: () => toggleCrop(!crop?.on) },
+      canFullscreen && { id: "fullscreen", title: t(fullscreen ? "Leave full screen" : "Full screen"),
+        run: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()) },
+      { id: "undo", title: t("Undo"), icon: "undo", keys: keys("Mod+Z"), run: undo },
+      { id: "redo", title: t("Redo"), icon: "redo", keys: keys("Mod+Shift+Z"), run: redo },
+      { id: "print", title: t("Print"), icon: "print", run: () => { setSheet("menu"); print(); } },
+      { id: "save", title: t("Save a copy"), icon: "download", run: saveCopy },
+      !touchOnly && { id: "shortcuts", title: t("Keyboard shortcuts"), icon: "keyboard", keys: "?", run: () => setSheet("shortcuts") },
+      { id: "library", title: t("Back to library"), icon: "back", run: () => navigate({ name: "library" }) },
+      ...outline.slice(0, 300).map((item, i): Command => ({
+        id: `toc-${i}`, title: item.title, hint: t("Page {page}", { page: item.page }), icon: "list", run: () => jump(item.page),
+      })),
+    ];
+    return list.filter((c): c is Command => !!c);
+  };
 
   const chapterStarts = total > 1 ? outline.filter((o) => o.depth === 0 && o.page > 1).map((o) => (o.page - 1) / total) : [];
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   return (
-    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""} ${search.open ? "searching" : ""}`} data-style={pageStyle}>
+    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open || auto.open ? "reading" : ""} ${search.open ? "searching" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
         <IconButton label={t("Back to library")} icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
@@ -730,7 +798,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
             class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
             onClick={() => toggleBookmark(page)} />
           <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
-            disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : (readAloud.show(), readAloud.toggle(page)))} />
+            disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
           <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
             onClick={() => setPanelOpen((v) => !v)} />
           <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
@@ -853,6 +921,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       )}
 
       <ReadAloudBar ra={readAloud} page={page} />
+      <AutoScrollBar auto={auto} />
 
       {selection && !highlightMode && (
         <SelectionBar
@@ -921,6 +990,19 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         ) : (
           <ul class="book-menu">
             <li>
+              <button type="button" onClick={() => { setSheet(null); setPalette(true); }}>
+                <Icon name="search" />
+                <span><strong>{t("Find a command")}</strong><small>{t("Every action of the reader in one list.")}</small></span>
+                {!touchOnly && <kbd dir="ltr">{keys("Mod+K")}</kbd>}
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={startAuto}>
+                <Icon name="autoScroll" />
+                <span><strong>{t("Auto-scroll")}</strong><small>{t("The pages move by themselves, at the speed you set.")}</small></span>
+              </button>
+            </li>
+            <li>
               <button type="button" onClick={print}>
                 <Icon name="print" />
                 <span><strong>{t("Print")}</strong><small>{t("In the book's own colors, without your highlights.")}</small></span>
@@ -932,9 +1014,21 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
                 <span><strong>{t("Save a copy")}</strong><small>{t("The PDF file as you added it.")}</small></span>
               </button>
             </li>
+            {!touchOnly && (
+              <li>
+                <button type="button" onClick={() => setSheet("shortcuts")}>
+                  <Icon name="keyboard" />
+                  <span><strong>{t("Keyboard shortcuts")}</strong><small>{t("What each key does.")}</small></span>
+                  <kbd>?</kbd>
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </Sheet>
+
+      <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      {palette && <CommandPalette commands={commands()} pages={total} onGoToPage={jump} onClose={() => setPalette(false)} />}
 
       <PasswordSheet locked={locked && book ? {
         name: book.fileName, wrong: locked.wrong,
