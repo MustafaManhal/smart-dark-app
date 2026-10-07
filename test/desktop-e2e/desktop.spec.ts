@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication } from "@playwright/test";
-import { existsSync, mkdtempSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -67,11 +67,9 @@ test("links open in the system browser, not inside the app", async () => {
   expect(win.url()).toBe("app://bundle/index.html");
 });
 
-// The speech model (326 MB) is read from a local copy served by scripts/serve-app.mjs.
-const MODEL = "node_modules/.cache/smart-dark-tts/model/onnx/model.onnx";
-
+// The desktop app reads the speech model from the web app's site. Here the local test
+// server stands in for it (scripts/serve-app.mjs serves the same files and headers).
 test("natural voices speak in the desktop app", async () => {
-  test.skip(!existsSync(MODEL), `needs the speech model at ${MODEL}`);
   test.setTimeout(180_000);
   await app.close();
   const profile = mkdtempSync(join(tmpdir(), "sdr-"));
@@ -84,7 +82,7 @@ test("natural voices speak in the desktop app", async () => {
   expect(await win.evaluate(() => crossOriginIsolated)).toBe(true); // threads for the voice engine
   await win.evaluate(() => {
     const w = window as unknown as { __smartDarkModelHost: string; __clips: { seconds: number; peak: number }[] };
-    w.__smartDarkModelHost = "http://localhost:5198/__model/";
+    w.__smartDarkModelHost = "http://localhost:5198/";
     // The device voices would speak out loud on the test machine: keep them quiet.
     Object.defineProperty(window, "speechSynthesis", { configurable: true, value: { speaking: false, speak() {}, cancel() {}, getVoices: () => [] } });
     // Count the audio clips the natural voice plays, with their length and loudness.
@@ -105,7 +103,7 @@ test("natural voices speak in the desktop app", async () => {
   await win.getByRole("button", { name: "Read aloud", exact: true }).click();
   await win.getByRole("button", { name: "Read aloud settings" }).click();
   const sheet = win.getByRole("dialog", { name: "Read aloud" });
-  await sheet.getByRole("button", { name: "Download natural voices (326 MB)" }).click();
+  await sheet.getByRole("button", { name: "Download natural voices (102 MB)" }).click();
   const natural = sheet.getByRole("list", { name: "Natural voices" });
   await expect(natural.getByRole("listitem")).toHaveCount(28, { timeout: 90_000 });
   await expect(natural.getByRole("radio", { name: /Heart/ })).toBeChecked();

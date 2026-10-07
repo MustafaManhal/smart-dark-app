@@ -13,8 +13,9 @@ const pkg = JSON.parse(await readFile(join(here, "..", "package.json"), "utf8"))
 const UPDATE_REPO = pkg.desktop?.updateRepo ?? ""; // "owner/repo" on GitHub, empty = updates off
 
 // Content Security Policy for the app: only its own files, plus the opt-in book
-// lookup services, the update check, and Hugging Face for the natural-voice
-// model (weights only; every script is the app's own).
+// lookup services, the update check, and the natural-voice model: from the web
+// app's site, or from Hugging Face if that fails (weights only; every script is
+// the app's own).
 // Tests of the natural voices read the speech model from a local server instead of Hugging Face.
 const TEST_ORIGIN = /^http:\/\/localhost:\d+$/.test(process.env.SMART_DARK_TEST_ORIGIN ?? "") ? ` ${process.env.SMART_DARK_TEST_ORIGIN}` : "";
 const CSP = [
@@ -24,7 +25,7 @@ const CSP = [
   "img-src 'self' data: blob: https://covers.openlibrary.org https://books.google.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-  "connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
+  "connect-src 'self' data: blob: https://openlibrary.org https://covers.openlibrary.org https://www.googleapis.com https://books.google.com https://smart-dark-app.vercel.app https://huggingface.co https://*.hf.co" + TEST_ORIGIN,
   "object-src 'none'",
   "base-uri 'none'",
   "frame-ancestors 'none'",

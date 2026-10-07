@@ -10,6 +10,8 @@ files:
   - app-dist/**
   - package.json
   - "!**/*.map"
+  # The speech model for natural voices (102 MB) is fetched from the web app when it is wanted.
+  - "!app-dist/voices/**"
   - "!node_modules/**"
 fileAssociations:
   - ext: pdf

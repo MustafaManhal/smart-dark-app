@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { existsSync } from "node:fs";
 import { expectPage, openSample } from "./helpers/reader";
 
 // Headless browsers have no voices; this stand-in "speaks" each utterance for 40ms
@@ -152,15 +151,10 @@ test("phones keep device voices: natural voices are not offered", async ({ page,
   await expect(sheet.getByRole("button", { name: /Download natural voices/ })).toHaveCount(0);
 });
 
-// The speech model (326 MB) is read from a local copy that scripts/serve-app.mjs serves.
-const MODEL = "node_modules/.cache/smart-dark-tts/model/onnx/model.onnx";
-
 test("natural voices: download once, pick a voice, hear real speech", async ({ page, isMobile, browserName }) => {
   test.skip(isMobile || browserName !== "chromium", "computers only");
-  test.skip(!existsSync(MODEL), `needs the speech model at ${MODEL}`);
   test.setTimeout(180_000);
   await page.addInitScript(() => {
-    (window as unknown as { __smartDarkModelHost: string }).__smartDarkModelHost = `${location.origin}/__model/`;
     // Count the audio clips that are played, with their length and loudness.
     const clips: { seconds: number; peak: number }[] = [];
     (window as unknown as { __clips: typeof clips }).__clips = clips;
@@ -185,12 +179,16 @@ test("natural voices: download once, pick a voice, hear real speech", async ({ p
   await page.getByRole("button", { name: "Read aloud settings" }).click();
   const sheet = page.getByRole("dialog", { name: "Read aloud" });
   await expect(sheet.getByText(/28 natural English voices/)).toBeVisible();
-  await sheet.getByRole("button", { name: "Download natural voices (326 MB)" }).click();
+  const modelRequests: string[] = [];
+  page.on("request", (r) => /model\.onnx/.test(r.url()) && modelRequests.push(r.url()));
+  await sheet.getByRole("button", { name: "Download natural voices (102 MB)" }).click();
 
   const natural = sheet.getByRole("list", { name: "Natural voices" });
   await expect(natural).toBeVisible({ timeout: 90_000 });
   await expect(natural.getByRole("listitem")).toHaveCount(28);
   await expect(natural.getByRole("radio", { name: /Heart/ })).toBeChecked(); // used at once
+  // The compact model of the app's own site was used, not the 326 MB original.
+  expect(modelRequests.every((u) => u.startsWith(new URL(page.url()).origin + "/voices/kokoro-82m-v1/"))).toBe(true);
   await expect(sheet.getByRole("group", { name: "Pitch" })).toHaveCount(0); // natural voices have their own pitch
   await page.screenshot({ path: "test/output/natural-voices.png" });
 
@@ -253,4 +251,21 @@ test("selecting text while reading aloud: the selection bar keeps its size and s
   await bar.getByRole("button", { name: "Highlight green" }).click();
   await expect(page.locator('.page[data-page="1"] .hl')).toHaveCount(1);
   await expect(readBar.getByRole("button", { name: "Pause reading" })).toBeVisible();
+});
+
+test("if the site cannot deliver the compact speech model, the original on Hugging Face is used", async ({ page, isMobile, browserName }) => {
+  test.skip(isMobile || browserName !== "chromium", "computers only");
+  await page.route("**/voices/kokoro-82m-v1/**", (route) => route.fulfill({ status: 404, body: "gone" }));
+  const asked: string[] = [];
+  await page.route("https://huggingface.co/**", (route) => {
+    asked.push(route.request().url());
+    return route.abort(); // no need to fetch 326 MB here: asking is what is checked
+  });
+  await openSample(page);
+  await page.evaluate(() => ((window as unknown as { __speechMs: number }).__speechMs = 400));
+  await page.getByRole("button", { name: "Read aloud", exact: true }).click();
+  await page.getByRole("region", { name: "Read aloud" }).getByRole("button", { name: "Pause reading" }).click();
+  await page.getByRole("button", { name: "Read aloud settings" }).click();
+  await page.getByRole("dialog", { name: "Read aloud" }).getByRole("button", { name: /Download natural voices/ }).click();
+  await expect.poll(() => asked.some((u) => u.includes("onnx-community/Kokoro-82M-v1.0-ONNX-timestamped/resolve/main/")), { timeout: 20_000 }).toBe(true);
 });

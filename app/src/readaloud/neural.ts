@@ -1,15 +1,22 @@
 import { signal } from "@preact/signals";
+import { desktop } from "../platform/desktop";
 
 /**
  * Natural voices: the Kokoro speech model run on this device by the HeadTTS
  * worker (app/public/tts/, see scripts/copy-tts-assets.mjs). English only.
- * Every script is served by the app itself; the model (about 326 MB) comes from
- * Hugging Face the first time and is then kept by the browser.
+ * Every script is served by the app itself. The model (102 MB) is downloaded
+ * once, from the app's own site, and then kept by the browser.
  *
- * Measured on a 10-core Mac, seconds of computing per second of speech: the
- * full-precision model 0.45 on the processor with threads and 0.35 on the
- * graphics card; the 8-bit model (92 MB) 0.9 with threads and 1.9 without,
- * too slow to keep up; the half-precision model sometimes returns silence.
+ * That file is the full-precision model with its weights stored compactly
+ * (scripts/compress-voice-model.py): a third of the 326 MB original, the same
+ * speed and, by measurement, the same sound. If the site cannot deliver it,
+ * the original is fetched from Hugging Face instead.
+ *
+ * Measured on a 10-core Mac, seconds of computing per second of speech: 0.46
+ * on the processor with threads and 0.32 on the graphics card, for both files.
+ * Hugging Face's own 8-bit build (92 MB) needs 0.9 with threads and 1.9
+ * without, too slow to keep up; its half-precision build returns silence for
+ * most sentences longer than two seconds.
  */
 
 export type NaturalVoice = { id: string; name: string; accent: "American" | "British"; gender: "female" | "male" };
@@ -35,8 +42,13 @@ export const naturalId = (uri: string | null | undefined) =>
   uri?.startsWith(NATURAL_PREFIX) && NATURAL_VOICES.some((v) => v.id === uri.slice(NATURAL_PREFIX.length))
     ? uri.slice(NATURAL_PREFIX.length) : null;
 
-export const MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped";
-export const MODEL_MB = 326;
+/** The compact model, a file of the web app (app/public/voices/). */
+const OWN_MODEL = "voices/kokoro-82m-v1";
+/** Where the web app lives. The desktop app has no copy of the model and reads it from here. */
+const SITE = "https://smart-dark-app.vercel.app/";
+/** The original, on Hugging Face: used when the compact one cannot be fetched. */
+const ORIGINAL_MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped";
+export const MODEL_MB = 102;
 const HF_VOICES = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices";
 
 /**
@@ -84,9 +96,12 @@ export function loadNatural(): Promise<void> {
   loading = (async () => {
     // Voices are shipped with the app; a build without them reads them from Hugging Face.
     const local: string[] = await fetch(asset("voices/index.json")).then((r) => (r.ok ? r.json() : [])).catch(() => []);
-    // Tests point the engine at a local copy of the model.
-    const host = (globalThis as { __smartDarkModelHost?: string }).__smartDarkModelHost;
-    const w = new Worker(asset("headtts/worker-tts.mjs") + (host ? `?modelHost=${encodeURIComponent(host)}` : ""), { type: "module" });
+    // The compact model comes from the app's site (tests name another host for the desktop app).
+    const host = (globalThis as { __smartDarkModelHost?: string }).__smartDarkModelHost
+      ?? (desktop ? SITE : new URL("./", document.baseURI).href);
+    const own = await fetch(`${host}${OWN_MODEL}/resolve/main/config.json`).then((r) => r.ok).catch(() => false);
+    const source = own ? { host, model: OWN_MODEL } : { host: "", model: ORIGINAL_MODEL };
+    const w = new Worker(asset("headtts/worker-tts.mjs") + (source.host ? `?modelHost=${encodeURIComponent(source.host)}` : ""), { type: "module" });
     worker = w;
     await new Promise<void>((resolve, reject) => {
       // A failed load inside the worker sends nothing back, so silence counts as failure.
@@ -113,7 +128,7 @@ export function loadNatural(): Promise<void> {
         type: "connect",
         data: {
           transformersModule: asset("transformers-local.mjs"),
-          model: MODEL,
+          model: source.model,
           // Threads need a cross-origin isolated page (COOP and COEP headers). Where a browser
           // does not grant that (Safari), the graphics card is the fast path.
           device: !globalThis.crossOriginIsolated && "gpu" in navigator ? "webgpu" : "wasm",

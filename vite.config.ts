@@ -38,7 +38,8 @@ export default defineConfig({
         // them made the first install take ~40 s on a phone, so they are cached on first use.
         // The natural read-aloud voices (tts/, about 58 MB) are optional and for computers
         // only, so they are also cached on first use.
-        globIgnores: ["pdfjs/cmaps/**", "tts/**"],
+        // The speech model (voices/, 102 MB) is downloaded only when the reader asks for natural voices.
+        globIgnores: ["pdfjs/cmaps/**", "tts/**", "voices/**"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/pdfjs/cmaps/"),

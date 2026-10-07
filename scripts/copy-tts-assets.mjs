@@ -4,8 +4,8 @@
 //   dictionaries/  pronunciation dictionary, from the CMU dictionary (BSD)
 //   vendor/        transformers.js (Apache-2.0) and the ONNX Runtime wasm (MIT)
 //   voices/        the 28 English Kokoro voices (Apache-2.0), fetched once
-// The model itself (about 326 MB) is not shipped: the reader downloads it from
-// Hugging Face when they turn natural voices on.
+// The model itself (102 MB) is app/public/voices/, a file of the web app that the
+// reader downloads when they turn natural voices on.
 import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url);
@@ -85,7 +85,8 @@ env.allowLocalModels = false;
 if (globalThis.crossOriginIsolated) {
   env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 2));
 }
-// Tests read the model from their own server instead of Hugging Face (worker URL ?modelHost=...).
+// The compact model is served by the app's own site (worker URL ?modelHost=...); without that
+// the original comes from Hugging Face.
 const modelHost = new URL(self.location.href).searchParams.get("modelHost");
 if (modelHost) env.remoteHost = modelHost;
 `);

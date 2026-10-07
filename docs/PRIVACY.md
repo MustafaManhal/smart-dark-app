@@ -32,9 +32,10 @@ The app keeps books, notes and reading history on your device only.
 
 - **Book details lookup** is off until you turn it on. When you search, the text you type is sent to Open
   Library and Google Books.
-- **Natural voices for read aloud** are an optional download on computers. The speech model (about 326 MB)
-  comes from Hugging Face, which sees your internet address as with any download. The speech is made on
-  your device. The text that is read is not sent anywhere.
+- **Natural voices for read aloud** are an optional download on computers. The speech model (about 102 MB)
+  comes from the app's own site. If that fails, it comes from Hugging Face, which then sees your internet
+  address as with any download. The speech is made on your device. The text that is read is not sent
+  anywhere.
 
 ## Contact
 
