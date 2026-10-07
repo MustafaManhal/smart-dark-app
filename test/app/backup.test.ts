@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
+import { strFromU8, unzipSync } from "fflate";
 import { expect, test } from "vitest";
 import { createBackup, restoreBackup } from "../../app/src/backup/backup";
 import { openDb } from "../../app/src/db/idb";
@@ -56,4 +57,19 @@ test("restoring into a library that has the book keeps it and merges new annotat
 test("rejects files that are not backups", async () => {
   const target = createRepos(await openDb("backup-bad"));
   await expect(restoreBackup(target, new Uint8Array([1, 2, 3]))).rejects.toThrow(/not a Reader343 backup/);
+});
+
+test("the password of a protected book stays out of the backup", async () => {
+  const source = createRepos(await openDb("backup-password"));
+  await source.books.add({ ...book, password: "open sesame" }, new Blob([readFileSync("test/fixtures/locked.pdf")], { type: "application/pdf" }), null);
+  const zip = await createBackup(source, { now: () => 1000 });
+  const bytes = new Uint8Array(await zip.arrayBuffer());
+  const manifest = strFromU8(unzipSync(bytes, { filter: (file) => file.name.endsWith(".json") })["backup.json"]);
+  expect(manifest).toContain('"title":"Sample"');
+  expect(manifest).not.toContain("open sesame");
+  const target = createRepos(await openDb("backup-password-dst"));
+  await restoreBackup(target, bytes);
+  const restored = await target.books.get("b1");
+  expect(restored?.title).toBe("Sample");
+  expect(restored?.password).toBeUndefined();
 });

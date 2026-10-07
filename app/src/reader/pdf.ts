@@ -11,7 +11,15 @@ export function configurePdfjs(base: string) {
   pdfjs.GlobalWorkerOptions.workerSrc = `${base}pdf.worker.mjs`;
 }
 
-export function openPdf(data: Uint8Array): Promise<PDFDocumentProxy> {
+/** The PDF is protected: it needs a password, or the one given is wrong. */
+export class PasswordError extends Error {
+  constructor(public wrong: boolean) {
+    super(wrong ? "Wrong password" : "Password needed");
+    this.name = "PasswordError";
+  }
+}
+
+export async function openPdf(data: Uint8Array, password?: string): Promise<PDFDocumentProxy> {
   const assets = assetBase
     ? {
         cMapUrl: `${assetBase}cmaps/`,
@@ -21,7 +29,13 @@ export function openPdf(data: Uint8Array): Promise<PDFDocumentProxy> {
         iccUrl: `${assetBase}iccs/`,
       }
     : {};
-  return pdfjs.getDocument({ data, enableXfa: false, ...assets }).promise;
+  try {
+    return await pdfjs.getDocument({ data, password, enableXfa: false, ...assets }).promise;
+  } catch (error) {
+    const e = error as { name?: string; code?: number };
+    if (e?.name === "PasswordException") throw new PasswordError(e.code === 2);
+    throw error;
+  }
 }
 
 export async function readBookInfo(doc: PDFDocumentProxy, fileName: string) {

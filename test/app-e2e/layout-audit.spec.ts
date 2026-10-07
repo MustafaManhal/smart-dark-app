@@ -231,6 +231,10 @@ for (const lang of ["en", "ar"] as const) {
       await expect(page.locator(".sheet")).toBeVisible();
       await check(page, `${tag}-18-contents`, findings);
       await page.locator(".sheet-head .icon-btn").click();
+      await page.locator(".top-menu").click();
+      await expect(page.locator(".book-menu")).toBeVisible();
+      await check(page, `${tag}-18b-book-menu`, findings);
+      await page.locator(".sheet-head .icon-btn").click();
       await page.locator(".page-pill").click();
       await check(page, `${tag}-19-goto`, findings);
       await page.locator(".sheet-head .icon-btn").click();

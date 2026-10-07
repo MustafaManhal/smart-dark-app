@@ -1,8 +1,8 @@
 import type { Book, BooksRepo } from "../db/repos";
-import { closePdf, openPdf, readBookInfo, type PDFDocumentProxy } from "../reader/pdf";
+import { closePdf, openPdf, PasswordError, readBookInfo, type PDFDocumentProxy } from "../reader/pdf";
 
 export class ImportError extends Error {
-  constructor(public code: "not-pdf" | "unreadable", message: string) {
+  constructor(public code: "not-pdf" | "unreadable" | "password" | "wrong-password", message: string) {
     super(message);
     this.name = "ImportError";
   }
@@ -21,6 +21,7 @@ export async function importPdf(
     now?: () => number;
     newId?: () => string;
   },
+  password?: string,
 ): Promise<{ book: Book; duplicate: boolean }> {
   const bytes = await file.arrayBuffer();
   const head = new TextDecoder().decode(new Uint8Array(bytes, 0, Math.min(1024, bytes.byteLength)));
@@ -32,8 +33,9 @@ export async function importPdf(
 
   let doc: PDFDocumentProxy;
   try {
-    doc = await openPdf(new Uint8Array(bytes.slice(0)));
-  } catch {
+    doc = await openPdf(new Uint8Array(bytes.slice(0)), password);
+  } catch (error) {
+    if (error instanceof PasswordError) throw new ImportError(error.wrong ? "wrong-password" : "password", `${file.name} needs its password.`);
     throw new ImportError("unreadable", `${file.name} could not be opened.`);
   }
   try {
@@ -48,6 +50,7 @@ export async function importPdf(
       addedAt: deps.now?.() ?? Date.now(),
       lastOpenedAt: null,
       finishedAt: null,
+      ...(password ? { password } : {}),
     };
     await deps.books.add(book, new Blob([bytes], { type: "application/pdf" }), cover);
     return { book, duplicate: false };

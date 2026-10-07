@@ -13,6 +13,8 @@ export type Book = {
   addedAt: number;
   lastOpenedAt: number | null;
   finishedAt: number | null;
+  /** For a protected PDF: kept on this device so the book opens without asking again. Never put in backups. */
+  password?: string;
 };
 
 export type Progress = { bookId: string; page: number; offset: number; updatedAt: number };

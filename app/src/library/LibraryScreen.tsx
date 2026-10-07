@@ -12,6 +12,7 @@ import { isIosBrowser } from "../platform/pwa";
 import { makeCover } from "./cover";
 import { filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
 import { importPdf, ImportError } from "./importer";
+import { PasswordSheet } from "./PasswordSheet";
 import "./library.css";
 
 const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"]];
@@ -60,19 +61,37 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     dueReminder(repos).then(setReminder);
   }, []);
 
+  const [locked, setLocked] = useState<{ name: string; wrong: boolean; answer: (password: string | null) => void } | null>(null);
+
   async function importFiles(files: FileList | File[]) {
     setBusy(true);
     setMessage("");
     const notes: string[] = [];
     for (const file of Array.from(files)) {
-      try {
-        const { book, duplicate } = await importPdf(file, { books: repos.books, makeCover });
-        if (duplicate) notes.push(t("“{title}” is already in your library.", { title: book.title }));
-      } catch (error) {
-        if (!(error instanceof ImportError)) console.error("Import failed", error);
-        notes.push(error instanceof ImportError
-          ? t(error.code === "not-pdf" ? "{name} is not a PDF." : "{name} could not be opened.", { name: file.name })
-          : t("{name} could not be imported.", { name: file.name }));
+      // A protected PDF: ask for its password, again if it was wrong, until it opens or the reader gives up.
+      let password: string | undefined;
+      for (;;) {
+        try {
+          const { book, duplicate } = await importPdf(file, { books: repos.books, makeCover }, password);
+          if (duplicate) notes.push(t("“{title}” is already in your library.", { title: book.title }));
+        } catch (error) {
+          if (error instanceof ImportError && (error.code === "password" || error.code === "wrong-password")) {
+            const answer = await new Promise<string | null>((resolve) =>
+              setLocked({ name: file.name, wrong: error.code === "wrong-password", answer: resolve }));
+            setLocked(null);
+            if (answer !== null) {
+              password = answer;
+              continue;
+            }
+            notes.push(t("{name} was not added: it needs its password.", { name: file.name }));
+          } else {
+            if (!(error instanceof ImportError)) console.error("Import failed", error);
+            notes.push(error instanceof ImportError
+              ? t(error.code === "not-pdf" ? "{name} is not a PDF." : "{name} could not be opened.", { name: file.name })
+              : t("{name} could not be imported.", { name: file.name }));
+          }
+        }
+        break;
       }
     }
     setBusy(false);
@@ -184,6 +203,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
 
       <BookDetailsSheet repos={repos} book={editing} onClose={() => setEditing(null)} onSaved={reload} />
       <BackupSheet repos={repos} open={backupOpen} onClose={() => setBackupOpen(false)} onRestored={reload} />
+      <PasswordSheet locked={locked} />
 
       <Sheet open={!!toDelete} title={t("Remove book")} onClose={() => setToDelete(null)}>
         <p>{t("Remove “{title}” and its reading progress from this device?", { title: toDelete?.title ?? "" })}</p>

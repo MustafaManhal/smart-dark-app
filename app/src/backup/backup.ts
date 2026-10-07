@@ -37,7 +37,9 @@ export async function createBackup(repos: Repos, { now = Date.now } = {}): Promi
       covers[book.id] = cover.type || "image/jpeg";
     }
   }
-  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books, progress, annotations, sessions, settings, covers };
+  // A backup can travel; the passwords of protected books stay on the device.
+  const bookList = books.map(({ password: _, ...book }) => book);
+  const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books: bookList, progress, annotations, sessions, settings, covers };
   entries["backup.json"] = strToU8(JSON.stringify(manifest));
   const date = new Date(now()).toISOString().slice(0, 10);
   return new File([zipSync(entries) as Uint8Array<ArrayBuffer>], `smart-dark-reader-backup-${date}.zip`, { type: "application/zip" });

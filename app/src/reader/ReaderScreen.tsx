@@ -18,10 +18,14 @@ import { copyText, tidyCopiedText } from "../platform/clipboard";
 import { navigate } from "../router";
 import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle, type ViewLayout } from "../settings";
 import { Button, IconButton } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
 import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
-import { closePdf, flattenOutline, openPdf, type OutlineItem, type PDFDocumentProxy } from "./pdf";
+import { closePdf, flattenOutline, openPdf, PasswordError, type OutlineItem, type PDFDocumentProxy } from "./pdf";
+import { printBook } from "./print";
+import { PasswordSheet } from "../library/PasswordSheet";
+import { saveFile } from "../platform/saveFile";
 import { CSS_UNITS, Renderer } from "./renderer";
 import { PageGrid } from "./PageGrid";
 import { BookSearch } from "./search";
@@ -71,7 +75,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
-  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | null>(null);
+  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | "menu" | null>(null);
+  // A protected book whose password is not stored here (for example after a backup was restored).
+  const [locked, setLocked] = useState<{ wrong: boolean } | null>(null);
+  const [attempt, setAttempt] = useState<{ password: string } | null>(null);
+  const pdfDoc = useRef<PDFDocumentProxy | null>(null);
+  const fileBlob = useRef<Blob | null>(null);
+  const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  const printStop = useRef({ now: false });
   const [zoom, setZoom] = useState<{ scale: number; mode: "fit" | "page" | "manual" }>({ scale: 1, mode: "fit" });
   const [zoomMenu, setZoomMenu] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -123,8 +134,17 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       }
       setBook(b);
       repos.books.update(bookId, { lastOpenedAt: Date.now() });
-      doc = await openPdf(new Uint8Array(await blob.arrayBuffer()));
+      try {
+        doc = await openPdf(new Uint8Array(await blob.arrayBuffer()), attempt?.password ?? b.password);
+      } catch (e) {
+        if (!(e instanceof PasswordError)) throw e;
+        if (!cancelled) setLocked({ wrong: e.wrong && !!attempt });
+        return;
+      }
+      if (attempt && attempt.password !== b.password) repos.books.update(bookId, { password: attempt.password });
       if (cancelled || !scroller.current) return;
+      pdfDoc.current = doc;
+      fileBlob.current = blob;
       const r = new Renderer(scroller.current, doc, {
         pageStyle: settings.pageStyle.value, darkTheme: settings.darkTheme.value, imageMode: settings.imageMode.value,
         adjust: adjustValues(),
@@ -169,9 +189,34 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       renderer.current?.destroy();
       renderer.current = null;
       setBookSearch(null);
+      printStop.current.now = true;
+      pdfDoc.current = null;
+      fileBlob.current = null;
       closePdf(doc);
     };
-  }, [bookId]);
+  }, [bookId, attempt]);
+
+  const print = async () => {
+    if (!pdfDoc.current || printing) return;
+    const stop = (printStop.current = { now: false });
+    setPrinting({ done: 0, total: pdfDoc.current.numPages });
+    try {
+      const sent = await printBook(pdfDoc.current, (done, total) => setPrinting({ done, total }), stop);
+      if (sent) setSheet(null);
+    } catch {
+      if (!stop.now) setToast({ text: t("This book could not be printed.") });
+    }
+    setPrinting(null);
+  };
+  const saveCopy = async () => {
+    if (!fileBlob.current || !book) return;
+    const saved = await saveFile(new File([fileBlob.current], book.fileName, { type: "application/pdf" }));
+    if (saved) setSheet(null);
+  };
+  const closeMenu = () => {
+    printStop.current.now = true;
+    setSheet(null);
+  };
 
   const pageStyle = settings.pageStyle.value;
   const darkTheme = settings.darkTheme.value;
@@ -544,6 +589,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         </div>
         <IconButton label={t("Search in book")} icon="search" class={`top-search ${search.open ? "is-on" : ""}`}
           aria-pressed={search.open} disabled={!ready} onClick={() => (search.open ? search.close() : search.show())} />
+        <IconButton label={t("Book menu")} icon="more" class="top-menu" disabled={!ready} onClick={() => setSheet("menu")} />
         <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
           <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
             aria-pressed={highlightMode} disabled={!ready}
@@ -725,6 +771,40 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
             onPick={(n) => { go(n); setSheet(null); }} />
         )}
       </Sheet>
+
+      <Sheet open={sheet === "menu"} title={t("Book menu")} onClose={closeMenu}>
+        {printing ? (
+          <div class="print-progress" role="status">
+            <p>{t("Preparing page {n} of {total} for printing…", { n: printing.done, total: printing.total })}</p>
+            <progress value={printing.done} max={printing.total} />
+            <Button onClick={() => { printStop.current.now = true; }}>{t("Cancel")}</Button>
+          </div>
+        ) : (
+          <ul class="book-menu">
+            <li>
+              <button type="button" onClick={print}>
+                <Icon name="print" />
+                <span><strong>{t("Print")}</strong><small>{t("In the book's own colors, without your highlights.")}</small></span>
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={saveCopy}>
+                <Icon name="download" />
+                <span><strong>{t("Save a copy")}</strong><small>{t("The PDF file as you added it.")}</small></span>
+              </button>
+            </li>
+          </ul>
+        )}
+      </Sheet>
+
+      <PasswordSheet locked={locked && book ? {
+        name: book.fileName, wrong: locked.wrong,
+        answer: (password) => {
+          if (password === null) return navigate({ name: "library" });
+          setLocked(null);
+          setAttempt({ password });
+        },
+      } : null} />
 
       <Sheet open={sheet === "toc"} title={t("Contents")} onClose={() => setSheet(null)}>
         <ol class="toc">

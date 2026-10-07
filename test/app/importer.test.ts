@@ -24,3 +24,15 @@ test("rejects files that are not PDFs", async () => {
   const broken = new File(["%PDF-1.7 garbage"], "broken.pdf", { type: "application/pdf" });
   await expect(importPdf(broken, { books, makeCover: async () => null })).rejects.toBeInstanceOf(ImportError);
 });
+
+test("a protected PDF asks for its password and keeps the right one", async () => {
+  const { books } = createRepos(await openDb("import-test-3"));
+  const locked = () => new File([readFileSync("test/fixtures/locked.pdf")], "locked.pdf", { type: "application/pdf" });
+  const deps = { books, makeCover: async () => null, newId: () => "locked-1" };
+  await expect(importPdf(locked(), deps)).rejects.toMatchObject({ code: "password" });
+  await expect(importPdf(locked(), deps, "wrong")).rejects.toMatchObject({ code: "wrong-password" });
+  expect(await books.all()).toHaveLength(0);
+  const { book } = await importPdf(locked(), deps, "open sesame");
+  expect(book).toMatchObject({ id: "locked-1", pageCount: 2, password: "open sesame" });
+  expect((await books.get("locked-1"))?.password).toBe("open sesame");
+});
