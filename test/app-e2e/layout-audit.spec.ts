@@ -237,7 +237,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await check(page, `${tag}-06-note`, findings);
       await page.locator(".pop-actions .btn-primary").click();
 
-      await page.locator(".tools .icon-btn").nth(2).click(); // sticky note tool
+      await page.locator('.tools [data-tool="sticky"]').click(); // sticky note tool
       await check(page, `${tag}-07-place-hint`, findings);
       await page.mouse.click(width * 0.45, height * 0.72);
       await expect(page.locator(".sticky")).toBeVisible();
@@ -247,9 +247,20 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".reader-title").click();
       await check(page, `${tag}-08-sticky`, findings);
 
-      await page.locator(".tools .icon-btn").nth(0).click(); // highlighter
+      // Drawing: the tool's options, a stroke on the page, then the same with the text tool.
+      await page.locator('.tools [data-tool="draw"]').click();
+      await expect(page.locator(".mode-hint.is-draw")).toBeVisible();
+      await check(page, `${tag}-08b-draw-mode`, findings);
+      await page.mouse.move(width * 0.3, height * 0.45);
+      await page.mouse.down();
+      await page.mouse.move(width * 0.6, height * 0.55);
+      await page.mouse.up();
+      await expect(page.locator(".draw-shape")).toHaveCount(1);
+      await check(page, `${tag}-08c-drawn`, findings);
+      await page.locator(".mode-done").click();
+      await page.locator('.tools [data-tool="highlight"]').click(); // highlighter
       await check(page, `${tag}-09-highlight-mode`, findings);
-      await page.locator(".tools .icon-btn").nth(1).click(); // eraser
+      await page.locator('.tools [data-tool="erase"]').click(); // eraser
       await check(page, `${tag}-10-eraser-mode`, findings);
       const hl2 = (await page.locator('.page[data-page="1"] .hl').first().boundingBox())!;
       await page.mouse.click(hl2.x + hl2.width / 2, hl2.y + hl2.height / 2);
@@ -258,7 +269,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".toast button").click();
       await page.locator(".mode-done").click();
 
-      await page.locator(".tools .icon-btn").nth(4).click(); // read aloud
+      await page.locator('.tools [data-tool="read"]').click(); // read aloud
       await expect(page.locator(".read-bar")).toBeVisible();
       await check(page, `${tag}-12-read-bar`, findings);
       await page.locator(".read-bar .icon-btn").nth(-2).click(); // its settings
@@ -284,12 +295,12 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".pop-action.is-danger").click();
       await expect(page.locator(".toast")).toBeVisible();
       await check(page, `${tag}-15d-reading-toast`, findings);
-      await page.locator(".tools .icon-btn").nth(0).click(); // highlighter
+      await page.locator('.tools [data-tool="highlight"]').click(); // highlighter
       await check(page, `${tag}-15e-reading-highlight-mode`, findings);
       await page.locator(".mode-done").click();
       await page.locator(".read-bar .icon-btn").last().click();
 
-      await page.locator(".tools .icon-btn").nth(7).click(); // appearance
+      await page.locator('.tools [data-tool="appearance"]').click(); // appearance
       await expect(page.locator(".sheet")).toBeVisible();
       await check(page, `${tag}-16-appearance`, findings);
       await page.locator(".sheet").evaluate((s) => s.scrollTo(0, s.scrollHeight));
@@ -297,18 +308,18 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".sheet-head .icon-btn").click();
 
       // Crop margins: the page fills the width, nothing sticks out.
-      await page.locator(".tools .icon-btn").nth(7).click();
+      await page.locator('.tools [data-tool="appearance"]').click();
       await page.locator(".sheet .toggle input").last().click();
       await expect(page.locator('.page[data-page="1"]')).toHaveClass(/is-cropped/);
       await check(page, `${tag}-17b-crop-sheet`, findings);
       await page.locator(".sheet-head .icon-btn").click();
       await check(page, `${tag}-17c-cropped`, findings);
-      await page.locator(".tools .icon-btn").nth(7).click();
+      await page.locator('.tools [data-tool="appearance"]').click();
       await page.locator(".sheet .toggle input").last().click();
       await expect(page.locator('.page[data-page="1"]')).not.toHaveClass(/is-cropped/);
       await page.locator(".sheet-head .icon-btn").click();
 
-      await page.locator(".tools .icon-btn").nth(6).click(); // contents
+      await page.locator('.tools [data-tool="contents"]').click(); // contents
       await expect(page.locator(".notes-panel.is-contents")).toBeVisible();
       await check(page, `${tag}-18-contents`, findings);
       await page.locator(".side-tabs button").nth(1).click(); // the pages of the book
@@ -349,7 +360,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await check(page, `${tag}-19-goto`, findings);
       await page.locator(".sheet-head .icon-btn").click();
 
-      await page.locator(".tools .icon-btn").nth(5).click(); // notes panel
+      await page.locator('.tools [data-tool="notes"]').click(); // notes panel
       await expect(page.locator(".notes-panel")).toBeVisible();
       await check(page, `${tag}-20-panel-highlights`, findings);
       await page.locator(".panel-tabs button").nth(1).click();
@@ -358,7 +369,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await check(page, `${tag}-22-panel-sticky`, findings);
       if (width >= 960) {
         // Wide screens keep the page beside the panel, so the tools still work there.
-        await page.locator(".tools .icon-btn").nth(1).click(); // eraser
+        await page.locator('.tools [data-tool="erase"]').click(); // eraser
         await check(page, `${tag}-22b-panel-eraser-hint`, findings);
         const hint = (await page.locator(".mode-hint").boundingBox())!;
         const panel = (await page.locator(".notes-panel").boundingBox())!;

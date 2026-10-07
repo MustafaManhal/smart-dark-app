@@ -69,3 +69,36 @@ test("a protected PDF is exported with its password", async () => {
   expect(doc.numPages).toBe(2);
   expect((await (await doc.getPage(1)).getAnnotations()).filter((a) => a.subtype === "Highlight")).toHaveLength(1);
 });
+
+test("drawings are exported as ink, lines, squares, circles and free text", async () => {
+  const source = new Uint8Array(readFileSync("src/sample/sample.pdf"));
+  const base = { bookId: "b", page: 1, color: "red" as const, size: 0.004, createdAt: 1, updatedAt: 1 };
+  const out = await exportAnnotatedPdf(source, { highlights: [], notes: [], stickies: [], bookmarks: [] }, undefined, [
+    { ...base, id: "p", tool: "pen", points: [0.1, 0.1, 0.5, 0.2, 0.15, 0.5, 0.3, 0.1, 0.5] },
+    { ...base, id: "l", tool: "line", points: [0.1, 0.3, 0.5, 0.3] },
+    { ...base, id: "a", tool: "arrow", color: "blue", points: [0.1, 0.4, 0.5, 0.45] },
+    { ...base, id: "r", tool: "rect", points: [0.2, 0.5, 0.6, 0.6] },
+    { ...base, id: "e", tool: "ellipse", color: "ink", points: [0.2, 0.7, 0.6, 0.8] },
+    { ...base, id: "t", tool: "text", points: [0.1, 0.9], text: "Check this ملاحظة" },
+  ]);
+  const doc = await openPdf(out);
+  const annots = (await (await doc.getPage(1)).getAnnotations()).filter((a) => a.subtype !== "Link");
+  expect(annots.map((a) => a.subtype).sort()).toEqual(["Circle", "FreeText", "Ink", "Line", "Line", "Square"]);
+
+  const ink = annots.find((a) => a.subtype === "Ink")!;
+  expect(ink.inkLists).toHaveLength(1);
+  expect(ink.inkLists[0].length).toBe(6);
+  expect(ink.inkLists[0][0]).toBeCloseTo(59.5, 1); // 10% in
+  expect(ink.inkLists[0][1]).toBeCloseTo(842 * 0.9, 1); // 10% down
+  expect([...ink.color]).toEqual([224, 49, 49]);
+  expect(ink.hasAppearance).toBe(true);
+
+  const arrow = annots.find((a) => a.subtype === "Line" && a.lineEndings?.[1] === "OpenArrow")!;
+  // From 10% in, 40% down to 50% in, 45% down (pdf.js gives the line's ends as a box).
+  expect(arrow.lineCoordinates.map((v: number) => Math.round(v))).toEqual([60, 463, 298, 505]);
+  const square = annots.find((a) => a.subtype === "Square")!;
+  expect(square.rect[0]).toBeLessThan(595 * 0.2);
+  expect(square.rect[2]).toBeGreaterThan(595 * 0.6);
+  expect([...annots.find((a) => a.subtype === "Circle")!.color]).toEqual([0, 0, 0]); // "ink" is black on paper
+  expect(annots.find((a) => a.subtype === "FreeText")!.contentsObj.str).toBe("Check this ملاحظة");
+});

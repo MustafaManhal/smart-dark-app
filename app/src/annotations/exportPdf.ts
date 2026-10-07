@@ -1,6 +1,8 @@
 import type { BookAnnotations, HighlightColor, NormRect } from "../db/annotations";
 import { COLOR_HEX } from "./colors";
-import { fromViewRect, type Turn } from "./geometry";
+import type { DrawColor, Drawing } from "../db/drawings";
+import { arrowHead, DRAW_HEX, TEXT_SIZE } from "../draw/shapes";
+import { fromViewPoint, fromViewRect, type Turn } from "./geometry";
 
 /**
  * A copy of the PDF with the reader's marks inside it, as standard PDF
@@ -12,7 +14,7 @@ import { fromViewRect, type Turn } from "./geometry";
  * A protected PDF is opened with its password and the copy is saved without
  * protection: the person exporting it has the password.
  */
-export async function exportAnnotatedPdf(bytes: Uint8Array, data: BookAnnotations, password?: string): Promise<Uint8Array> {
+export async function exportAnnotatedPdf(bytes: Uint8Array, data: BookAnnotations, password?: string, drawings: Drawing[] = []): Promise<Uint8Array> {
   // Loaded only when someone exports: the library is large.
   const { PDFDocument, PDFString, PDFHexString } = await import("@cantoo/pdf-lib");
   const doc = await PDFDocument.load(bytes, { password, updateMetadata: false });
@@ -83,6 +85,56 @@ export async function exportAnnotatedPdf(bytes: Uint8Array, data: BookAnnotation
       });
     }
 
+    // Drawings: pen strokes as ink, shapes as the PDF's own line, square and circle, text boxes as free text.
+    const viewWidth = turn % 180 ? box.height : box.width;
+    const spot = (x: number, y: number): [number, number] => {
+      const [px, py] = fromViewPoint(x, y, turn);
+      return [n(box.x + px * box.width), n(box.y + (1 - py) * box.height)];
+    };
+    for (const d of drawings.filter((x) => x.page === number)) {
+      const color = d.color === "ink" ? [0, 0, 0] : [1, 3, 5].map((i) => +(parseInt(DRAW_HEX[d.color as Exclude<DrawColor, "ink">].slice(i, i + 2), 16) / 255).toFixed(4));
+      const width = n(Math.max(0.5, d.size * viewWidth));
+      const pen = `${color.join(" ")} RG ${width} w 1 J 1 j`;
+      const padded = (xs: number[], ys: number[], by = width) => [n(Math.min(...xs) - by), n(Math.min(...ys) - by), n(Math.max(...xs) + by), n(Math.max(...ys) + by)];
+      const base = { Type: "Annot", C: color, F: 4, M: stamp, T: text("Reader343"), BS: { W: width } };
+      if (d.tool === "pen") {
+        const pts = Array.from({ length: d.points.length / 3 }, (_, i) => spot(d.points[i * 3], d.points[i * 3 + 1]));
+        const rect = padded(pts.map((p) => p[0]), pts.map((p) => p[1]));
+        const path = pts.map(([x, y], i) => `${x} ${y} ${i ? "l" : "m"}`).join(" ") + (pts.length === 1 ? ` ${pts[0][0] + 0.01} ${pts[0][1]} l` : "");
+        add({ ...base, Subtype: "Ink", Rect: rect, InkList: [pts.flat()], AP: { N: drawing(rect, `${pen} ${path} S`) } });
+      } else if (d.tool === "text") {
+        const [x, top] = spot(d.points[0], d.points[1]);
+        const size = n(TEXT_SIZE * viewWidth * (d.size / 0.004) ** 0.5);
+        const words = d.text ?? "";
+        const lines = words.split("\n");
+        const rect = [x, n(top - size * 1.35 * lines.length - 4), n(x + Math.max(...lines.map((l) => l.length)) * size * 0.6 + 8), top];
+        // No drawing of its own: the other app lays the words out with its fonts (which also covers Arabic).
+        add({ Type: "Annot", Subtype: "FreeText", Rect: rect, Contents: text(words), DA: PDFString.of(`/Helv ${size} Tf ${color.join(" ")} rg`), F: 4, M: stamp, T: text("Reader343") });
+      } else {
+        const [x1, y1] = spot(d.points[0], d.points[1]);
+        const [x2, y2] = spot(d.points[2], d.points[3]);
+        const [l, b, r, t] = [Math.min(x1, x2), Math.min(y1, y2), Math.max(x1, x2), Math.max(y1, y2)];
+        if (d.tool === "rect") {
+          const rect = padded([l, r], [b, t]);
+          add({ ...base, Subtype: "Square", Rect: rect, AP: { N: drawing(rect, `${pen} ${l} ${b} ${n(r - l)} ${n(t - b)} re S`) } });
+        } else if (d.tool === "ellipse") {
+          const rect = padded([l, r], [b, t]);
+          const [cx, cy, rx, ry, k] = [(l + r) / 2, (b + t) / 2, (r - l) / 2, (t - b) / 2, 0.5523];
+          const c = (...v: number[]) => v.map(n).join(" ");
+          const oval = `${c(cx + rx, cy)} m ${c(cx + rx, cy + ry * k, cx + rx * k, cy + ry, cx, cy + ry)} c ${c(cx - rx * k, cy + ry, cx - rx, cy + ry * k, cx - rx, cy)} c `
+            + `${c(cx - rx, cy - ry * k, cx - rx * k, cy - ry, cx, cy - ry)} c ${c(cx + rx * k, cy - ry, cx + rx, cy - ry * k, cx + rx, cy)} c`;
+          add({ ...base, Subtype: "Circle", Rect: rect, AP: { N: drawing(rect, `${pen} ${oval} S`) } });
+        } else {
+          const head = Math.max(width * 4, viewWidth * 0.018);
+          const [ax, ay, tx, ty, bx, by] = arrowHead(x1, y1, x2, y2, head).map(n);
+          const rect = padded([x1, x2], [y1, y2], width + (d.tool === "arrow" ? head : 0));
+          const arrow = d.tool === "arrow" ? ` ${ax} ${ay} m ${tx} ${ty} l ${bx} ${by} l` : "";
+          add({ ...base, Subtype: "Line", Rect: rect, L: [x1, y1, x2, y2], ...(d.tool === "arrow" ? { LE: ["None", "OpenArrow"] } : {}),
+            AP: { N: drawing(rect, `${pen} ${x1} ${y1} m ${x2} ${y2} l${arrow} S`) } });
+        }
+      }
+    }
+
     for (const sticky of data.stickies.filter((s) => s.page === number)) {
       // A sticky note is a comment icon at its place; the words open in the other app's comment view.
       const [left, , , top] = place({ x: sticky.x, y: sticky.y, w: 0, h: 0 });
@@ -97,4 +149,5 @@ export async function exportAnnotatedPdf(bytes: Uint8Array, data: BookAnnotation
 }
 
 /** How many marks an export would carry (bookmarks are not part of a PDF's annotations). */
-export const exportCount = (data: BookAnnotations) => data.highlights.length + data.notes.length + data.stickies.length;
+export const exportCount = (data: BookAnnotations, drawings: Drawing[] = []) =>
+  data.highlights.length + data.notes.length + data.stickies.length + drawings.length;

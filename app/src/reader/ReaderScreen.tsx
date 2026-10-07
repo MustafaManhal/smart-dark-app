@@ -18,7 +18,7 @@ import { copyText, tidyCopiedText } from "../platform/clipboard";
 import { navigate } from "../router";
 import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle, type ViewLayout } from "../settings";
 import { Button, IconButton } from "../ui/Button";
-import { Icon } from "../ui/Icon";
+import { Icon, type IconName } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
 import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
@@ -29,6 +29,11 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { render } from "preact";
+import { DRAW_COLORS, DRAW_TOOLS, type Drawing, type DrawTool } from "../db/drawings";
+import { DrawLayer } from "../draw/DrawLayer";
+import { DRAW_HEX, DRAW_LABEL, DRAW_SIZES, thin, worthKeeping } from "../draw/shapes";
+import "../draw/draw.css";
 import { recognizeBook, type OcrLang } from "../ocr/ocr";
 import type { OcrPage } from "../ocr/text";
 import { SidePanel, type PanelSection } from "./SidePanel";
@@ -79,6 +84,8 @@ const inRects = (rects: NormRect[], x: number, y: number) =>
   rects.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y - 0.004 && y <= r.y + r.h + 0.004);
 
 const ZOOM_STEP = 1.2;
+const DRAW_TOOL_LABEL: Record<DrawTool, string> = { pen: "Pen", line: "Line", arrow: "Arrow", rect: "Box", ellipse: "Oval", text: "Text box" };
+const DRAW_TOOL_ICON: Record<DrawTool, IconName> = { pen: "draw", line: "line", arrow: "arrowLine", rect: "square", ellipse: "circle", text: "textBox" };
 const OCR_LANGS: [OcrLang, string][] = [["eng", "English"], ["ara", "Arabic"], ["eng+ara", "English and Arabic"]];
 const MODE_TEXT: Record<MarkStyle, string> = { highlight: "Select text to highlight", underline: "Select text to underline", strike: "Select text to strike through" };
 const MODE_STYLE: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
@@ -147,7 +154,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [highlightMode, setHighlightMode] = useState(false);
   // With the highlighter on: mark a rectangle of the page instead of words (for scans and figures).
   const [areaMode, setAreaMode] = useState(false);
-  const areaDrawnAt = useRef(-1000);
+  const dragEnded = useRef({ at: -1000, x: 0, y: 0 });
   const [penColor, setPenColor] = useState<HighlightColor>("yellow");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -164,6 +171,23 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const leavePanel = () => { if (matchMedia("(max-width: 959px)").matches) setPanel(null); };
   const [placing, setPlacing] = useState(false);
   const [erasing, setErasing] = useState(false);
+  // Drawing on the page: pen strokes, lines, arrows, boxes, ovals and text boxes.
+  const [drawMode, setDrawMode] = useState(false);
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [live, setLive] = useState<Drawing | null>(null);
+  const [editingText, setEditingText] = useState<Drawing | null>(null);
+  const drawTool = settings.drawTool.value;
+  const drawColor = settings.drawColor.value;
+  const drawSize = settings.drawSize.value;
+  const saveDrawing = async (d: Parameters<Repos["drawings"]["put"]>[0]) => {
+    const saved = await repos.drawings.put(d);
+    setDrawings((list) => [...list.filter((x) => x.id !== saved.id), saved]);
+    return saved;
+  };
+  const removeDrawing = async (d: Drawing) => {
+    await repos.drawings.remove(d.id);
+    setDrawings((list) => list.filter((x) => x.id !== d.id));
+  };
   const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null);
   // Undo and redo for this book's highlights, notes, sticky notes and bookmarks (Ctrl/Cmd+Z).
   const [, setHistoryVersion] = useState(0);
@@ -222,6 +246,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       r.linkLabel = (n) => t("Link to page {n}", { n });
       // Text recognized on scanned pages before (OCR) is their text from the start.
       ocrPages.current = new Map((await repos.ocr.forBook(bookId)).map((p) => [p.page, p]));
+      setDrawings(await repos.drawings.forBook(bookId));
       r.recognized = (n) => ocrPages.current.get(n);
       setBookSearch(new BookSearch(doc, r.recognized));
       r.onPageChange = (p) => {
@@ -317,7 +342,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (!fileBlob.current || !book) return;
     setMarked({ state: "building" });
     try {
-      const bytes = await exportAnnotatedPdf(new Uint8Array(await fileBlob.current.arrayBuffer()), annotations.data, book.password);
+      const bytes = await exportAnnotatedPdf(new Uint8Array(await fileBlob.current.arrayBuffer()), annotations.data, book.password, drawings);
       const name = `${safeFileName(book.fileName.replace(/\.pdf$/i, ""))} (${t("with marks")}).pdf`;
       setMarked({ state: "ready", file: new File([bytes as Uint8Array<ArrayBuffer>], name, { type: "application/pdf" }) });
     } catch (error) {
@@ -666,6 +691,113 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor, settings.markStyle.value);
   }, [selection, highlightMode]);
 
+  // Draw what is drawn: every page's saved drawings, plus the stroke or text box in the making on its page.
+  useEffect(() => {
+    const r = renderer.current;
+    if (!ready || !r) return;
+    const byPage = new Map<number, Drawing[]>();
+    for (const d of drawings) byPage.set(d.page, [...(byPage.get(d.page) ?? []), d]);
+    const making = live ?? (editingText?.id === "new" ? editingText : null);
+    for (let n = 1; n <= r.pageCount; n++) {
+      const layers = r.layers(n);
+      if (!layers) continue;
+      const mine = byPage.get(n) ?? [];
+      if (!mine.length && making?.page !== n && !layers.drawings.firstChild) continue;
+      render(<DrawLayer drawings={mine} live={making?.page === n ? making : null} w={layers.w} h={layers.h}
+        editing={editingText?.page === n ? editingText.id : null} onText={finishText} />, layers.drawings);
+    }
+  }, [ready, drawings, live, editingText]);
+  useEffect(() => () => {
+    const r = renderer.current;
+    if (r) for (let n = 1; n <= r.pageCount; n++) render(null, r.layers(n)!.drawings);
+  }, [bookId]);
+
+  // A text box that was being written is done: keep it, change it, or drop it when it is empty.
+  const finishText = async (box: Drawing, text: string) => {
+    setEditingText(null);
+    if (box.id === "new") {
+      if (!text) return;
+      const { id: _, createdAt: __, updatedAt: ___, ...fresh } = box;
+      const saved = await saveDrawing({ ...fresh, text });
+      record({ undo: () => removeDrawing(saved), redo: () => saveDrawing(saved) });
+    } else if (!text) {
+      await removeDrawing(box);
+      record({ undo: () => saveDrawing(box), redo: () => removeDrawing(box) });
+    } else if (text !== box.text) {
+      const saved = await saveDrawing({ ...box, text });
+      record({ undo: () => saveDrawing(box), redo: () => saveDrawing(saved) });
+    }
+  };
+
+  // The drawing tool: a drag on a page makes a stroke or a shape. (A text box is made by a tap, in onPageTap.)
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    const r = renderer.current;
+    if (!el || !r || !drawMode || drawTool === "text") return;
+    let stroke: { pageEl: HTMLElement; drawing: Drawing; id: number } | null = null;
+    const place = (e: PointerEvent, pageEl: HTMLElement): [number, number] => {
+      const box = pageEl.getBoundingClientRect();
+      const within = (v: number) => Math.min(1, Math.max(0, v));
+      return fromViewPoint(within((e.clientX - box.left) / box.width), within((e.clientY - box.top) / box.height), r.turnValue);
+    };
+    const down = (e: PointerEvent) => {
+      // A second finger means a pinch: the stroke that began is dropped.
+      if (!e.isPrimary) return cancel();
+      if (e.button !== 0 || (e.target as Element).closest(".sticky, .pn-badge, button, a, .draw-text")) return;
+      const pageEl = (e.target as Element).closest<HTMLElement>(".page");
+      if (!pageEl) return;
+      e.preventDefault();
+      const [x, y] = place(e, pageEl);
+      const pressure = e.pointerType === "pen" ? e.pressure || 0.5 : 0.5;
+      const drawing: Drawing = {
+        id: "live", bookId, page: Number(pageEl.dataset.page), tool: drawTool, color: drawColor, size: drawSize,
+        points: drawTool === "pen" ? [x, y, pressure] : [x, y, x, y], createdAt: 0, updatedAt: 0,
+      };
+      stroke = { pageEl, drawing, id: e.pointerId };
+      try { el.setPointerCapture(e.pointerId); } catch {}
+      setLive(drawing);
+    };
+    const move = (e: PointerEvent) => {
+      if (!stroke || e.pointerId !== stroke.id) return;
+      const d = stroke.drawing;
+      // A pen reports more often than the screen draws: take every point it gives.
+      const events = d.tool === "pen" && e.getCoalescedEvents?.().length ? e.getCoalescedEvents() : [e];
+      let points = d.points;
+      for (const ev of events) {
+        const [x, y] = place(ev, stroke.pageEl);
+        points = d.tool === "pen" ? [...points, x, y, ev.pointerType === "pen" ? ev.pressure || 0.5 : 0.5] : [points[0], points[1], x, y];
+      }
+      stroke.drawing = { ...d, points };
+      setLive(stroke.drawing);
+    };
+    const up = async (e: PointerEvent) => {
+      if (!stroke || e.pointerId !== stroke.id) return;
+      const { id: _, createdAt: __, updatedAt: ___, ...made } = stroke.drawing;
+      stroke = null;
+      setLive(null);
+      dragEnded.current = { at: e.timeStamp, x: e.clientX, y: e.clientY }; // the click that follows is the end of this stroke, not a tap
+      const drawing = made.tool === "pen" ? { ...made, points: thin(made.points) } : made;
+      if (!worthKeeping(drawing)) return;
+      const saved = await saveDrawing(drawing);
+      record({ undo: () => removeDrawing(saved), redo: () => saveDrawing(saved) });
+    };
+    function cancel() {
+      stroke = null;
+      setLive(null);
+    }
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", cancel);
+    return () => {
+      cancel();
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", cancel);
+    };
+  }, [drawMode, drawTool, drawColor, drawSize, ready]);
+
   // Area marks: with the highlighter in area mode, a drag on a page draws a rectangle that becomes a mark.
   // A layout effect: the page takes the drag from the moment the mode shows as on.
   useLayoutEffect(() => {
@@ -706,7 +838,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       drag.ghost.remove();
       drag = null;
       if (b.width < 8 || b.height < 8) return; // a tap, not a drag
-      areaDrawnAt.current = e.timeStamp;
+      dragEnded.current = { at: e.timeStamp, x: e.clientX, y: e.clientY };
       const round = (v: number) => Math.round(v * 1e5) / 1e5;
       const shown = { x: round(b.left / b.page.width), y: round(b.top / b.page.height), w: round(b.width / b.page.width), h: round(b.height / b.page.height) };
       // An area has no words; it is kept like every mark, on the page as the PDF has it.
@@ -770,6 +902,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   onKey.current = (e: KeyboardEvent) => {
     if (e.key === "Escape" && placing) return setPlacing(false);
     if (e.key === "Escape" && erasing) return setErasing(false);
+    if (e.key === "Escape" && drawMode) return setDrawMode(false);
     // Ctrl/Cmd+Z undoes the last edit, with Shift (or Ctrl+Y) it is done again. Text fields keep their own undo.
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTyping(e.target) && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
       e.preventDefault();
@@ -833,8 +966,9 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
     const target = e.target as Element;
-    // The click that ends drawing an area (it follows the release at once) is not a tap on the new mark.
-    if (e.timeStamp - areaDrawnAt.current < 80) return;
+    // The click that ends a drag (drawing an area or a stroke) is not a tap: it comes at once, where the drag ended.
+    const drag = dragEnded.current;
+    if (e.timeStamp - drag.at < 80 && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) return;
     const link = target.closest(".pdf-link.is-inside");
     if (link) {
       // The tap that ends a long press only leaves the preview on screen.
@@ -844,6 +978,26 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     }
     if (preview) setPreview(null);
     if (target.closest("a, button, input, textarea, .sticky")) return;
+    if (drawMode) {
+      // With the text tool a tap writes: on a text box it changes that box, elsewhere it starts a new one.
+      if (drawTool !== "text" || editingText) return;
+      const box = target.closest<HTMLElement>(".draw-text");
+      const existing = box && drawings.find((d) => d.id === box.dataset.draw);
+      if (existing) return setEditingText(existing);
+      const at = renderer.current?.hitTest(e.clientX, e.clientY);
+      if (at) setEditingText({ id: "new", bookId, page: at.page, tool: "text", color: drawColor, size: drawSize, points: [at.x, at.y], text: "", createdAt: 0, updatedAt: 0 });
+      return;
+    }
+    if (erasing) {
+      // The eraser takes a drawing with one tap, like a highlight.
+      const drawn = drawings.find((d) => d.id === target.closest<SVGElement | HTMLElement>("[data-draw]")?.dataset.draw);
+      if (drawn) {
+        await removeDrawing(drawn);
+        record({ undo: () => saveDrawing(drawn), redo: () => removeDrawing(drawn) });
+        setToast({ text: t("Drawing removed"), undo: takeBack });
+        return;
+      }
+    }
     if (getSelection()?.toString()) return;
     const hit = renderer.current?.hitTest(e.clientX, e.clientY);
     if (placing) {
@@ -901,7 +1055,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   /** Everything the reader can do, for the command list (Ctrl/Cmd+K). Built when the list opens. */
   const commands = (): Command[] => {
     const tool = (on: boolean, set: (on: boolean) => void) => () => {
-      setHighlightMode(false); setPlacing(false); setErasing(false);
+      offModes();
       set(!on);
     };
     const list: (Command | false)[] = [
@@ -913,6 +1067,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       { id: "highlight", title: t("Highlight text"), icon: "highlighter", run: tool(highlightMode, setHighlightMode) },
       { id: "erase", title: t("Erase highlights and notes"), icon: "eraser", run: tool(erasing, setErasing) },
       { id: "sticky", title: t("Add sticky note"), icon: "sticky", run: tool(placing, setPlacing) },
+      { id: "draw", title: t("Draw"), icon: "draw", run: tool(drawMode, setDrawMode) },
       { id: "bookmark", title: t(bookmarked ? "Remove bookmark" : "Bookmark this page"), icon: "bookmark", keys: "B", run: () => toggleBookmark(page) },
       { id: "notes", title: t("Notes and highlights"), icon: "notes", run: () => setPanelOpen(true) },
       { id: "read", title: t("Read aloud"), icon: "headphones", run: () => (readAloud.open ? readAloud.close() : startReadAloud()) },
@@ -946,27 +1101,27 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   // The reading tools: in the top bar on wide screens, in a dock at the bottom on phones (where the thumb is).
+  const offModes = () => { setHighlightMode(false); setPlacing(false); setErasing(false); setDrawMode(false); };
   const tools = (
     <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
-      <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
-        aria-pressed={highlightMode} disabled={!ready}
-        onClick={() => { setHighlightMode((v) => !v); setPlacing(false); setErasing(false); }} />
-      <IconButton label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
-        aria-pressed={erasing} disabled={!ready}
-        onClick={() => { setErasing((v) => !v); setHighlightMode(false); setPlacing(false); }} />
-      <IconButton label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
-        aria-pressed={placing} disabled={!ready}
-        onClick={() => { setPlacing((v) => !v); setHighlightMode(false); setErasing(false); }} />
-      <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
+      <IconButton data-tool="highlight" label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
+        aria-pressed={highlightMode} disabled={!ready} onClick={() => { const on = !highlightMode; offModes(); setHighlightMode(on); }} />
+      <IconButton data-tool="erase" label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
+        aria-pressed={erasing} disabled={!ready} onClick={() => { const on = !erasing; offModes(); setErasing(on); }} />
+      <IconButton data-tool="sticky" label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
+        aria-pressed={placing} disabled={!ready} onClick={() => { const on = !placing; offModes(); setPlacing(on); }} />
+      <IconButton data-tool="draw" label={t("Draw")} icon="draw" class={drawMode ? "is-on" : ""}
+        aria-pressed={drawMode} disabled={!ready} onClick={() => { const on = !drawMode; offModes(); setDrawMode(on); }} />
+      <IconButton data-tool="bookmark" label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
         class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
         onClick={() => toggleBookmark(page)} />
-      <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
+      <IconButton data-tool="read" label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
         disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
-      <IconButton label={t("Notes and highlights")} icon="notes" class={panel === "notes" ? "is-on fill-on" : ""} aria-pressed={panel === "notes"}
+      <IconButton data-tool="notes" label={t("Notes and highlights")} icon="notes" class={panel === "notes" ? "is-on fill-on" : ""} aria-pressed={panel === "notes"}
         onClick={() => togglePanel("notes")} />
-      <IconButton label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
+      <IconButton data-tool="contents" label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
         onClick={() => togglePanel("contents")} disabled={!outline.length} />
-      <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
+      <IconButton data-tool="appearance" label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
     </div>
   );
 
@@ -1082,6 +1237,31 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         )}
       </div>
 
+      {drawMode && (
+        <div class="mode-hint is-draw" role="toolbar" aria-label={t("Drawing")}>
+          <div class="draw-tools" role="radiogroup" aria-label={t("What to draw")}>
+            {DRAW_TOOLS.map((tool) => (
+              <button type="button" role="radio" aria-checked={drawTool === tool} aria-label={t(DRAW_TOOL_LABEL[tool])} title={t(DRAW_TOOL_LABEL[tool])}
+                onClick={() => saveSetting("drawTool", tool)}><Icon name={DRAW_TOOL_ICON[tool]} size={18} /></button>
+            ))}
+          </div>
+          <div class="mode-colors" role="radiogroup" aria-label={t("Color")}>
+            {DRAW_COLORS.map((c) => (
+              <button type="button" role="radio" aria-checked={drawColor === c} aria-label={t(DRAW_LABEL[c])} title={t(DRAW_LABEL[c])}
+                class={`swatch ${c === "ink" ? "draw-ink-swatch" : ""}`} style={c === "ink" ? undefined : { background: DRAW_HEX[c] }}
+                onClick={() => saveSetting("drawColor", c)} />
+            ))}
+          </div>
+          <div class="draw-sizes" role="radiogroup" aria-label={t("Thickness")}>
+            {DRAW_SIZES.map(([size, label], i) => (
+              <button type="button" role="radio" aria-checked={drawSize === size} aria-label={t(label)} title={t(label)}
+                onClick={() => saveSetting("drawSize", size)}><i style={{ height: `${2 + i * 2}px` }} /></button>
+            ))}
+          </div>
+          <button type="button" class="mode-done" onClick={() => setDrawMode(false)}>{t("Done")}</button>
+        </div>
+      )}
+
       {erasing && (
         <div class="mode-hint is-text" role="status">
           <span>{t("Tap a highlight or note to remove it")}</span>
@@ -1098,7 +1278,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {error
         ? <p class="reader-error" role="alert">{t(error)}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""} ${highlightMode && areaMode ? "is-area" : ""}`}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""} ${highlightMode && areaMode ? "is-area" : ""} ${drawMode ? "is-drawing" : ""} ${drawMode && drawTool === "text" ? "is-text-tool" : ""}`}
             ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} {...linkPointer} />}
 
       {preview && renderer.current && (
@@ -1233,16 +1413,16 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
               {marked?.state === "ready" ? (
                 <button type="button" class="is-ready" onClick={async () => { if (await saveFile(marked.file)) closeMenu(); }}>
                   <Icon name="download" />
-                  <span><strong>{t("Save the PDF with your marks")}</strong><small>{t("Ready: {n} marks and notes inside.", { n: exportCount(annotations.data) })}</small></span>
+                  <span><strong>{t("Save the PDF with your marks")}</strong><small>{t("Ready: {n} marks and notes inside.", { n: exportCount(annotations.data, drawings) })}</small></span>
                 </button>
               ) : (
-                <button type="button" disabled={marked?.state === "building" || exportCount(annotations.data) === 0} onClick={buildMarked}>
+                <button type="button" disabled={marked?.state === "building" || exportCount(annotations.data, drawings) === 0} onClick={buildMarked}>
                   <Icon name="highlighter" />
                   <span>
                     <strong>{t("Save a copy with your marks")}</strong>
                     <small role="status">{t(marked?.state === "building" ? "Putting your marks into the PDF…"
                       : marked?.state === "failed" ? "This PDF could not be written. Its marks are still in the app."
-                      : exportCount(annotations.data) === 0 ? "This book has no marks or notes yet."
+                      : exportCount(annotations.data, drawings) === 0 ? "This book has no marks or notes yet."
                       : "Highlights and notes become part of the PDF, for other apps to show.")}</small>
                   </span>
                 </button>

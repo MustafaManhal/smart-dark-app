@@ -27,6 +27,10 @@ const defaults = {
   spreadCover: true, // in two-page view the first page stands alone, as the cover of a book does
   spreadRtl: false, // two-page view with the first page on the right, for books read right to left
   libraryView: "grid" as "grid" | "list",
+  // The drawing tool as it was last used.
+  drawTool: "pen" as "pen" | "line" | "arrow" | "rect" | "ellipse" | "text",
+  drawColor: "red" as "ink" | "red" | "blue" | "green" | "orange",
+  drawSize: 0.004,
   reviewNewPerDay: 10, // marks that enter the daily review each day; 0 turns the review off
   reviewDays: [] as string[], // days (YYYY-MM-DD) on which something was reviewed, for the review streak
   markStyle: "highlight" as "highlight" | "underline" | "strike", // how the next marked passage is drawn

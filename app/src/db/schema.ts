@@ -1,5 +1,5 @@
 export const DB_NAME = "smart-dark-reader";
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 // Each upgrade step runs once, in order, for users coming from older versions.
 export function upgrade(db: IDBDatabase, oldVersion: number, tx: IDBTransaction) {
@@ -47,5 +47,9 @@ export function upgrade(db: IDBDatabase, oldVersion: number, tx: IDBTransaction)
   if (oldVersion < 6) {
     // Text recognized on scanned pages (key: "<bookId>:<page>").
     db.createObjectStore("ocr", { keyPath: "id" }).createIndex("bookId", "bookId");
+  }
+  if (oldVersion < 7) {
+    // Pen strokes, shapes and text boxes drawn on pages.
+    db.createObjectStore("drawings", { keyPath: "id" }).createIndex("bookId", "bookId");
   }
 }

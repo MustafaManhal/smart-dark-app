@@ -1,0 +1,32 @@
+/* Drawings: pen strokes, shapes and text boxes on the page (draw/DrawLayer.tsx). */
+.draw-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; --draw-ink: #1b1a17; }
+.reader[data-style="dark"] .draw-layer { --draw-ink: #ececef; }
+.reader[data-style="sepia"] .draw-layer { --draw-ink: #3d2f22; }
+.draw-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.draw-text { position: absolute; max-width: 60%; min-width: 1ch; padding: 0 2px; font-weight: 500; line-height: 1.3; white-space: pre-wrap; overflow-wrap: anywhere; }
+.draw-text.is-editing { pointer-events: auto; outline: 1.5px dashed currentColor; outline-offset: 2px; border-radius: 2px; background: color-mix(in srgb, var(--page-bg, #fff) 85%, transparent); cursor: text; user-select: text; -webkit-user-select: text; }
+/* Drawing: the page takes the pointer; its words and links are out of the way. */
+.reader-scroll.is-drawing .page { cursor: crosshair; touch-action: none; }
+.reader-scroll.is-drawing :is(.textLayer, .pdf-link) { pointer-events: none; user-select: none; -webkit-user-select: none; }
+.reader-scroll.is-drawing.is-text-tool .page { cursor: text; }
+.reader-scroll.is-drawing.is-text-tool .draw-text { pointer-events: auto; cursor: text; }
+/* The eraser takes a drawing with one tap: strokes get a wider place to hit. */
+.draw-hit { fill: none; stroke: transparent; stroke-width: var(--reach); stroke-linecap: round; pointer-events: none; }
+.reader-scroll.is-erasing .draw-hit { pointer-events: stroke; cursor: pointer; }
+.reader-scroll.is-erasing .draw-text { pointer-events: auto; cursor: pointer; outline: 1px dashed color-mix(in srgb, currentColor 55%, transparent); outline-offset: 2px; }
+/* The tool's options: what to draw, in which color, how thick. */
+.mode-hint.is-draw { flex-wrap: wrap; justify-content: center; row-gap: 6px; padding: 6px 8px; max-width: calc(100% - 16px); }
+.draw-tools, .draw-sizes { display: flex; gap: 2px; }
+.draw-tools button, .draw-sizes button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 9px; background: none; color: inherit; cursor: pointer; }
+.draw-tools button:hover, .draw-sizes button:hover { background: var(--surface-2); }
+:is(.draw-tools, .draw-sizes) button[aria-checked="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-strong); }
+.draw-sizes i { display: block; width: 16px; border-radius: 3px; background: currentColor; }
+.draw-ink-swatch { background: linear-gradient(135deg, #1b1a17 50%, #ececef 50%) !important; }
+/* A small phone: two rows. What to draw and how thick on the first, color and Done on the second. */
+@media (max-width: 400px) {
+  .mode-hint.is-draw { column-gap: 6px; }
+  .mode-hint.is-draw .draw-sizes { order: 1; }
+  .mode-hint.is-draw .mode-colors { order: 2; }
+  .mode-hint.is-draw .mode-done { order: 3; }
+  .draw-tools button, .draw-sizes button { width: 29px; height: 30px; }
+}

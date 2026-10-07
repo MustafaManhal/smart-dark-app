@@ -223,8 +223,8 @@
 /* A tool that is on. */
 .tools .icon-btn.is-on { background: var(--accent-soft); color: var(--accent-strong); }
 /* In the top bar the tools stand in groups: marking, bookmark, listening, lists, look. */
-.reader-top .tools .icon-btn:is(:nth-child(4), :nth-child(5), :nth-child(6), :nth-child(8)) { position: relative; margin-inline-start: 11px; }
-.reader-top .tools .icon-btn:is(:nth-child(4), :nth-child(5), :nth-child(6), :nth-child(8))::before { content: ""; position: absolute; inset-block: 11px; inset-inline-start: -7px; width: 1px; background: var(--border-strong); }
+.reader-top .tools .icon-btn:is([data-tool="bookmark"], [data-tool="read"], [data-tool="notes"], [data-tool="appearance"]) { position: relative; margin-inline-start: 11px; }
+.reader-top .tools .icon-btn:is([data-tool="bookmark"], [data-tool="read"], [data-tool="notes"], [data-tool="appearance"])::before { content: ""; position: absolute; inset-block: 11px; inset-inline-start: -7px; width: 1px; background: var(--border-strong); }
 
 .mode-hint {
   position: absolute;
@@ -250,7 +250,9 @@
 .mode-done { border: 0; border-radius: 999px; padding: 6px 12px; background: var(--surface-2); cursor: pointer; }
 @media (max-width: 420px) { .mode-hint:not(.is-text) > span { display: none; } }
 /* Eight tools in one row need smaller buttons on the narrowest phones. */
-@media (max-width: 380px) { .tools .icon-btn { width: 35px; } }
+/* Nine tools in the dock of a phone: a little narrower each, still a full-height target. */
+@media (max-width: 420px) { .dock .tools { gap: 0; justify-content: space-between; } .dock .tools .icon-btn { width: 38px; } }
+@media (max-width: 380px) { .tools .icon-btn, .dock .tools .icon-btn { width: 32px; } }
 .zoom-pill .icon-btn.is-on { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 
 /* The notes panel takes the right side on wide screens: hints stay over the page. */

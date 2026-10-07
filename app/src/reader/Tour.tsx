@@ -2,13 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import { Button } from "../ui/Button";
 
-// Each step points at one tool of the top bar (found by its place among the tools, which no language changes).
+// Each step points at one tool (found by its data-tool name, which no language changes).
 const STEPS: { target: string; title: string; text: string }[] = [
-  { target: ".tools .icon-btn:nth-child(8)", title: "Dark pages, real colors",
+  { target: '.tools [data-tool="appearance"]', title: "Dark pages, real colors",
     text: "Photos and colored text keep their look. Appearance changes the page style and fine-tunes it." },
-  { target: ".tools .icon-btn:nth-child(1)", title: "Mark what matters",
+  { target: '.tools [data-tool="highlight"]', title: "Mark what matters",
     text: "Select text to highlight it or to write a note. What you mark is collected under Notes." },
-  { target: ".tools .icon-btn:nth-child(5)", title: "Listen to the book",
+  { target: '.tools [data-tool="read"]', title: "Listen to the book",
     text: "Read aloud speaks the text and follows it on the page." },
 ];
 

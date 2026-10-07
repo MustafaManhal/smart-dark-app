@@ -49,6 +49,7 @@ class PageSlot {
   speechLayer = document.createElement("div");
   searchLayer = document.createElement("div");
   linkLayer = document.createElement("div");
+  drawLayer = document.createElement("div");
   linksBuilt = false;
   /** The page as the PDF has it: canvas, text, marks and links. Turned as a whole when the reader rotates the book. */
   face = document.createElement("div");
@@ -67,7 +68,8 @@ class PageSlot {
     this.searchLayer.className = "search-layer";
     this.linkLayer.className = "link-layer";
     this.face.className = "page-face";
-    this.face.append(this.highlightLayer, this.linkLayer);
+    this.drawLayer.className = "draw-layer";
+    this.face.append(this.highlightLayer, this.linkLayer, this.drawLayer);
     // These three are placed from what is on screen, so they stay upright over a turned page.
     this.div.append(this.face, this.searchLayer, this.speechLayer, this.stickyLayer);
     this.textReady = new Promise((resolve) => (this.markTextReady = resolve));
@@ -214,7 +216,8 @@ export class Renderer {
   layers(number: number) {
     const slot = this.slots[number - 1];
     return slot
-      ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer, speech: slot.speechLayer, search: slot.searchLayer }
+      ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer, speech: slot.speechLayer, search: slot.searchLayer,
+          drawings: slot.drawLayer, w: slot.w, h: slot.h }
       : null;
   }
 
