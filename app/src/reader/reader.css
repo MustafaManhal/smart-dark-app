@@ -58,7 +58,7 @@
 .toc button { display: flex; width: 100%; gap: 12px; justify-content: space-between; padding: 12px 8px; border: 0; border-radius: 10px; background: none; text-align: start; cursor: pointer; }
 .toc button:hover, .toc button[aria-current="true"] { background: var(--surface-2); }
 .toc-page { color: var(--muted); font-variant-numeric: tabular-nums; }
-.reader-top, .float-tools { transition: transform 0.25s var(--ease), opacity 0.25s; }
+.reader-top, .float-tools, .read-bar { transition: transform 0.25s var(--ease), opacity 0.25s, bottom 0.25s var(--ease); }
 .reader.bars-hidden .reader-top { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 
 /* Page column: centered when narrower than the screen, scrolls sideways when zoomed in. */
@@ -211,10 +211,20 @@
   .zoom-menu { top: 76px; } /* under the fit chips, not over them */
 }
 @media (max-width: 720px) {
-  .reader { --bar-top: calc(97px + var(--safe-top)); }
-  .reader-top { grid-template-columns: auto minmax(0, 1fr) 40px 40px; grid-template-areas: "back title search menu" "tools tools tools tools"; row-gap: 2px; }
-  .tools { justify-content: space-around; padding-top: 2px; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+  /* The top bar keeps Back, the title, Search and the menu. The tools are in the dock at the bottom. */
+  .reader { --bar-bottom: calc(var(--safe-bottom) + 53px); }
+  .reader.bars-hidden { --bar-bottom: var(--safe-bottom); }
+  .reader-top { grid-template-columns: auto minmax(0, 1fr) 40px 40px; grid-template-areas: "back title search menu"; }
 }
+/* The dock: the reading tools within reach of the thumb. It has its own strip under the page, and leaves with the bars. */
+.dock { position: absolute; inset: auto 0 0; z-index: 6; padding: 6px 6px calc(6px + var(--safe-bottom)); background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--border); transition: transform 0.25s var(--ease), opacity 0.25s; }
+.dock .tools { justify-content: space-around; }
+.reader.bars-hidden .dock { transform: translateY(100%); opacity: 0; pointer-events: none; }
+/* A tool that is on. */
+.tools .icon-btn.is-on { background: var(--accent-soft); color: var(--accent-strong); }
+/* In the top bar the tools stand in groups: marking, bookmark, listening, lists, look. */
+.reader-top .tools .icon-btn:is(:nth-child(4), :nth-child(5), :nth-child(6), :nth-child(8)) { position: relative; margin-inline-start: 11px; }
+.reader-top .tools .icon-btn:is(:nth-child(4), :nth-child(5), :nth-child(6), :nth-child(8))::before { content: ""; position: absolute; inset-block: 11px; inset-inline-start: -7px; width: 1px; background: var(--border-strong); }
 
 .mode-hint {
   position: absolute;
@@ -316,7 +326,7 @@
 .read-bar {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 14px);
+  bottom: calc(var(--bar-bottom) + 14px);
   translate: -50% 0;
   z-index: 8;
   display: flex;
@@ -338,7 +348,7 @@
 .read-sleep { position: absolute; bottom: calc(100% + 6px); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; white-space: nowrap; }
 .read-msg { padding: 0 10px; }
 @media (max-width: 380px) { .read-bar .icon-btn { width: 34px; height: 34px; } .read-speed { min-width: 40px; } }
-.reader.reading .reader-scroll { padding-bottom: calc(var(--safe-bottom) + 96px); }
+.reader.reading .reader-scroll { padding-bottom: calc(var(--bar-bottom) + 96px); }
 
 /* Book menu: print, save a copy */
 .book-menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -402,6 +412,7 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 /* The three-step tour shown with the sample book */
 .tour { position: fixed; z-index: 40; width: min(300px, calc(100vw - 24px)); padding: 14px 16px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
 .tour::before { content: ""; position: absolute; top: -7px; left: var(--arrow, 50%); width: 12px; height: 12px; margin-left: -6px; rotate: 45deg; background: var(--surface); border: 1px solid var(--border); border-right: 0; border-bottom: 0; }
+.tour.is-over::before { top: auto; bottom: -7px; rotate: 225deg; }
 .tour p { margin: 6px 0 12px; color: var(--muted); }
 .tour-foot { display: flex; align-items: center; gap: 8px; }
 .tour-count { display: flex; gap: 5px; margin-inline-end: auto; }

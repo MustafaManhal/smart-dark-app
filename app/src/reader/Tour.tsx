@@ -27,7 +27,10 @@ export function Tour({ onDone }: { onDone: () => void }) {
       const at = tool.getBoundingClientRect();
       const width = el.offsetWidth;
       const left = Math.min(innerWidth - width - 12, Math.max(12, at.left + at.width / 2 - width / 2));
-      el.style.top = `${at.bottom + 12}px`;
+      // Under its tool, or over it when the tool is in the dock at the bottom of a phone.
+      const over = at.bottom + 12 + el.offsetHeight > innerHeight - 8;
+      el.classList.toggle("is-over", over);
+      el.style.top = `${over ? at.top - 12 - el.offsetHeight : at.bottom + 12}px`;
       el.style.left = `${left}px`;
       el.style.setProperty("--arrow", `${Math.min(width - 22, Math.max(22, at.left + at.width / 2 - left))}px`);
     };

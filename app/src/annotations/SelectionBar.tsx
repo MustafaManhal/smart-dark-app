@@ -43,7 +43,8 @@ export function SelectionBar({ anchor, onHighlight, onNote, onCopy }: {
     // The bar stays below the reader's top bar (which slides away when hidden)
     // and above the read-aloud bar when that is open.
     const bar = document.querySelector(".reader-top")?.getBoundingClientRect().bottom ?? 0;
-    const readBar = document.querySelector(".read-bar")?.getBoundingClientRect().top ?? innerHeight;
+    // The lowest free line: above the read-aloud bar when it is open, else above the tool dock of a phone.
+    const readBar = (document.querySelector(".read-bar") ?? document.querySelector(".dock"))?.getBoundingClientRect().top ?? innerHeight;
     setPos(placeSelectionBar(anchor, { w: el.offsetWidth, h: el.offsetHeight }, {
       width: innerWidth, minTop: Math.max(0, bar), maxBottom: Math.min(innerHeight, readBar), touch: matchMedia("(hover: none)").matches,
     }));

@@ -29,6 +29,7 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { useMedia } from "../ui/useMedia";
 import { QuoteSheet } from "../annotations/QuoteSheet";
 import type { QuoteSource } from "../annotations/quote";
 import { printBook } from "./print";
@@ -297,6 +298,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   // Navigation stays off until pages are laid out, so early taps are not lost.
   const total = ready ? book?.pageCount ?? 0 : 0;
   const [barsHidden, setBarsHidden] = useState(false);
+  const narrow = useMedia("(max-width: 720px)");
   const readAloud = useReadAloud(renderer, outline, book?.pageCount ?? 0);
   const search = useBookSearch(bookSearch, renderer, page);
   // Opened from a search across the library: the same words are looked for in this book, from the page given.
@@ -818,6 +820,30 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const chapterStarts = total > 1 ? outline.filter((o) => o.depth === 0 && o.page > 1).map((o) => (o.page - 1) / total) : [];
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
+  // The reading tools: in the top bar on wide screens, in a dock at the bottom on phones (where the thumb is).
+  const tools = (
+    <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
+      <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
+        aria-pressed={highlightMode} disabled={!ready}
+        onClick={() => { setHighlightMode((v) => !v); setPlacing(false); setErasing(false); }} />
+      <IconButton label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
+        aria-pressed={erasing} disabled={!ready}
+        onClick={() => { setErasing((v) => !v); setHighlightMode(false); setPlacing(false); }} />
+      <IconButton label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
+        aria-pressed={placing} disabled={!ready}
+        onClick={() => { setPlacing((v) => !v); setHighlightMode(false); setErasing(false); }} />
+      <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
+        class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
+        onClick={() => toggleBookmark(page)} />
+      <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
+        disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
+      <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
+        onClick={() => setPanelOpen((v) => !v)} />
+      <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
+      <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
+    </div>
+  );
+
   return (
     <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open || auto.open ? "reading" : ""} ${search.open ? "searching" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
@@ -829,26 +855,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         <IconButton label={t("Search in book")} icon="search" class={`top-search ${search.open ? "is-on" : ""}`}
           aria-pressed={search.open} disabled={!ready} onClick={() => (search.open ? search.close() : search.show())} />
         <IconButton label={t("Book menu")} icon="more" class="top-menu" disabled={!ready} onClick={() => setSheet("menu")} />
-        <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
-          <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
-            aria-pressed={highlightMode} disabled={!ready}
-            onClick={() => { setHighlightMode((v) => !v); setPlacing(false); setErasing(false); }} />
-          <IconButton label={t("Erase highlights and notes")} icon="eraser" class={erasing ? "is-on" : ""}
-            aria-pressed={erasing} disabled={!ready}
-            onClick={() => { setErasing((v) => !v); setHighlightMode(false); setPlacing(false); }} />
-          <IconButton label={t("Add sticky note")} icon="sticky" class={placing ? "is-on" : ""}
-            aria-pressed={placing} disabled={!ready}
-            onClick={() => { setPlacing((v) => !v); setHighlightMode(false); setErasing(false); }} />
-          <IconButton label={t(bookmarked ? "Remove bookmark" : "Bookmark this page")} icon="bookmark"
-            class={bookmarked ? "is-on fill-on" : ""} aria-pressed={bookmarked} disabled={!ready}
-            onClick={() => toggleBookmark(page)} />
-          <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
-            disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
-          <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
-            onClick={() => setPanelOpen((v) => !v)} />
-          <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
-          <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
-        </div>
+        {!narrow && tools}
         <div class={`book-progress ${scrub ? "is-scrubbing" : ""}`} role="slider" tabIndex={ready ? 0 : -1} aria-label={t("Book progress")}
           aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}
           aria-valuetext={t("Page {page} of {total}", { page, total })}
@@ -970,6 +977,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           onEnter={() => clearTimeout(closeTimer.current)} onLeave={() => !preview.touch && setPreview(null)} />
       )}
 
+      {narrow && <div class="dock">{tools}</div>}
       <ReadAloudBar ra={readAloud} page={page} />
       <AutoScrollBar auto={auto} />
 

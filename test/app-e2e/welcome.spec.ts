@@ -14,11 +14,13 @@ test("a new reader is welcomed, tries the sample book and gets a three-step tour
   await expect(tour).toContainText("Dark pages, real colors");
   await expect(tour).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Appearance" })).toHaveClass(/tour-target/);
-  // The step sits under the tool it is about.
+  // The step sits next to the tool it is about.
   const tool = (await page.getByRole("button", { name: "Appearance" }).boundingBox())!;
   const box = (await tour.boundingBox())!;
-  expect(box.y).toBeGreaterThan(tool.y + tool.height);
-  expect(box.y).toBeLessThan(tool.y + tool.height + 30);
+  // (under the tool in the top bar of a wide screen, over it when the tool is in the dock of a phone)
+  const gap = box.y > tool.y ? box.y - (tool.y + tool.height) : tool.y - (box.y + box.height);
+  expect(gap).toBeGreaterThan(0);
+  expect(gap).toBeLessThan(30);
   await page.screenshot({ path: `test/output/tour-${test.info().project.name}.png` });
 
   await tour.getByRole("button", { name: "Next" }).click();
