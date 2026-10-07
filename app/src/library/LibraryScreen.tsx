@@ -17,6 +17,7 @@ import { searchInsideBooks, searchNotes, type BookHits } from "./deepSearch";
 import { importPdf, ImportError } from "./importer";
 import { PasswordSheet } from "./PasswordSheet";
 import { loadSample } from "./sample";
+import { Brand } from "../ui/Brand";
 import "./library.css";
 
 const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"], ["favorites", "Favorites"]];
@@ -170,7 +171,10 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
       onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer?.files.length) importFiles(e.dataTransfer.files); }}
     >
       <header class="lib-head">
-        <h1>{t("Your library")}</h1>
+        <div class="lib-title">
+          <Brand />
+          <h1>{t("Your library")}</h1>
+        </div>
         <IconButton label={t("Reading stats")} icon="chart" onClick={() => navigate({ name: "stats" })} />
         <IconButton label={t("Settings")} icon="settings" onClick={() => navigate({ name: "settings" })} />
         <IconButton label={t("Back up and restore")} icon="backup" class="lib-backup" onClick={() => setBackupOpen(true)} />
@@ -185,8 +189,8 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <div class="lib-tools">
           <label class="search">
             <Icon name="search" size={18} />
-            <input type="search" placeholder={t("Search title or author")} value={query}
-              onInput={(e) => setQuery(e.currentTarget.value)} aria-label={t("Search title or author")} />
+            <input type="search" placeholder={t("Search books, tags and notes")} value={query}
+              onInput={(e) => setQuery(e.currentTarget.value)} aria-label={t("Search books, tags and notes")} />
           </label>
           <div class="chips" role="tablist" aria-label={t("Shelves")}>
             {SHELVES.map(([key, label]) => (
@@ -257,7 +261,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
 
       {books && books.length === 0 && (
         <section class="lib-empty" aria-label={t("Welcome")}>
-          <div class="lib-empty-art"><Icon name="book" size={40} /></div>
+          <img class="lib-empty-mark" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width="84" height="84" />
           <h2>{t("Welcome to Reader343")}</h2>
           <p>{t("A calm place to read PDFs. Your books and notes stay on this device.")}</p>
           <ul class="welcome-points">

@@ -13,6 +13,15 @@
   --radius: 14px;
   --radius-sm: 10px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Motion: fast for color and opacity, slow (with --ease) for things that move. See docs/brand.md. */
+  --fast: 0.15s;
+  --slow: 0.25s;
+  /* Type sizes */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: clamp(26px, 4vw, 34px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font: -apple-system, "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
@@ -139,3 +148,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 :root[data-platform="darwin"] .reader-top { -webkit-app-region: drag; }
 :root[data-platform="darwin"] .reader-top :is(button, input, a) { -webkit-app-region: no-drag; }
+
+/* The app's mark and name (ui/Brand.tsx) */
+.brand { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: var(--text-sm); font-weight: 650; letter-spacing: 0.01em; white-space: nowrap; }
+.brand img { border-radius: 22%; }

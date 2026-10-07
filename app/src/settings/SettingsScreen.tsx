@@ -11,6 +11,7 @@ import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { AdjustControls } from "../reader/AdjustControls";
 import { SpeedStepper } from "../readaloud/VoicePicker";
+import { Brand } from "../ui/Brand";
 import "./settings.css";
 
 function Choice<T extends string | number>({ name, legend, value, options, onPick }: {
@@ -142,7 +143,8 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
 
       <section class="card about">
         <h2>{t("About")}</h2>
-        <p>{t("Reader343, version {v}", { v: __APP_VERSION__ })}</p>
+        <p class="about-name"><Brand size={24} /> <span>{t("version {v}", { v: __APP_VERSION__ })}</span></p>
+        <p>{t("Your books, notes and reading history stay on this device. Nothing is sent anywhere unless you turn on online book details.")}</p>
         <p class="muted small">{t("MIT license. PDF rendering by Mozilla PDF.js (Apache-2.0).")}</p>
       </section>
 
