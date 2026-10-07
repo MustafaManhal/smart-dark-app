@@ -32,7 +32,7 @@ export function App({ repos }: { repos: Repos }) {
     startReminders(repos);
   }
   const r = route.value;
-  if (r.name === "reader") return <ReaderScreen key={`${r.bookId}-${r.page ?? ""}`} repos={repos} bookId={r.bookId} startPage={r.page} />;
+  if (r.name === "reader") return <ReaderScreen key={`${r.bookId}-${r.page ?? ""}-${r.find ?? ""}`} repos={repos} bookId={r.bookId} startPage={r.page} startFind={r.find} />;
   if (r.name === "stats") return <StatsScreen repos={repos} />;
   if (r.name === "settings") return <SettingsScreen repos={repos} />;
   return <LibraryScreen repos={repos} />;

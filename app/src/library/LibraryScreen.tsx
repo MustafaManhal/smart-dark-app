@@ -12,6 +12,8 @@ import { isIosBrowser } from "../platform/pwa";
 import { makeCover } from "./cover";
 import { allTags, continueReading, filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
 import { saveSetting, settings } from "../settings";
+import type { BookAnnotations } from "../db/annotations";
+import { searchInsideBooks, searchNotes, type BookHits } from "./deepSearch";
 import { importPdf, ImportError } from "./importer";
 import { PasswordSheet } from "./PasswordSheet";
 import "./library.css";
@@ -116,6 +118,31 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     [books, progress, shelf, query, tag],
   );
   const view = settings.libraryView.value;
+
+  // A search also looks in everything the reader wrote or marked, and on request inside the text of the books.
+  const searching = query.trim().length >= 2;
+  const [marks, setMarks] = useState<BookAnnotations | null>(null);
+  useEffect(() => {
+    if (searching && !marks) repos.annotations.all().then(setMarks);
+  }, [searching, marks]);
+  const noteHits = useMemo(() => (searching && marks ? searchNotes(marks, query) : []), [searching, marks, query]);
+  const [inside, setInside] = useState<{ found: BookHits[]; done: number; now: Book | null; running: boolean } | null>(null);
+  const insideStop = useRef({ now: false });
+  // Another query: what was found inside the books is about other words.
+  useEffect(() => {
+    insideStop.current.now = true;
+    setInside(null);
+  }, [query]);
+  useEffect(() => () => { insideStop.current.now = true; }, []);
+  async function searchInside() {
+    if (!books) return;
+    const stop = (insideStop.current = { now: false });
+    setInside({ found: [], done: 0, now: books[0] ?? null, running: true });
+    const found = await searchInsideBooks(repos, books, query, (list, done, now) => !stop.now && setInside({ found: list, done, now, running: true }), stop);
+    if (!stop.now) setInside({ found, done: books.length, now: null, running: false });
+  }
+  const titleOf = (bookId: string) => books?.find((b) => b.id === bookId)?.title ?? "";
+  const KIND = { highlight: "Highlight", note: "Note", sticky: "Sticky note" } as const;
   async function toggleFavorite(book: Book) {
     await repos.books.update(book.id, { favorite: !book.favorite });
     setBooks((list) => list && list.map((b) => (b.id === book.id ? { ...b, favorite: !book.favorite } : b)));
@@ -225,7 +252,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
       )}
 
       {books && books.length > 0 && visible.length === 0 && (
-        <p class="lib-none">{t("No books match.")}</p>
+        <p class="lib-none">{t(searching ? "No title, author or tag matches." : "No books match.")}</p>
       )}
 
       <ul class={view === "list" ? "grid is-list" : "grid"} aria-label={t("Books")}>
@@ -255,6 +282,54 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
           );
         })}
       </ul>
+
+      {searching && books && books.length > 0 && (
+        <>
+          {noteHits.length > 0 && (
+            <section class="lib-found" aria-label={t("In your notes and highlights")}>
+              <h2>{t("In your notes and highlights")}</h2>
+              <ul>
+                {noteHits.map((hit) => (
+                  <li key={hit.id}>
+                    <button type="button" class="lib-hit" onClick={() => navigate({ name: "reader", bookId: hit.bookId, page: hit.page })}>
+                      <span class="lib-hit-where"><strong>{titleOf(hit.bookId)}</strong> · {t("Page {page}", { page: hit.page })} · {t(KIND[hit.kind])}</span>
+                      <span class="lib-hit-text" dir="auto">{hit.before}<mark>{hit.hit}</mark>{hit.after}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <section class="lib-found" aria-label={t("Inside the books")}>
+            <h2>{t("Inside the books")}</h2>
+            {!inside && (
+              <Button onClick={searchInside}><Icon name="search" size={18} /> {t("Search the text of every book")}</Button>
+            )}
+            {inside?.running && (
+              <p class="lib-hit-status" role="status">
+                <span>{t("Searching book {n} of {total}: {title}", { n: Math.min(books.length, inside.done + 1), total: books.length, title: inside.now?.title ?? "" })}</span>
+                <Button onClick={() => { insideStop.current.now = true; setInside({ ...inside, running: false, now: null }); }}>{t("Stop")}</Button>
+              </p>
+            )}
+            {inside && !inside.running && inside.found.length === 0 && <p class="lib-hit-status" role="status">{t("Not found inside any book.")}</p>}
+            {inside && inside.found.length > 0 && (
+              <ul>
+                {inside.found.map(({ book, count, first }) => (
+                  <li key={book.id}>
+                    <div class="lib-hit-book"><strong>{book.title}</strong><span>{t(count === 1 ? "1 match" : "{n} matches", { n: count })}</span></div>
+                    {first.map((m) => (
+                      <button type="button" class="lib-hit" onClick={() => navigate({ name: "reader", bookId: book.id, page: m.page, find: query.trim() })}>
+                        <span class="lib-hit-where">{t("Page {page}", { page: m.page })}</span>
+                        <span class="lib-hit-text" dir="auto">{m.before}<mark>{m.hit}</mark>{m.after}</span>
+                      </button>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
 
       <BookDetailsSheet repos={repos} book={editing} knownTags={tags} onClose={() => setEditing(null)} onSaved={reload} />
       <BackupSheet repos={repos} open={backupOpen} onClose={() => setBackupOpen(false)} onRestored={reload} />

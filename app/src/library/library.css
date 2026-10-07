@@ -117,3 +117,19 @@
 .grid.is-list .card-actions { position: static; flex: none; opacity: 1; }
 .grid.is-list .card-actions .icon-btn { visibility: visible !important; background: none; color: var(--muted); }
 .grid.is-list .card-actions .icon-btn:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+
+/* What a search found in notes and inside the books */
+.lib-found { margin-top: 30px; }
+.lib-found h2 { margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--muted); }
+.lib-found ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lib-hit { display: grid; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.lib-hit:hover { border-color: var(--accent); }
+.lib-hit-where { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.lib-hit-where strong { color: var(--text); font-weight: 600; }
+.lib-hit-text { overflow-wrap: anywhere; }
+.lib-hit-text mark { padding: 0 1px; border-radius: 3px; background: color-mix(in srgb, #f5c542 55%, transparent); color: inherit; }
+.lib-hit-book { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 10px 2px 6px; }
+.lib-hit-book span { flex: none; color: var(--muted); font-size: 13px; }
+.lib-found li > .lib-hit + .lib-hit { margin-top: 6px; }
+.lib-hit-status .btn { flex: none; white-space: nowrap; }
+.lib-hit-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); overflow-wrap: anywhere; }

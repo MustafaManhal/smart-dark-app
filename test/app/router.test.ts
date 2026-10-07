@@ -16,3 +16,12 @@ test("hashFor is the inverse of parseHash", () => {
     expect(parseHash(hashFor(r))).toEqual(r);
   }
 });
+
+test("a reader route can carry words to look for", () => {
+  const route = { name: "reader", bookId: "x", page: 4, find: "red & blue = 50% résumé" } as const;
+  expect(hashFor(route)).toBe("#/read/x?p=4&q=red%20%26%20blue%20%3D%2050%25%20r%C3%A9sum%C3%A9");
+  expect(parseHash(hashFor(route))).toEqual(route);
+  expect(parseHash(hashFor({ name: "reader", bookId: "x", find: "قراءة" }))).toEqual({ name: "reader", bookId: "x", find: "قراءة" });
+  expect(parseHash("#/read/x?q=%20%20")).toEqual({ name: "reader", bookId: "x" });
+  expect(parseHash("#/read/x?p=abc")).toEqual({ name: "reader", bookId: "x" });
+});

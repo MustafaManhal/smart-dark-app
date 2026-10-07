@@ -73,7 +73,7 @@ const ZOOM_STEP = 1.2;
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
 
-export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookId: string; startPage?: number }) {
+export function ReaderScreen({ repos, bookId, startPage, startFind }: { repos: Repos; bookId: string; startPage?: number; startFind?: string }) {
   const scroller = useRef<HTMLDivElement>(null);
   const renderer = useRef<Renderer | null>(null);
   const [book, setBook] = useState<Book | null>(null);
@@ -279,6 +279,12 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [barsHidden, setBarsHidden] = useState(false);
   const readAloud = useReadAloud(renderer, outline, book?.pageCount ?? 0);
   const search = useBookSearch(bookSearch, renderer, page);
+  // Opened from a search across the library: the same words are looked for in this book, from the page given.
+  useEffect(() => {
+    if (!ready || !startFind) return;
+    search.setQuery(startFind);
+    search.show();
+  }, [ready]);
   // Auto-scroll and read aloud both move the page, so only one runs at a time.
   const auto = useAutoScroll(scroller);
   const startAuto = () => { readAloud.close(); setSheet(null); auto.start(); };
