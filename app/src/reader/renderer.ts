@@ -5,6 +5,7 @@ import {
   imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle, ViewLayout } from "../settings";
+import { resolveDest, type Target } from "./pdf";
 
 export type Adjust = { brightness: number; contrast: number; sepia: number; grayscale: number };
 export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageMode: ImageMode; adjust?: Adjust };
@@ -44,6 +45,8 @@ class PageSlot {
   stickyLayer = document.createElement("div");
   speechLayer = document.createElement("div");
   searchLayer = document.createElement("div");
+  linkLayer = document.createElement("div");
+  linksBuilt = false;
   textReady: Promise<void>;
   private markTextReady!: () => void;
 
@@ -54,7 +57,8 @@ class PageSlot {
     this.stickyLayer.className = "sticky-layer";
     this.speechLayer.className = "speech-layer";
     this.searchLayer.className = "search-layer";
-    this.div.append(this.highlightLayer, this.searchLayer, this.speechLayer, this.stickyLayer);
+    this.linkLayer.className = "link-layer";
+    this.div.append(this.highlightLayer, this.searchLayer, this.speechLayer, this.linkLayer, this.stickyLayer);
     this.textReady = new Promise((resolve) => (this.markTextReady = resolve));
   }
 
@@ -103,6 +107,9 @@ export class Renderer {
   onProgress: (fraction: number) => void = () => {};
   /** The text of a page has been laid out (again after each zoom). */
   onTextRendered: (page: number) => void = () => {};
+  /** The accessible name of a link into the book. */
+  linkLabel: (page: number) => string = (page) => `Page ${page}`;
+  private linkDests = new WeakMap<Element, unknown>();
 
   constructor(private container: HTMLElement, private doc: PDFDocumentProxy, private opts: RenderOptions) {
     this.content.className = "pages";
@@ -524,7 +531,53 @@ export class Renderer {
     else slot.div.prepend(canvas);
     slot.canvas = canvas;
     slot.key = key;
+    if (!slot.linksBuilt) this.buildLinks(slot).catch(() => {});
     if (slot.layerScale !== this.scale) await this.renderText(slot, viewport);
+  }
+
+  /**
+   * The links of a page, as elements placed over their words (in page
+   * fractions, so they follow every zoom). A web address opens in the browser;
+   * a link into the book is followed by the reader (see `linkTarget`).
+   */
+  private async buildLinks(slot: PageSlot) {
+    slot.linksBuilt = true;
+    const page = slot.page!;
+    const viewport = page.getViewport({ scale: 1 });
+    for (const a of await page.getAnnotations({ intent: "display" })) {
+      const inside: unknown = a.dest;
+      const web = typeof a.url === "string" && /^(https?:|mailto:)/i.test(a.url) ? a.url : null;
+      if (a.subtype !== "Link" || !Array.isArray(a.rect) || (!inside && !web)) continue;
+      const [x1, y1] = viewport.convertToViewportPoint(a.rect[0], a.rect[1]);
+      const [x2, y2] = viewport.convertToViewportPoint(a.rect[2], a.rect[3]);
+      const link = document.createElement(web ? "a" : "button");
+      link.className = web ? "pdf-link" : "pdf-link is-inside";
+      link.style.left = `${(Math.min(x1, x2) / viewport.width) * 100}%`;
+      link.style.top = `${(Math.min(y1, y2) / viewport.height) * 100}%`;
+      link.style.width = `${(Math.abs(x2 - x1) / viewport.width) * 100}%`;
+      link.style.height = `${(Math.abs(y2 - y1) / viewport.height) * 100}%`;
+      if (link instanceof HTMLAnchorElement) {
+        link.href = web!;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.title = web!;
+        link.setAttribute("aria-label", web!);
+      } else {
+        // A button, so a tap never touches the address bar (the app's screens live in the address).
+        link.type = "button";
+        this.linkDests.set(link, inside);
+        resolveDest(this.doc, inside).then((target) => {
+          if (target) link.setAttribute("aria-label", this.linkLabel(target.page));
+          else link.remove();
+        });
+      }
+      slot.linkLayer.append(link);
+    }
+  }
+
+  /** Where a link into the book leads; null for anything else. */
+  async linkTarget(link: Element): Promise<Target | null> {
+    return this.linkDests.has(link) ? resolveDest(this.doc, this.linkDests.get(link)) : null;
   }
 
   private async renderText(slot: PageSlot, viewport: ReturnType<PDFPageProxy["getViewport"]>) {

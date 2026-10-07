@@ -22,7 +22,8 @@ import { Icon } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
 import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
-import { closePdf, flattenOutline, openPdf, PasswordError, type OutlineItem, type PDFDocumentProxy } from "./pdf";
+import { closePdf, flattenOutline, openPdf, PasswordError, type OutlineItem, type PDFDocumentProxy, type Target } from "./pdf";
+import { LinkPreview } from "./LinkPreview";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
 import { saveFile } from "../platform/saveFile";
@@ -150,6 +151,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         adjust: adjustValues(),
       });
       renderer.current = r;
+      r.linkLabel = (n) => t("Link to page {n}", { n });
       setBookSearch(new BookSearch(doc));
       r.onPageChange = (p) => {
         setPage(p);
@@ -249,6 +251,88 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
   };
+  // A jump (a link, the contents, a page number, a note) remembers where it started, so Back returns there.
+  const [backStack, setBackStack] = useState<{ page: number; offset: number }[]>([]);
+  const jump = (p: number, offset = 0) => {
+    const r = renderer.current;
+    if (!r || !Number.isFinite(p)) return;
+    const to = Math.min(total, Math.max(1, Math.round(p)));
+    const from = r.position();
+    if (to !== from.page || Math.abs(offset - from.offset) > 0.25) setBackStack((stack) => [...stack.slice(-19), from]);
+    r.scrollToPage(to, offset);
+  };
+  // Read through a ref, so a key pressed right after a jump already sees it.
+  const backRef = useRef(backStack);
+  backRef.current = backStack;
+  const goBack = () => {
+    const last = backRef.current.at(-1);
+    if (!last) return;
+    setBackStack((stack) => stack.slice(0, -1));
+    renderer.current?.scrollToPage(last.page, last.offset);
+  };
+  useEffect(() => setBackStack([]), [bookId]);
+
+  // Links into the book: a tap follows one; resting the mouse on one, or a long press, shows where it leads.
+  const [preview, setPreview] = useState<{ target: Target; anchor: DOMRect; touch: boolean } | null>(null);
+  const linkTimer = useRef(0);
+  const closeTimer = useRef(0);
+  const longPressed = useRef(false);
+  const pressAt = useRef({ x: 0, y: 0 });
+  const insideLink = (e: Event) => (e.target as Element).closest?.(".pdf-link.is-inside") ?? null;
+  const followLink = async (link: Element) => {
+    clearTimeout(linkTimer.current);
+    setPreview(null);
+    const target = await renderer.current?.linkTarget(link);
+    if (target) jump(target.page, target.top ? Math.max(0, target.top - 0.03) : 0);
+  };
+  const showPreview = (link: Element, touch: boolean, delay: number) => {
+    clearTimeout(linkTimer.current);
+    clearTimeout(closeTimer.current);
+    linkTimer.current = window.setTimeout(async () => {
+      const target = await renderer.current?.linkTarget(link);
+      if (!target || !link.isConnected) return;
+      longPressed.current = touch;
+      setPreview({ target, anchor: link.getBoundingClientRect(), touch });
+    }, delay);
+  };
+  const linkPointer = {
+    onPointerOver: (e: PointerEvent) => {
+      const link = e.pointerType === "mouse" && insideLink(e);
+      if (link) showPreview(link, false, 350);
+    },
+    onPointerOut: (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || !insideLink(e)) return;
+      clearTimeout(linkTimer.current);
+      closeTimer.current = window.setTimeout(() => setPreview((p) => (p?.touch ? p : null)), 200);
+    },
+    onPointerDown: (e: PointerEvent) => {
+      longPressed.current = false;
+      pressAt.current = { x: e.clientX, y: e.clientY };
+      const link = e.pointerType !== "mouse" && insideLink(e);
+      if (link) showPreview(link, true, 450);
+    },
+    onPointerMove: (e: PointerEvent) => {
+      // A finger that moves is scrolling, not pressing.
+      if (e.pointerType !== "mouse" && Math.hypot(e.clientX - pressAt.current.x, e.clientY - pressAt.current.y) > 10) clearTimeout(linkTimer.current);
+    },
+    onPointerUp: (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" && !longPressed.current) clearTimeout(linkTimer.current);
+    },
+    onPointerCancel: () => clearTimeout(linkTimer.current),
+  };
+  // The look at a link's target belongs to where the link is on screen: scrolling or Escape puts it away.
+  useEffect(() => {
+    if (!preview) return;
+    const close = () => setPreview(null);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    scroller.current?.addEventListener("scroll", close, { passive: true });
+    addEventListener("keydown", onKey);
+    return () => {
+      scroller.current?.removeEventListener("scroll", close);
+      removeEventListener("keydown", onKey);
+    };
+  }, [preview]);
+  useEffect(() => () => { clearTimeout(linkTimer.current); clearTimeout(closeTimer.current); }, []);
 
   // Reading time for goals and stats: counts only while active and visible.
   const tracker = useRef<ReadingTracker | null>(null);
@@ -474,7 +558,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     const y = entry.type === "highlight" || entry.type === "note"
       ? Math.min(...entry.item.rects.map((r) => r.y))
       : entry.type === "sticky" ? entry.item.y : 0;
-    renderer.current?.scrollToPage(entry.page, Math.max(0, y - 0.04));
+    jump(entry.page, Math.max(0, y - 0.04));
     if (matchMedia("(max-width: 959px)").matches) setPanelOpen(false);
   }
 
@@ -509,6 +593,12 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         else renderer.current?.zoomBy(e.key === "-" ? 1 / ZOOM_STEP : ZOOM_STEP);
         return;
       }
+      // Alt+Left returns from the last jump, as Back does in a browser.
+      if (e.altKey && e.key === "ArrowLeft" && backRef.current.length && !isTyping(e.target)) {
+        e.preventDefault();
+        goBack();
+        return;
+      }
       if (sheet || popover || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const actions: Record<string, () => void> = {
         ArrowRight: () => go(page + 1), j: () => go(page + 1),
@@ -528,6 +618,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
     const target = e.target as Element;
+    const link = target.closest(".pdf-link.is-inside");
+    if (link) {
+      // The tap that ends a long press only leaves the preview on screen.
+      if (longPressed.current) longPressed.current = false;
+      else followLink(link);
+      return;
+    }
+    if (preview) setPreview(null);
     if (target.closest("a, button, input, textarea, .sticky")) return;
     if (getSelection()?.toString()) return;
     const hit = renderer.current?.hitTest(e.clientX, e.clientY);
@@ -662,6 +760,12 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       )}
 
       <div class="float-tools">
+        {backStack.length > 0 && (
+          <button type="button" class="back-pill" onClick={goBack}
+            aria-label={t("Back to page {n}", { n: backStack.at(-1)!.page })} title={t("Back to page {n}", { n: backStack.at(-1)!.page })}>
+            <Icon name="back" size={16} /><span>{backStack.at(-1)!.page}</span>
+          </button>
+        )}
         <div class="history-pill" role="group" aria-label={t("Undo and redo")}>
           <IconButton label={t("Undo")} icon="undo" disabled={!history.current.canUndo} onClick={undo} />
           <IconButton label={t("Redo")} icon="redo" disabled={!history.current.canRedo} onClick={redo} />
@@ -711,7 +815,14 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
 
       {error
         ? <p class="reader-error" role="alert">{t(error)}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""}`} ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} />}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""}`}
+            ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} {...linkPointer} />}
+
+      {preview && renderer.current && (
+        <LinkPreview renderer={renderer.current} target={preview.target} anchor={preview.anchor}
+          onGo={preview.touch ? () => { const { target } = preview; setPreview(null); jump(target.page, target.top ? Math.max(0, target.top - 0.03) : 0); } : undefined}
+          onEnter={() => clearTimeout(closeTimer.current)} onLeave={() => !preview.touch && setPreview(null)} />
+      )}
 
       <ReadAloudBar ra={readAloud} page={page} />
 
@@ -759,7 +870,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       )}
 
       <Sheet open={sheet === "goto"} title={t("Go to page")} onClose={() => setSheet(null)}>
-        <form class="goto" onSubmit={(e) => { e.preventDefault(); go(Number(pageInput)); setSheet(null); }}>
+        <form class="goto" onSubmit={(e) => { e.preventDefault(); jump(Number(pageInput)); setSheet(null); }}>
           <input aria-label={t("Page number")} inputMode="numeric" autoFocus={!matchMedia("(hover: none)").matches} value={pageInput}
             onFocus={(e) => e.currentTarget.select()}
             onInput={(e) => setPageInput(e.currentTarget.value)} />
@@ -768,7 +879,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         </form>
         {renderer.current && sheet === "goto" && (
           <PageGrid renderer={renderer.current} total={total} current={page} bookmarked={bookmarkedPages} noted={notedPages}
-            onPick={(n) => { go(n); setSheet(null); }} />
+            onPick={(n) => { jump(n); setSheet(null); }} />
         )}
       </Sheet>
 
@@ -811,7 +922,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           {outline.map((item) => (
             <li style={{ paddingInlineStart: `${item.depth * 16}px` }}>
               <button type="button" aria-current={chapter?.item === item ? "true" : undefined}
-                onClick={() => { go(item.page); setSheet(null); }}>
+                onClick={() => { jump(item.page); setSheet(null); }}>
                 <span>{item.title}</span><span class="toc-page">{item.page}</span>
               </button>
             </li>

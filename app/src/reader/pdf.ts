@@ -60,12 +60,28 @@ export async function flattenOutline(doc: PDFDocumentProxy): Promise<OutlineItem
 }
 
 async function resolvePage(doc: PDFDocumentProxy, dest: unknown): Promise<number | null> {
+  return (await resolveDest(doc, dest))?.page ?? null;
+}
+
+/** Where a link or a contents entry leads: the page, and how far down it (0 top, 1 bottom) when the PDF says. */
+export type Target = { page: number; top: number | null };
+
+export async function resolveDest(doc: PDFDocumentProxy, dest: unknown): Promise<Target | null> {
   try {
     const explicit = typeof dest === "string" ? await doc.getDestination(dest) : dest;
     if (!Array.isArray(explicit)) return null;
-    const [ref] = explicit;
-    if (typeof ref === "number") return ref + 1;
-    if (ref && typeof ref === "object") return (await doc.getPageIndex(ref)) + 1;
+    const [ref, kind, ...args] = explicit as [unknown, { name?: string }?, ...unknown[]];
+    const index = typeof ref === "number" ? ref : ref && typeof ref === "object" ? await doc.getPageIndex(ref as never) : null;
+    if (index === null || index < 0 || index >= doc.numPages) return null;
+    // PDF measures from the bottom of the page; the kind of destination says which number is the top edge.
+    const y = kind?.name === "XYZ" ? args[1] : kind?.name === "FitH" || kind?.name === "FitBH" ? args[0] : kind?.name === "FitR" ? args[3] : null;
+    let top: number | null = null;
+    if (typeof y === "number") {
+      const viewport = (await doc.getPage(index + 1)).getViewport({ scale: 1 });
+      const [, down] = viewport.convertToViewportPoint(0, y);
+      top = Math.min(1, Math.max(0, down / viewport.height));
+    }
+    return { page: index + 1, top };
   } catch {}
   return null;
 }

@@ -73,7 +73,7 @@
   pointer-events: none;
 }
 .float-tools > * { pointer-events: auto; }
-.page-pill, .zoom-pill, .history-pill {
+.page-pill, .zoom-pill, .history-pill, .back-pill {
   display: flex;
   align-items: center;
   height: 32px;
@@ -88,6 +88,8 @@
   font-variant-numeric: tabular-nums;
 }
 .page-pill { gap: 3px; padding: 0 12px; cursor: pointer; direction: ltr; } /* "1 / 2" in every language */
+.back-pill { gap: 2px; padding: 0 10px 0 6px; padding-inline: 6px 10px; cursor: pointer; font-weight: 650; margin-inline-end: auto; }
+.back-pill .icon { color: var(--accent); }
 .page-now { font-weight: 650; }
 .page-total { color: var(--muted); }
 :is(.zoom-pill, .history-pill) .icon-btn { width: 30px; height: 30px; }
@@ -336,3 +338,14 @@
   .print-root img { display: block; width: 100%; height: 100vh; object-fit: contain; break-after: page; break-inside: avoid; }
   .print-root img:last-child { break-after: auto; }
 }
+
+/* Links of the PDF, over their words (see Renderer.buildLinks) */
+.link-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.pdf-link { position: absolute; display: block; padding: 0; border: 0; border-radius: 3px; background: none; cursor: pointer; pointer-events: auto; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.pdf-link:hover, .pdf-link:focus-visible { background: color-mix(in srgb, var(--accent) 20%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); }
+.reader-scroll:is(.is-placing, .is-erasing, .is-highlighting) .pdf-link { pointer-events: none; }
+.link-preview { position: fixed; z-index: 30; overflow: hidden; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+.link-preview-view { overflow: hidden; background: var(--page-bg, var(--bg)); }
+.link-preview-view canvas { display: block; }
+.link-preview-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; padding: 4px 10px; color: var(--muted); font-size: 13px; }
+.link-preview-foot .btn { height: 32px; padding: 0 12px; }

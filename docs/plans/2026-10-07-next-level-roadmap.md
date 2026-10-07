@@ -104,7 +104,7 @@ that ship on their own.
 | A2 (done 2026-10-07) | Page thumbnails as a grid under "Go to page"; drag the progress line to scrub, with a bubble showing page and chapter | M | a side strip was left out: the grid is one tap away and a strip costs reading width |
 | A3 (done 2026-10-07, rotate left for later) | View modes: scrolling, page by page, two pages (with a cover page option, and right-to-left order for Arabic books); full screen | M | rotate needs highlights and notes turned with the page; it comes with the markup work in phase C |
 | A4 | Crop margins: "fit text" zoom that cuts the white border, per book | S | uses the text and image boxes the color engine already reads |
-| A5 | Links: tap an internal link to jump, a Back button to return, and a preview of the target (figure, footnote, reference) on hover or long press | M | the Sioyek and Zotero favorite |
+| A5 (done 2026-10-07) | Links: tap an internal link to jump, a Back button to return, and a preview of the target (figure, footnote, reference) on hover or long press | M | the Sioyek and Zotero favorite |
 | A6 (done 2026-10-07) | Password PDFs, print, save a copy | S | the password stays on the device and out of backups; print uses the book's own colors |
 | A7 | Auto-scroll with speed control; keyboard shortcut sheet; command palette (Ctrl/Cmd+K) | S | |
 

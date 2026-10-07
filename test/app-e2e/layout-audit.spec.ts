@@ -231,6 +231,13 @@ for (const lang of ["en", "ar"] as const) {
       await expect(page.locator(".sheet")).toBeVisible();
       await check(page, `${tag}-18-contents`, findings);
       await page.locator(".sheet-head .icon-btn").click();
+      // A jump from the contents leaves a Back pill beside the page number.
+      await page.locator(".tools .icon-btn").nth(6).click();
+      await page.locator(".toc button").last().click();
+      await expect(page.locator(".back-pill")).toBeVisible();
+      await check(page, `${tag}-18a-back-pill`, findings);
+      await page.locator(".back-pill").click();
+      await expect(page.locator(".back-pill")).toHaveCount(0);
       await page.locator(".top-menu").click();
       await expect(page.locator(".book-menu")).toBeVisible();
       await check(page, `${tag}-18b-book-menu`, findings);
