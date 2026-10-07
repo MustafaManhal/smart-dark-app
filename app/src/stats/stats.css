@@ -76,7 +76,3 @@
 .stepper { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 18px 0; }
 .stepper output { min-width: 150px; text-align: center; font-size: 20px; font-weight: 650; }
 .reminder-time input { height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 0 10px; width: 140px; }
-.toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
-.field { display: grid; gap: 6px; margin: 12px 0; }
-.field > span { color: var(--muted); font-size: 13px; }

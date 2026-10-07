@@ -1,28 +1,46 @@
 /* --float-gap: room above page 1 for the floating page, zoom and quick-zoom controls. */
 .reader { position: fixed; inset: 0; background: var(--bg); color: var(--text); --bar-top: calc(53px + var(--safe-top)); --bar-bottom: var(--safe-bottom); --float-gap: 54px; }
-/* Reader chrome follows the page style, not the app theme. */
+/* Reader chrome follows the page style, not the app theme. Each style sets every color token (app.css):
+   a token left out would keep the app theme's value and put light words on light sheets. */
 .reader[data-style="dark"] {
   color-scheme: dark;
-  --bg: #0e0f12;
-  --surface: #17181c;
-  --surface-2: #24252b;
-  --text: #e9e9ec;
-  --muted: #9a9ba3;
-  --border: #26272d;
-  --accent: #91a7ff;
+  --bg: #0e0f11;
+  --surface: #16171a;
+  --surface-2: #1f2024;
+  --surface-3: #2a2b31;
+  --raised: #1c1d21;
+  --text: #ececef;
+  --muted: #9c9da6;
+  --faint: #73747d;
+  --border: #26272c;
+  --border-strong: #37383f;
+  --accent: #9aa5ff;
+  --accent-strong: #b6bdff;
   --accent-text: #0b1026;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 30px rgb(0 0 0 / 0.4);
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --danger: #ff8a80;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 36px rgb(0 0 0 / 0.4);
 }
 .reader[data-style="sepia"] {
   color-scheme: light;
   --bg: #e9e0cc;
   --surface: #f6efdf;
   --surface-2: #e4d9c1;
+  --surface-3: #d8ccb0;
+  --raised: #fbf5e6;
   --text: #3d2f22;
-  --muted: #7b6a58;
+  --muted: #6b5b4a;
+  --faint: #96846f;
   --border: #d9cdb3;
+  --border-strong: #c7b997;
   --accent: #8a5a2b;
+  --accent-strong: #6f4620;
   --accent-text: #fffaf0;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --danger: #a93426;
+  --shadow-sm: 0 1px 2px rgb(60 40 10 / 0.1);
+  --shadow: 0 1px 2px rgb(60 40 10 / 0.06), 0 12px 32px rgb(60 40 10 / 0.12);
 }
 .reader-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "back title search tools menu"; align-items: center; gap: 4px; padding: 6px 8px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 6; }
 /* Bars float over the pages so hiding them gives the full screen to reading. */
@@ -40,12 +58,6 @@
 .toc button { display: flex; width: 100%; gap: 12px; justify-content: space-between; padding: 12px 8px; border: 0; border-radius: 10px; background: none; text-align: start; cursor: pointer; }
 .toc button:hover, .toc button[aria-current="true"] { background: var(--surface-2); }
 .toc-page { color: var(--muted); font-variant-numeric: tabular-nums; }
-.seg { border: 0; padding: 0; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.seg legend { width: 100%; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
-.seg label { position: relative; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; }
-.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.seg label:has(input:checked) { background: var(--text); color: var(--bg); border-color: transparent; }
-.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .reader-top, .float-tools { transition: transform 0.25s var(--ease), opacity 0.25s; }
 .reader.bars-hidden .reader-top { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 
@@ -237,12 +249,9 @@
 }
 
 /* Switches inside sheets (the settings screen has its own copy in settings.css). */
-.sheet .toggle { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; }
-.sheet .toggle input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
 .rotate-row { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
 .rotate-row > span:first-child { flex: 1; }
 .rotate-now { min-width: 40px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
-.sheet .toggle-note { margin: -4px 0 12px; padding-inline-start: 30px; color: var(--muted); font-size: 13px; }
 
 /* Search in the book: a bar in the place of the page and zoom controls, with the matches under it. */
 .reader.searching .float-tools { visibility: hidden; }
@@ -328,11 +337,6 @@
 .read-speed { min-width: 48px; height: 36px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; font-variant-numeric: tabular-nums; font-weight: 600; }
 .read-sleep { position: absolute; bottom: calc(100% + 6px); left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; white-space: nowrap; }
 .read-msg { padding: 0 10px; }
-.field { display: grid; gap: 6px; margin: 8px 0 14px; }
-.field > span { color: var(--muted); font-size: 13px; }
-.field select { height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 0 10px; }
-.toggle { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; cursor: pointer; }
-.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
 @media (max-width: 380px) { .read-bar .icon-btn { width: 34px; height: 34px; } .read-speed { min-width: 40px; } }
 .reader.reading .reader-scroll { padding-bottom: calc(var(--safe-bottom) + 96px); }
 

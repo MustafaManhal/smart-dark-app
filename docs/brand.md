@@ -26,14 +26,22 @@ These are the rules the app follows on every screen. They describe what is built
 
 | Token | Light | Dark | Used for |
 | --- | --- | --- | --- |
-| `--bg` | `#f5f3ee` | `#111215` | the screen behind everything |
-| `--surface` | `#fffefb` | `#191a1e` | cards, sheets, bars |
-| `--surface-2` | `#ece9e2` | `#232429` | hover, quiet fills |
-| `--text` | `#1c1b19` | `#ebebee` | words |
-| `--muted` | `#6d6a63` | `#9a9ba3` | second-line words, labels |
-| `--border` | `#e0dcd3` | `#2b2c32` | hairlines |
-| `--accent` | `#3550c9` | `#91a7ff` | the one action color, focus rings, progress |
+| `--bg` | `#f3f1ec` | `#0e0f11` | the screen behind everything |
+| `--surface` | `#fbfaf7` | `#16171a` | cards, bars |
+| `--surface-2` | `#ece9e2` | `#1f2024` | hover, quiet fills |
+| `--surface-3` | `#e0dcd3` | `#2a2b31` | pressed, switch tracks |
+| `--raised` | `#ffffff` | `#1c1d21` | sheets and menus, which float |
+| `--text` | `#1b1a17` | `#ececef` | words |
+| `--muted` | `#68655e` | `#9c9da6` | second-line words, labels |
+| `--faint` | `#8d897f` | `#73747d` | placeholders only |
+| `--border`, `--border-strong` | `#e2ded5`, `#cfcabf` | `#26272c`, `#37383f` | hairlines; the strong one outlines controls |
+| `--accent` | `#4353d8` | `#9aa5ff` | the one action color, focus rings, progress |
+| `--accent-soft`, `--accent-strong` | tint, `#3442b8` | tint, `#b6bdff` | the chosen option: soft fill with strong words |
 | `--danger` | `#c2372f` | `#ff8a80` | removing things |
+
+The reader has its own sets of the same tokens for dark and sepia pages (`reader.css`), because its chrome
+follows the page style and not the app theme. A new token must be added to all of them; the layout audit
+catches a missed one as low contrast.
 
 - The light theme is warm paper, the dark theme is neutral near-black. One accent color; a screen does not
   get a second one. Highlight colors (yellow, green, blue, pink, purple) belong to the reader's marks only.
@@ -41,8 +49,9 @@ These are the rules the app follows on every screen. They describe what is built
 
 ## Type
 
-- The font is the system's own (`--font`): San Francisco on Apple devices, Segoe UI on Windows. No web font
-  is downloaded, which also keeps the promise that nothing is fetched from elsewhere.
+- The font is Inter (variable, SIL Open Font License), shipped with the app, so nothing is fetched from
+  elsewhere and the app looks the same on Windows, Mac and iPhone. Inter has no Arabic letters; Arabic uses
+  the system's font.
 - Sizes: `--text-xs` 12px (hints, keys), `--text-sm` 13px (labels, second lines), `--text-md` 15px (body),
   `--text-lg` 18px (sheet titles), `--text-xl` 26 to 34px (the title of a screen).
 - Weights: 400 for body, 600 for names and buttons, 650 to 700 for titles. Titles are set a little tight
@@ -51,8 +60,8 @@ These are the rules the app follows on every screen. They describe what is built
 
 ## Shape
 
-- Controls are pills (`border-radius: 999px`). Cards and sheets use `--radius` (14px), small pieces
-  `--radius-sm` (10px), pages of a book 4px.
+- Buttons and icon buttons have 12px corners, option tiles and fields 10px, filter chips are pills. Cards use
+  `--radius` (16px), sheets 22px at the top, pages of a book 4px.
 - One shadow, `--shadow`, for things that float (sheets, bars, covers). Flat things have a hairline border.
 - Touch targets are at least 40px, 44px on the phone for the main ones.
 

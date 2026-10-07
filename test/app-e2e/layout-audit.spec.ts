@@ -23,6 +23,9 @@ async function check(page: Page, where: string, findings: Finding[]) {
     const res: { kind: string; detail: string }[] = [];
     const name = (el: Element) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).join(".") : ""}[${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 30)}]`;
     if (document.documentElement.scrollWidth > vw + 1) res.push({ kind: "page scrolls sideways", detail: `${document.documentElement.scrollWidth} > ${vw}` });
+    // The app fills the window: a margin around the page means a base rule was lost.
+    const edge = getComputedStyle(document.body).margin;
+    if (edge !== "0px") res.push({ kind: "margin around the app", detail: edge });
     // The layer on top: a sheet, else the whole page.
     const backdrop = document.querySelector<HTMLElement>(".panel-backdrop");
     const panelModal = backdrop && getComputedStyle(backdrop).display !== "none" ? document.querySelector(".notes-panel") : null;
@@ -52,6 +55,9 @@ async function check(page: Page, where: string, findings: Finding[]) {
       if (el.contains(top) || top === el) continue;
       if (top.closest("label")?.contains(el)) continue; // visually hidden radio inside its label
       if (el.closest(".sheet") && !top.closest(".sheet-backdrop")) { res.push({ kind: "covered", detail: `${name(el)} under ${name(top)}` }); continue; }
+      // Scrolled out of its sheet (above the top edge or under the fold) is fine.
+      const sheetBox = el.closest(".sheet")?.getBoundingClientRect();
+      if (sheetBox && (cy < sheetBox.top || cy > sheetBox.bottom)) continue;
       if (scroller && !el.closest(".float-tools")) {
         // clipped by its scroller is fine
         const s = scroller.getBoundingClientRect();
@@ -76,6 +82,59 @@ async function check(page: Page, where: string, findings: Finding[]) {
       if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflow === "visible" && !el.closest(".page"))
         res.push({ kind: "text spills", detail: `${name(el)} ${el.scrollWidth} > ${el.clientWidth}` });
     }
+    // Words must stand out from what is behind them: 4.5 to 1, or 3 to 1 for large letters (WCAG AA).
+    const parse = (c: string): number[] | null => {
+      const m = c.match(/^rgba?\(([^)]+)\)/);
+      if (m) {
+        const [r, g, b, a = 1] = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+        return [r, g, b, a];
+      }
+      const k = c.match(/^color\(srgb ([\d.e-]+) ([\d.e-]+) ([\d.e-]+)(?: \/ ([\d.e-]+))?\)/);
+      return k ? [+k[1] * 255, +k[2] * 255, +k[3] * 255, k[4] === undefined ? 1 : +k[4]] : null;
+    };
+    const over = (top: number[], under: number[]) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])).concat(1);
+    const groundOf = (el: Element) => {
+      const stack: number[][] = [];
+      for (let n: Element | null = el; n; n = n.parentElement) {
+        const style = getComputedStyle(n);
+        if (style.backgroundImage !== "none") return null; // a picture or gradient: not judged here
+        const c = parse(style.backgroundColor);
+        if (c && c[3] > 0) {
+          stack.push(c);
+          if (c[3] >= 0.999) break;
+        }
+      }
+      return stack.reverse().reduce((under, c) => over(c, under), [255, 255, 255, 1]);
+    };
+    const light = ([r, g, b]: number[]) => {
+      const f = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const seen = new Set<string>();
+    for (const el of scope.querySelectorAll<HTMLElement>("*")) {
+      if (el.closest(".page, .sticky, .quote-view, .cover, .resume-cover, .heat, canvas, svg, mark, kbd, [aria-hidden='true']")) continue;
+      const text = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent!.trim()).join(" ").trim();
+      if (text.length < 2) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+      const style = getComputedStyle(el);
+      if (style.visibility === "hidden" || el.closest(":disabled, [aria-disabled='true']")) continue;
+      let faded = false;
+      for (let n: Element | null = el; n; n = n.parentElement) if (+getComputedStyle(n).opacity < 0.99) faded = true;
+      if (faded) continue;
+      const ground = groundOf(el);
+      const ink = parse(style.color);
+      if (!ground || !ink) continue;
+      const a = light(over(ink, ground)), b = light(ground);
+      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const size = parseFloat(style.fontSize);
+      const need = size >= 24 || (size >= 18.66 && +style.fontWeight >= 700) ? 3 : 4.5;
+      if (ratio >= need - 0.05) continue;
+      const key = `${el.tagName}.${el.className}|${ratio.toFixed(1)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      res.push({ kind: "low contrast", detail: `${name(el)} ${ratio.toFixed(2)} of ${need} (${style.color} on rgb(${ground.slice(0, 3).map(Math.round).join(" ")}))` });
+    }
     return res;
   });
   for (const f of found) findings.push({ where, ...f });
@@ -95,10 +154,13 @@ async function selectText(page: Page, text: string) {
   }, text);
 }
 
-for (const lang of ["en", "ar"] as const) {
+// "dark" is English with the app's dark theme: the same walk, mostly for the contrast of every piece.
+for (const variant of ["en", "ar", "dark"] as const) {
+  const lang = variant === "ar" ? "ar" : "en";
   for (const [width, height] of SIZES) {
-    if (lang === "ar" && width !== 320 && width !== 1280) continue;
-    test(`audit ${lang} ${width}`, async ({ page }) => {
+    if (variant === "ar" && width !== 320 && width !== 1280) continue;
+    if (variant === "dark" && width !== 390 && width !== 1280) continue;
+    test(`audit ${variant} ${width}`, async ({ page }) => {
       test.setTimeout(180_000);
       const findings: Finding[] = [];
       const errors: string[] = [];
@@ -117,9 +179,14 @@ for (const lang of ["en", "ar"] as const) {
         Object.defineProperty(window, "SpeechSynthesisUtterance", { value: Utterance, configurable: true });
       });
       await page.setViewportSize({ width, height });
-      const tag = `${lang}-${width}`;
+      const tag = `${variant}-${width}`;
       const T = (en: string, ar: string) => (lang === "ar" ? ar : en);
       await page.goto("./");
+      if (variant === "dark") {
+        await page.getByRole("button", { name: "Settings" }).click();
+        await page.getByRole("radio", { name: "Dark" }).first().check();
+        await page.getByRole("button", { name: "Back to library" }).click();
+      }
       if (lang === "ar") {
         await page.getByRole("button", { name: "Settings" }).click();
         await page.getByRole("radio", { name: "العربية" }).check();

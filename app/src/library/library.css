@@ -9,8 +9,6 @@
 .search:focus-within { border-color: var(--accent); }
 .search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: transparent; cursor: pointer; white-space: nowrap; color: var(--muted); transition: background 0.15s, color 0.15s; }
-.chip[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: transparent; }
 .sort { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .sort select { height: 34px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); padding: 0 10px; }
 .lib-message { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-2); }
@@ -48,9 +46,6 @@
 .card-actions .icon-btn:hover:not(:disabled) { background: rgb(0 0 0 / 0.7); }
 .details { display: grid; gap: 4px; }
 .details-cover { width: 96px; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 6px; }
-.details .field { display: grid; gap: 6px; margin: 6px 0; }
-.details .field span { color: var(--muted); font-size: 13px; }
-.details .field input, .lookup-row input { height: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 .lookup { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
 .lookup-row { display: flex; gap: 8px; }
 .lookup-row input { flex: 1; min-width: 0; }
@@ -76,7 +71,6 @@
 /* Password of a protected PDF */
 .password-form { display: grid; gap: 10px; }
 .password-form p { margin: 0; overflow-wrap: anywhere; }
-.password-form input { height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 16px; }
 .password-form .form-error { color: var(--danger, #c0392b); }
 .password-form .form-note { color: var(--muted); font-size: 13px; }
 
@@ -96,7 +90,6 @@
 /* Tags and favorites */
 .lib-tags { flex-basis: 100%; }
 .chip.tag::before { content: "#"; opacity: 0.55; margin-inline-end: 1px; }
-.chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: transparent; }
 .tag-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .tag-suggest .chip { height: 30px; padding: 0 10px; font-size: 13px; }
 .card-tags { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

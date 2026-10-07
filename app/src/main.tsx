@@ -1,4 +1,5 @@
 import { render } from "preact";
+import "@fontsource-variable/inter/wght.css";
 import "./app.css";
 import { App } from "./app";
 import { openDb } from "./db/idb";

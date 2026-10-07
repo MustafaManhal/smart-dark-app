@@ -1,17 +1,28 @@
 :root {
   color-scheme: light;
-  --bg: #f5f3ee;
-  --surface: #fffefb;
+  /* Surfaces, from the screen itself up to things that float. Depth comes from these steps and from
+     hairlines, not from shadows (docs/brand.md). */
+  --bg: #f3f1ec;
+  --surface: #fbfaf7;
   --surface-2: #ece9e2;
-  --text: #1c1b19;
-  --muted: #6d6a63;
-  --border: #e0dcd3;
-  --accent: #3550c9;
+  --surface-3: #e0dcd3;
+  --raised: #ffffff;
+  --text: #1b1a17;
+  --muted: #68655e;
+  --faint: #8d897f;
+  --border: #e2ded5;
+  --border-strong: #cfcabf;
+  /* The one action color. -strong is for words on the soft tint. */
+  --accent: #4353d8;
+  --accent-strong: #3442b8;
   --accent-text: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--surface));
   --danger: #c2372f;
-  --shadow: 0 1px 2px rgb(30 25 15 / 0.06), 0 8px 24px rgb(30 25 15 / 0.08);
-  --radius: 14px;
+  --shadow-sm: 0 1px 2px rgb(30 25 15 / 0.08);
+  --shadow: 0 1px 2px rgb(30 25 15 / 0.05), 0 12px 32px rgb(30 25 15 / 0.1);
+  --radius: 16px;
   --radius-sm: 10px;
+  --radius-xs: 6px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   /* Motion: fast for color and opacity, slow (with --ease) for things that move. See docs/brand.md. */
   --fast: 0.15s;
@@ -24,21 +35,29 @@
   --text-xl: clamp(26px, 4vw, 34px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --font: -apple-system, "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /* Inter comes with the app (main.tsx); it has no Arabic letters, so Arabic falls to the system's font. */
+  --font: "Inter Variable", -apple-system, "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111215;
-  --surface: #191a1e;
-  --surface-2: #232429;
-  --text: #ebebee;
-  --muted: #9a9ba3;
-  --border: #2b2c32;
-  --accent: #91a7ff;
+  --bg: #0e0f11;
+  --surface: #16171a;
+  --surface-2: #1f2024;
+  --surface-3: #2a2b31;
+  --raised: #1c1d21;
+  --text: #ececef;
+  --muted: #9c9da6;
+  --faint: #73747d;
+  --border: #26272c;
+  --border-strong: #37383f;
+  --accent: #9aa5ff;
+  --accent-strong: #b6bdff;
   --accent-text: #0b1026;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
   --danger: #ff8a80;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px rgb(0 0 0 / 0.35);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 36px rgb(0 0 0 / 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -47,17 +66,19 @@
 html, body { margin: 0; height: 100%; }
 
 body {
-  font: 15px/1.45 var(--font);
+  font: var(--text-md)/1.5 var(--font);
+  font-feature-settings: "cv11", "ss03", "calt";
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
+h1, h2, h3 { font-weight: 650; letter-spacing: -0.015em; }
 
 #root { min-height: 100%; }
 
 button, input, select { font: inherit; color: inherit; }
-:is(button, a, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .btn {
   display: inline-flex;
@@ -66,18 +87,22 @@ button, input, select { font: inherit; color: inherit; }
   gap: 6px;
   min-height: 40px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
   background: var(--surface);
   cursor: pointer;
   font-weight: 600;
-  transition: transform 0.12s var(--ease), background 0.15s, filter 0.15s;
+  white-space: nowrap;
+  transition: transform 0.12s var(--ease), background var(--fast), border-color var(--fast);
 }
-.btn:hover { filter: brightness(1.04); }
-.btn:active { transform: scale(0.97); }
-.btn:disabled { opacity: 0.6; cursor: default; }
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.55; cursor: default; }
 .btn-primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
 .btn-danger { background: var(--danger); color: #fff; border-color: transparent; }
+:root[data-theme="dark"] .btn-danger { color: #2a0d0a; }
+.btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, var(--text)); }
 
 .icon-btn {
   display: inline-grid;
@@ -86,13 +111,53 @@ button, input, select { font: inherit; color: inherit; }
   width: 40px;
   height: 40px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--fast), color var(--fast);
 }
 .icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+.icon-btn:active:not(:disabled) { background: var(--surface-3); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ---- Shared controls. One definition each; screens only place them. ---- */
+
+/* A choice among a few: tiles that wrap. The chosen one takes the accent as a soft tint. */
+.seg { border: 0; padding: 0; margin: 14px 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.seg legend { width: 100%; padding: 0; margin-bottom: 8px; color: var(--muted); font-size: var(--text-sm); font-weight: 500; }
+.seg label { position: relative; padding: 7px 13px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 500; transition: background var(--fast), border-color var(--fast), color var(--fast); }
+.seg label:hover { background: var(--surface-2); }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg label:has(input:checked) { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-strong); font-weight: 600; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Filters and tags: small pills. */
+.chip { height: 32px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--muted); font-weight: 500; white-space: nowrap; cursor: pointer; transition: background var(--fast), color var(--fast), border-color var(--fast); }
+.chip:hover { background: var(--surface-2); color: var(--text); }
+.chip:is([aria-selected="true"], [aria-pressed="true"]) { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-strong); font-weight: 600; }
+
+/* On or off: a switch. It is still a checkbox to the keyboard and to screen readers. */
+.toggle { display: flex; align-items: center; gap: 12px; margin: 12px 0; cursor: pointer; }
+.toggle input { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--border-strong); cursor: pointer; transition: background var(--fast), border-color var(--fast); }
+.toggle input::before { content: ""; position: absolute; top: 2px; inset-inline-start: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: inset-inline-start var(--fast) var(--ease); }
+.toggle input:checked { background: var(--accent); border-color: transparent; }
+.toggle input:checked::before { inset-inline-start: 18px; }
+:root[data-theme="dark"] .toggle input:checked::before { background: var(--accent-text); }
+.toggle input:disabled { opacity: 0.5; cursor: default; }
+.toggle-note { margin: -6px 0 12px; padding-inline-start: 50px; color: var(--muted); font-size: var(--text-sm); }
+
+/* A labelled field. */
+.field { display: grid; gap: 6px; margin: 10px 0 14px; }
+.field > span { color: var(--muted); font-size: var(--text-sm); font-weight: 500; }
+.field :is(input, select), .lookup-row input, .password-form input {
+  height: 42px; min-width: 0; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); font-size: 16px; /* 16px: iOS does not zoom the page on focus */
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+.field :is(input, select):focus, .lookup-row input:focus, .password-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+input[type="range"] { accent-color: var(--accent); }
+::placeholder { color: var(--faint); opacity: 1; }
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
 .sheet-backdrop {
   position: fixed;
@@ -107,16 +172,17 @@ button, input, select { font: inherit; color: inherit; }
   max-height: 85vh;
   overflow: auto;
   padding: 8px 16px calc(16px + var(--safe-bottom));
-  background: var(--surface);
-  border-radius: 20px 20px 0 0;
+  background: var(--raised);
+  border-radius: 22px 22px 0 0;
   box-shadow: var(--shadow);
-  animation: rise 0.24s var(--ease);
+  animation: rise var(--slow) var(--ease);
 }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sheet-head h2 { margin: 0; font-size: 17px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.sheet-head h2 { margin: 0; font-size: var(--text-lg); }
+.sheet-head .icon-btn { margin-inline-end: -8px; }
 
 .sheet-backdrop.peek { background: transparent; }
-.sheet-backdrop.peek .sheet { max-height: 56vh; border: 1px solid var(--border); }
+.sheet-backdrop.peek .sheet { max-height: 56vh; border: 1px solid var(--border-strong); }
 
 @media (min-width: 720px) {
   .sheet-backdrop { place-items: center; }
