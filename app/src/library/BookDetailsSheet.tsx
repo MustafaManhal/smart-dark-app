@@ -6,8 +6,9 @@ import { saveSetting, settings } from "../settings";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Sheet } from "../ui/Sheet";
+import { parseTags } from "./filters";
 
-type Props = { repos: Repos; book: Book | null; onClose: () => void; onSaved: () => void };
+type Props = { repos: Repos; book: Book | null; knownTags?: string[]; onClose: () => void; onSaved: () => void };
 
 /** Edit a book's title and author, optionally with details found online. */
 export function BookDetailsSheet(props: Props) {
@@ -15,15 +16,19 @@ export function BookDetailsSheet(props: Props) {
   return props.book ? <DetailsForm key={props.book.id} {...props} book={props.book} /> : null;
 }
 
-function DetailsForm({ repos, book, onClose, onSaved }: Props & { book: Book }) {
+function DetailsForm({ repos, book, knownTags = [], onClose, onSaved }: Props & { book: Book }) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
+  const [tags, setTags] = useState((book.tags ?? []).join(", "));
   const [query, setQuery] = useState(() => [book.title, book.author].filter(Boolean).join(" "));
   const [results, setResults] = useState<BookMatch[] | null>(null);
   const [cover, setCover] = useState<{ url: string; blob: Blob } | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => () => { if (cover) URL.revokeObjectURL(cover.url); }, [cover]);
+  // Tags of other books that this one does not have yet: one tap adds them.
+  const mine = parseTags(tags).map((tag) => tag.toLocaleLowerCase());
+  const suggestions = knownTags.filter((tag) => !mine.includes(tag.toLocaleLowerCase())).slice(0, 12);
 
   async function search() {
     setBusy(true);
@@ -49,7 +54,7 @@ function DetailsForm({ repos, book, onClose, onSaved }: Props & { book: Book }) 
   }
 
   async function save() {
-    await repos.books.update(book.id, { title: title.trim() || book.title, author: author.trim() });
+    await repos.books.update(book.id, { title: title.trim() || book.title, author: author.trim(), tags: parseTags(tags) });
     if (cover) await repos.books.setCover(book.id, cover.blob);
     onSaved();
     onClose();
@@ -67,6 +72,17 @@ function DetailsForm({ repos, book, onClose, onSaved }: Props & { book: Book }) 
           <span>{t("Author")}</span>
           <input value={author} onInput={(e) => setAuthor(e.currentTarget.value)} />
         </label>
+        <label class="field">
+          <span>{t("Tags, with commas between them")}</span>
+          <input value={tags} dir="auto" autocapitalize="off" placeholder={t("physics, exam, to read")} onInput={(e) => setTags(e.currentTarget.value)} />
+        </label>
+        {suggestions.length > 0 && (
+          <div class="tag-suggest" role="group" aria-label={t("Tags you already use")}>
+            {suggestions.map((tag) => (
+              <button type="button" class="chip" onClick={() => setTags(parseTags(`${tags}, ${tag}`).join(", "))}>{tag}</button>
+            ))}
+          </div>
+        )}
 
         <div class="lookup">
           {settings.lookupOn.value ? (

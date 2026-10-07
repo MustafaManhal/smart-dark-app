@@ -10,12 +10,13 @@ import { BookDetailsSheet } from "./BookDetailsSheet";
 import { dueReminder } from "../stats/reminders";
 import { isIosBrowser } from "../platform/pwa";
 import { makeCover } from "./cover";
-import { filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
+import { allTags, continueReading, filterBooks, percentRead, type Shelf, type SortKey } from "./filters";
+import { saveSetting, settings } from "../settings";
 import { importPdf, ImportError } from "./importer";
 import { PasswordSheet } from "./PasswordSheet";
 import "./library.css";
 
-const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"]];
+const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"], ["favorites", "Favorites"]];
 const SORTS: [SortKey, string][] = [["recent", "Recent"], ["title", "Title"], ["progress", "Progress"]];
 
 export function LibraryScreen({ repos }: { repos: Repos }) {
@@ -25,6 +26,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
   const [shelf, setShelf] = useState<Shelf>("all");
   const [sort, setSort] = useState<SortKey>("recent");
   const [query, setQuery] = useState("");
+  const [tag, setTag] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [toDelete, setToDelete] = useState<Book | null>(null);
@@ -100,9 +102,24 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
   }
 
   const visible = useMemo(
-    () => (books ? filterBooks(books, progress, { shelf, query, sort }) : []),
-    [books, progress, shelf, query, sort],
+    () => (books ? filterBooks(books, progress, { shelf, query, sort, tag }) : []),
+    [books, progress, shelf, query, sort, tag],
   );
+  const tags = useMemo(() => allTags(books ?? []), [books]);
+  // A tag that no book has any more cannot stay chosen.
+  useEffect(() => {
+    if (tag && !tags.includes(tag)) setTag(null);
+  }, [tags, tag]);
+  // "Continue reading" is for the plain library: a search or a shelf already says what to show.
+  const resume = useMemo(
+    () => (books && books.length > 1 && shelf === "all" && !query.trim() && !tag ? continueReading(books, progress) : []),
+    [books, progress, shelf, query, tag],
+  );
+  const view = settings.libraryView.value;
+  async function toggleFavorite(book: Book) {
+    await repos.books.update(book.id, { favorite: !book.favorite });
+    setBooks((list) => list && list.map((b) => (b.id === book.id ? { ...b, favorite: !book.favorite } : b)));
+  }
   const pick = () => fileInput.current?.click();
 
   return (
@@ -142,7 +159,42 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
               {SORTS.map(([key, label]) => <option value={key}>{t(label)}</option>)}
             </select>
           </label>
+          <IconButton label={t(view === "grid" ? "Show as a list" : "Show as covers")} icon={view === "grid" ? "rows" : "grid"} class="lib-view"
+            onClick={() => saveSetting("libraryView", view === "grid" ? "list" : "grid")} />
+          {tags.length > 0 && (
+            <div class="chips lib-tags" role="group" aria-label={t("Tags")}>
+              {tags.map((name) => (
+                <button type="button" class="chip tag" aria-pressed={tag === name} onClick={() => setTag(tag === name ? null : name)}>{name}</button>
+              ))}
+            </div>
+          )}
         </div>
+      )}
+
+      {resume.length > 0 && (
+        <section class="lib-continue" aria-label={t("Continue reading")}>
+          <h2>{t("Continue reading")}</h2>
+          <ul>
+            {resume.map((book) => {
+              const at = progress.get(book.id)!;
+              const pct = percentRead(book, at);
+              const cover = covers.get(book.id);
+              return (
+                <li key={book.id}>
+                  <button type="button" class="resume" onClick={() => navigate({ name: "reader", bookId: book.id })}>
+                    <span class="resume-cover">{cover ? <img src={cover} alt="" /> : <Icon name="book" size={24} />}</span>
+                    <span class="resume-text">
+                      <strong>{book.title}</strong>
+                      <span>{t("Page {page} of {total}", { page: at.page, total: book.pageCount })}</span>
+                      <span class="bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+                    </span>
+                    <Icon name="chevronRight" size={18} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {installHint && (
@@ -176,7 +228,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <p class="lib-none">{t("No books match.")}</p>
       )}
 
-      <ul class="grid" aria-label={t("Books")}>
+      <ul class={view === "list" ? "grid is-list" : "grid"} aria-label={t("Books")}>
         {visible.map((book) => {
           const pct = percentRead(book, progress.get(book.id));
           const cover = covers.get(book.id);
@@ -188,11 +240,14 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
                 </div>
                 <span class="card-title">{book.title}</span>
                 {book.author && <span class="card-author">{book.author}</span>}
+                {!!book.tags?.length && <span class="card-tags">{book.tags.join(" · ")}</span>}
                 <span class="bar" role="progressbar" aria-label={t("{n}% read", { n: pct })} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
                   <span style={{ width: `${pct}%` }} />
                 </span>
               </button>
-              <div class="card-actions">
+              <div class={`card-actions ${book.favorite ? "has-star" : ""}`}>
+                <IconButton label={t(book.favorite ? "Remove {title} from favorites" : "Add {title} to favorites", { title: book.title })}
+                  icon="star" class={book.favorite ? "card-star is-on" : "card-star"} aria-pressed={!!book.favorite} onClick={() => toggleFavorite(book)} />
                 <IconButton label={t("Edit details of {title}", { title: book.title })} icon="edit" onClick={() => setEditing(book)} />
                 <IconButton label={t("Remove {title}", { title: book.title })} icon="trash" onClick={() => setToDelete(book)} />
               </div>
@@ -201,7 +256,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         })}
       </ul>
 
-      <BookDetailsSheet repos={repos} book={editing} onClose={() => setEditing(null)} onSaved={reload} />
+      <BookDetailsSheet repos={repos} book={editing} knownTags={tags} onClose={() => setEditing(null)} onSaved={reload} />
       <BackupSheet repos={repos} open={backupOpen} onClose={() => setBackupOpen(false)} onRestored={reload} />
       <PasswordSheet locked={locked} />
 

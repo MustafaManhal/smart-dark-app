@@ -14,6 +14,10 @@ export type Book = {
   addedAt: number;
   lastOpenedAt: number | null;
   finishedAt: number | null;
+  /** Marked with a star in the library. */
+  favorite?: boolean;
+  /** The reader's own labels, as typed. A book can be on several shelves this way. */
+  tags?: string[];
   /** Crop margins for this book: whether it is on, and the measured cut (null: nothing to cut). */
   crop?: { on: boolean; box: Crop | null };
   /** For a protected PDF: kept on this device so the book opens without asking again. Never put in backups. */
