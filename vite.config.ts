@@ -22,8 +22,8 @@ export default defineConfig({
         scope: "./",
         display: "standalone",
         orientation: "any",
-        background_color: "#111215",
-        theme_color: "#111215",
+        background_color: "#0e0f11",
+        theme_color: "#0e0f11",
         icons: [
           { src: "icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

@@ -100,7 +100,7 @@ async function createWindow() {
     minWidth: 360,
     minHeight: 480,
     title: "Reader343",
-    backgroundColor: "#111215",
+    backgroundColor: "#0e0f11",
     show: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {

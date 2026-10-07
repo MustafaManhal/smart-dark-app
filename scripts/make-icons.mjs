@@ -13,28 +13,37 @@ function roundRect(x, y, x0, y0, x1, y1, r) {
   return (x - cx) ** 2 + (y - cy) ** 2 <= r * r && x >= x0 && x <= x1 && y >= y0 && y <= y1;
 }
 
+// Three lines of text, one in each of the app's marking colors. Light half, dark half: the same hue on both.
 const LINES = [
-  { y: 0.36, x1: 0.68, light: [214, 48, 49], dark: [255, 122, 110] },
-  { y: 0.5, x1: 0.62, light: [24, 119, 242], dark: [122, 167, 255] },
-  { y: 0.64, x1: 0.66, light: [22, 150, 70], dark: [96, 205, 128] },
+  { y: 0.37, x1: 0.69, light: [222, 76, 66], dark: [255, 138, 128] },
+  { y: 0.5, x1: 0.61, light: [67, 83, 216], dark: [154, 165, 255] },
+  { y: 0.63, x1: 0.66, light: [31, 150, 88], dark: [107, 214, 151] },
 ];
+const LINE_X0 = 0.31;
+const LINE_R = 0.033; // half the thickness; the ends are round
 
-const TILE = [24, 27, 36, 255];
+// The tile is ink that gets a little deeper toward the bottom.
+const tile = (y) => {
+  const t = Math.max(0, Math.min(1, y));
+  return [Math.round(27 - 11 * t), Math.round(29 - 12 * t), Math.round(40 - 17 * t), 255];
+};
+const PAPER = [251, 250, 247, 255];
+const NIGHT = [38, 40, 50, 255];
 
 // Returns [r,g,b,a] for a point in unit space. `square`: the tile fills the
 // whole image with no rounding (iOS and Android apply their own mask).
 function sample(x, y, square = false) {
-  if (square && (x < 0 || x > 1 || y < 0 || y > 1)) return TILE;
-  if (!square && !roundRect(x, y, 0.02, 0.02, 0.98, 0.98, 0.22)) return [0, 0, 0, 0];
-  const page = roundRect(x, y, 0.2, 0.13, 0.8, 0.87, 0.06);
-  if (!page) return TILE;
+  if (square && (x < 0 || x > 1 || y < 0 || y > 1)) return tile(y);
+  if (!square && !roundRect(x, y, 0.02, 0.02, 0.98, 0.98, 0.225)) return [0, 0, 0, 0];
+  const page = roundRect(x, y, 0.215, 0.14, 0.785, 0.86, 0.07);
+  if (!page) return tile(y);
   const darkSide = x >= 0.5;
   for (const line of LINES) {
-    if (Math.abs(y - line.y) <= 0.035 && x >= 0.3 && x <= line.x1) {
-      return [...(darkSide ? line.dark : line.light), 255];
-    }
+    // A capsule: every point within LINE_R of the segment from LINE_X0 to x1.
+    const nearest = Math.max(LINE_X0, Math.min(x, line.x1));
+    if ((x - nearest) ** 2 + (y - line.y) ** 2 <= LINE_R ** 2) return [...(darkSide ? line.dark : line.light), 255];
   }
-  return darkSide ? [44, 48, 60, 255] : [240, 242, 246, 255];
+  return darkSide ? NIGHT : PAPER;
 }
 
 // Chrome Web Store asks for 96x96 artwork inside the 128x128 icon (16px

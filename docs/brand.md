@@ -17,7 +17,8 @@ These are the rules the app follows on every screen. They describe what is built
 - The mark is a page split down the middle, light on the left and dark on the right, with three colored
   lines that keep their color on both halves. It says what the app does without words. `scripts/make-icons.mjs`
   draws it at every size.
-- The mark stands on the dark tile `#181b24`. It is never recolored, stretched or given a shadow.
+- The lines have round ends and the three marking colors (red, the accent's indigo, green). The mark stands
+  on an ink tile that deepens from `#1b1d28` to `#10111b`. It is never recolored, stretched or given a shadow.
 - Mark and name together are the `Brand` component (`app/src/ui/Brand.tsx`). It appears once on the library
   screen, on the welcome, on the public page and under About. It does not appear inside the reader: there the
   book is what matters.
