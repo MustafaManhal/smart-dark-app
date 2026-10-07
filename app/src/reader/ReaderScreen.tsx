@@ -29,6 +29,7 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { SidePanel, type PanelSection } from "./SidePanel";
 import { useMedia } from "../ui/useMedia";
 import { QuoteSheet } from "../annotations/QuoteSheet";
 import type { QuoteSource } from "../annotations/quote";
@@ -90,7 +91,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
-  const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | "menu" | "shortcuts" | null>(null);
+  const [sheet, setSheet] = useState<"appearance" | "goto" | "menu" | "shortcuts" | null>(null);
   const [palette, setPalette] = useState(false);
   const [quote, setQuote] = useState<{ text: string; source: QuoteSource } | null>(null);
   // A protected book whose password is not stored here (for example after a backup was restored).
@@ -123,7 +124,13 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const annotations = useAnnotations(repos, bookId);
   const [selection, setSelection] = useState<PendingSelection | null>(null);
   const [popover, setPopover] = useState<PopState | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  // The side panel: contents, pages and notes of the book. A tool opens it at its part, and closes it again.
+  const [panel, setPanel] = useState<PanelSection | null>(null);
+  const panelOpen = panel !== null;
+  const setPanelOpen = (open: boolean) => setPanel(open ? "notes" : null);
+  const togglePanel = (section: PanelSection) => setPanel((now) => (now === section ? null : section));
+  // On a phone the panel covers the page, so going somewhere from it puts it away.
+  const leavePanel = () => { if (matchMedia("(max-width: 959px)").matches) setPanel(null); };
   const [placing, setPlacing] = useState(false);
   const [erasing, setErasing] = useState(false);
   const [toast, setToast] = useState<{ text: string; undo?: () => void } | null>(null);
@@ -632,7 +639,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       ? Math.min(...entry.item.rects.map((r) => r.y))
       : entry.type === "sticky" ? entry.item.y : 0;
     jump(entry.page, Math.max(0, (renderer.current?.offsetFor(y) ?? y) - 0.04));
-    if (matchMedia("(max-width: 959px)").matches) setPanelOpen(false);
+    leavePanel();
   }
 
   function removeEntry(entry: NoteItem) {
@@ -783,7 +790,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     const list: (Command | false)[] = [
       { id: "search", title: t("Search in book"), icon: "search", keys: keys("Mod+F"), run: search.show },
       { id: "goto", title: t("Go to page"), icon: "chevronRight", keys: "G", run: () => setSheet("goto") },
-      outline.length > 0 && { id: "toc", title: t("Contents"), icon: "list", run: () => setSheet("toc") },
+      outline.length > 0 && { id: "toc", title: t("Contents"), icon: "list", run: () => setPanel("contents") },
+      { id: "pages", title: t("Pages"), icon: "grid", run: () => setPanel("pages") },
       backStack.length > 0 && { id: "back", title: t("Back to page {n}", { n: backStack.at(-1)!.page }), icon: "back", keys: keys("Alt+←"), run: goBack },
       { id: "highlight", title: t("Highlight text"), icon: "highlighter", run: tool(highlightMode, setHighlightMode) },
       { id: "erase", title: t("Erase highlights and notes"), icon: "eraser", run: tool(erasing, setErasing) },
@@ -837,9 +845,10 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         onClick={() => toggleBookmark(page)} />
       <IconButton label={t("Read aloud")} icon="headphones" class={readAloud.open ? "is-on" : ""} aria-pressed={readAloud.open}
         disabled={!ready} onClick={() => (readAloud.open ? readAloud.close() : startReadAloud())} />
-      <IconButton label={t("Notes and highlights")} icon="notes" class={panelOpen ? "is-on fill-on" : ""} aria-pressed={panelOpen}
-        onClick={() => setPanelOpen((v) => !v)} />
-      <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
+      <IconButton label={t("Notes and highlights")} icon="notes" class={panel === "notes" ? "is-on fill-on" : ""} aria-pressed={panel === "notes"}
+        onClick={() => togglePanel("notes")} />
+      <IconButton label={t("Contents")} icon="list" class={panel === "contents" ? "is-on" : ""} aria-pressed={panel === "contents"}
+        onClick={() => togglePanel("contents")} disabled={!outline.length} />
       <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
     </div>
   );
@@ -1021,8 +1030,32 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       {panelOpen && (
         <>
           <div class="panel-backdrop" onClick={() => setPanelOpen(false)} />
-          <NotesPanel title={book?.title ?? t("Notes")} data={annotations.data}
-            onJump={jumpTo} onCopy={copy} onRemove={removeEntry} onClose={() => setPanelOpen(false)} />
+          <SidePanel section={panel!} onSection={setPanel} onClose={() => setPanel(null)}>
+            {panel === "notes" && (
+              <NotesPanel title={book?.title ?? t("Notes")} data={annotations.data} onJump={jumpTo} onCopy={copy} onRemove={removeEntry} />
+            )}
+            {panel === "contents" && (
+              <div class="panel-body">
+                {outline.length === 0 && <p class="panel-empty">{t("This book has no table of contents.")}</p>}
+                <ol class="toc">
+                  {outline.map((item) => (
+                    <li style={{ paddingInlineStart: `${item.depth * 16}px` }}>
+                      <button type="button" aria-current={chapter?.item === item ? "true" : undefined}
+                        onClick={() => { jump(item.page); leavePanel(); }}>
+                        <span>{item.title}</span><span class="toc-page">{item.page}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {panel === "pages" && renderer.current && (
+              <div class="panel-body">
+                <PageGrid renderer={renderer.current} total={total} current={page} bookmarked={bookmarkedPages} noted={notedPages}
+                  onPick={(n) => { jump(n); leavePanel(); }} />
+              </div>
+            )}
+          </SidePanel>
         </>
       )}
 
@@ -1100,19 +1133,6 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           setAttempt({ password });
         },
       } : null} />
-
-      <Sheet open={sheet === "toc"} title={t("Contents")} onClose={() => setSheet(null)}>
-        <ol class="toc">
-          {outline.map((item) => (
-            <li style={{ paddingInlineStart: `${item.depth * 16}px` }}>
-              <button type="button" aria-current={chapter?.item === item ? "true" : undefined}
-                onClick={() => { jump(item.page); setSheet(null); }}>
-                <span>{item.title}</span><span class="toc-page">{item.page}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </Sheet>
 
       <Sheet open={sheet === "appearance"} title={t("Appearance")} peek onClose={() => setSheet(null)}>
         <fieldset class="seg">

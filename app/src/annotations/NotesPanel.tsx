@@ -10,14 +10,13 @@ import { counts, noteItems, type NoteItem, type NoteKind } from "./noteItems";
 
 const TABS: [NoteKind, string][] = [["highlights", "Highlights"], ["notes", "Notes"], ["sticky", "Sticky notes"], ["bookmarks", "Bookmarks"]];
 
-/** Highlights, notes, sticky notes and bookmarks of the open book, next to the PDF. */
-export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
+/** Highlights, notes, sticky notes and bookmarks of the open book: the Notes part of the side panel. */
+export function NotesPanel({ title, data, onJump, onCopy, onRemove }: {
   title: string;
   data: BookAnnotations;
   onJump: (entry: NoteItem) => void;
   onCopy: (text: string) => void;
   onRemove: (entry: NoteItem) => void;
-  onClose: () => void;
 }) {
   const [kind, setKind] = useState<NoteKind>("highlights");
   const [color, setColor] = useState<HighlightColor | null>(null);
@@ -38,12 +37,11 @@ export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
   };
 
   return (
-    <aside class="notes-panel" aria-label={t("Notes and highlights")}>
+    <>
       <header class="panel-head">
         <h2>{t("Notes and highlights")}</h2>
         <IconButton label={t("Export notes")} icon="download" onClick={() => saveFile(exportFile)}
           disabled={!(n.highlights + n.notes + n.sticky + n.bookmarks)} />
-        <IconButton label={t("Close panel")} icon="close" onClick={onClose} />
       </header>
       <div class="panel-tabs" role="tablist" aria-label={t("Kind")}>
         {TABS.map(([k, label]) => (
@@ -103,6 +101,6 @@ export function NotesPanel({ title, data, onJump, onCopy, onRemove, onClose }: {
           ))}
         </ul>
       </div>
-    </aside>
+    </>
   );
 }

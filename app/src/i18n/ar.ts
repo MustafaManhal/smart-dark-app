@@ -170,6 +170,8 @@ export const AR: Record<string, string> = {
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Book menu": "قائمة الكتاب",
+  "Parts of the book": "أجزاء الكتاب",
+  "This book has no table of contents.": "لا يحتوي هذا الكتاب على فهرس.",
   "Search books, tags and notes": "ابحث في الكتب والوسوم والملاحظات",
   "version {v}": "الإصدار {v}",
   "Your books, notes and reading history stay on this device. Nothing is sent anywhere unless you turn on online book details.": "كتبك وملاحظاتك وسجل قراءتك تبقى على هذا الجهاز. لا يُرسل شيء إلى أي مكان إلا إذا فعّلت البحث عن تفاصيل الكتب عبر الإنترنت.",
@@ -503,6 +505,7 @@ export const DYNAMIC_KEYS = [
   // t(condition ? "a" : "b") calls
   "Paper", "Night", "Ink",
   "Rotate right", "Rotate left",
+  "Contents", "Pages", "Notes", "Notes and highlights",
   "Underline", "Strikethrough", "Select text to highlight", "Select text to underline", "Select text to strike through",
   "Dark pages, real colors", "Photos and colored text keep their look. Appearance changes the page style and fine-tunes it.",
   "Mark what matters", "Select text to highlight it or to write a note. What you mark is collected under Notes.",

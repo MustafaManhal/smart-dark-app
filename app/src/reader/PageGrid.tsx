@@ -45,7 +45,7 @@ export function PageGrid({ renderer, total, current, bookmarked, noted, onPick }
         seen.unobserve(e.target);
       }
       work();
-    }, { root: root.closest(".sheet"), rootMargin: "300px 0px" });
+    }, { root: root.closest(".sheet, .panel-body"), rootMargin: "300px 0px" });
     for (const el of root.querySelectorAll("[data-thumb]")) seen.observe(el);
     // Start where the reader is.
     root.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "center" });

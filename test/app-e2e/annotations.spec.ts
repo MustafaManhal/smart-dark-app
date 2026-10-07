@@ -77,10 +77,9 @@ test("notes panel lists each kind beside the PDF and jumps to it", async ({ page
     // Wide screens keep the PDF visible next to the panel.
     // The page is refitted to the narrower reading area a moment after the panel opens.
     const panelBox = (await panel.boundingBox())!;
-    await expect.poll(async () => {
-      const pageBox = (await page.locator('.page[data-page="1"]').boundingBox())!;
-      return pageBox.x + pageBox.width;
-    }).toBeLessThanOrEqual(panelBox.x + 1);
+    // The panel is at the start of the line (the left in English), the page beside it.
+    await expect.poll(async () => (await page.locator('.page[data-page="1"]').boundingBox())!.x)
+      .toBeGreaterThanOrEqual(panelBox.x + panelBox.width - 1);
   }
   await page.waitForTimeout(300); // let the panel finish sliding in
   await page.screenshot({ path: `test/output/panel-${test.info().project.name}.png` });
@@ -314,7 +313,7 @@ test("notes and sticky notes can have a title", async ({ page }) => {
   // The notes panel lists and searches titles.
   await page.getByRole("button", { name: "Notes and highlights" }).click();
   const panel = page.getByRole("complementary", { name: "Notes and highlights" });
-  await panel.getByRole("tab", { name: /^Notes/ }).click();
+  await panel.getByRole("tablist", { name: "Kind" }).getByRole("tab", { name: /^Notes/ }).click();
   await expect(panel.locator(".note-title")).toHaveText("Contrast rule");
   await panel.getByRole("tab", { name: /Sticky notes/ }).click();
   await expect(panel.locator(".note-title")).toHaveText("Ask Ana");

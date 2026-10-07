@@ -41,7 +41,7 @@ test("named places and action links work, and jumps stack up", async ({ page, is
   await expectPage(page, 2);
   await expect(page.locator('.page[data-page="2"] .textLayer span', { hasText: "Glossary" })).toBeInViewport();
   await page.getByRole("button", { name: "Contents" }).click();
-  await page.getByRole("dialog", { name: "Contents" }).getByRole("button", { name: /Chapter three/ }).click();
+  await page.getByRole("complementary", { name: "Contents" }).getByRole("button", { name: /Chapter three/ }).click();
   await expectPage(page, 3);
   await expect(back(page)).toHaveAccessibleName("Back to page 2");
   if (isMobile) await back(page).click();

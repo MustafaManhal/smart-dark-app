@@ -4,7 +4,7 @@ import { expectPage, openSample } from "./helpers/reader";
 test("contents jumps to a chapter and shows chapter progress", async ({ page }) => {
   await openSample(page);
   await page.getByRole("button", { name: "Contents" }).click();
-  await page.getByRole("dialog", { name: "Contents" }).getByRole("button", { name: /Page two/ }).click();
+  await page.getByRole("complementary", { name: "Contents" }).getByRole("button", { name: /Page two/ }).click();
   await expectPage(page, 2);
   await expect(page.locator(".reader-title span")).toHaveText("Page two");
   await expect.poll(async () => Number(await page.getByRole("slider", { name: "Book progress" }).getAttribute("aria-valuenow"))).toBeGreaterThan(45);

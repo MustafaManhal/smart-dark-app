@@ -309,16 +309,20 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.locator(".sheet-head .icon-btn").click();
 
       await page.locator(".tools .icon-btn").nth(6).click(); // contents
-      await expect(page.locator(".sheet")).toBeVisible();
+      await expect(page.locator(".notes-panel.is-contents")).toBeVisible();
       await check(page, `${tag}-18-contents`, findings);
-      await page.locator(".sheet-head .icon-btn").click();
+      await page.locator(".side-tabs button").nth(1).click(); // the pages of the book
+      await expect(page.locator(".notes-panel .thumb canvas").first()).toBeVisible();
+      await check(page, `${tag}-18-pages`, findings);
+      await page.locator(".side-tabs button").nth(0).click();
       // A jump from the contents leaves a Back pill beside the page number.
-      await page.locator(".tools .icon-btn").nth(6).click();
       await page.locator(".toc button").last().click();
       await expect(page.locator(".back-pill")).toBeVisible();
       await check(page, `${tag}-18a-back-pill`, findings);
       await page.locator(".back-pill").click();
       await expect(page.locator(".back-pill")).toHaveCount(0);
+      // (on a wide screen the panel stays beside the page; on a phone the jump put it away)
+      if (await page.locator(".notes-panel").isVisible()) await page.locator(".side-head > .icon-btn").click();
       await page.locator(".top-menu").click();
       await expect(page.locator(".book-menu")).toBeVisible();
       await check(page, `${tag}-18b-book-menu`, findings);
@@ -361,7 +365,7 @@ for (const variant of ["en", "ar", "dark"] as const) {
         if (hint.x < panel.x + panel.width && hint.x + hint.width > panel.x) findings.push({ where: `${tag}-22b`, kind: "hint under the notes panel", detail: `${Math.round(hint.x)}..${Math.round(hint.x + hint.width)} vs panel ${Math.round(panel.x)}..${Math.round(panel.x + panel.width)}` });
         await page.locator(".mode-done").click();
       }
-      await page.locator(".panel-head .icon-btn").last().click();
+      await page.locator(".side-head > .icon-btn").click();
 
       await page.locator(".top-back").click();
       await page.getByRole("button", { name: T("Reading stats", "إحصاءات القراءة") }).click();

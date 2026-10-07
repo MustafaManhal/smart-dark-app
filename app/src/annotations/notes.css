@@ -16,19 +16,28 @@
 }
 .panel-backdrop { position: absolute; inset: 0; z-index: 29; background: rgb(0 0 0 / 0.35); animation: fade 0.18s var(--ease); }
 @media (min-width: 960px) {
-  .notes-panel { inset-block: var(--bar-top) 0; inset-inline: auto 0; width: 380px; height: auto; border-radius: 0; border-top: 0; border-inline-start: 1px solid var(--border); animation: slide-in 0.22s var(--ease); }
+  /* Beside the pages, on the side where a book's contents are: the start of the line. */
+  .notes-panel { inset-block: var(--bar-top) 0; inset-inline: 0 auto; width: 360px; height: auto; border-radius: 0; border-top: 0; border-inline-end: 1px solid var(--border); box-shadow: none; animation: slide-in 0.22s var(--ease); }
   .panel-backdrop { display: none; }
   /* The PDF stays visible beside the panel. */
-  .reader.panel-open .reader-scroll { inset-inline-end: 380px; }
-  .reader.panel-open .float-tools { inset-inline: 12px 392px; }
+  .reader.panel-open .reader-scroll { inset-inline-start: 360px; }
+  .reader.panel-open :is(.float-tools, .mode-hint, .place-hint) { inset-inline-start: 372px; }
 }
+/* The panel's parts: contents, pages, notes. */
+.side-head { display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 12px; padding-inline: 12px 8px; border-bottom: 1px solid var(--border); }
+.side-tabs { flex: 1; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-2); }
+.side-tabs button { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 8px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: var(--text-sm); font-weight: 500; white-space: nowrap; cursor: pointer; transition: background var(--fast), color var(--fast); }
+.side-tabs button .icon { flex: none; }
+.side-tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
+.notes-panel .toc button { padding: 10px 10px; }
+.notes-panel .page-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
 @keyframes slide-in { from { opacity: 0; } }
 
 .panel-head { display: flex; align-items: center; gap: 2px; padding: 10px 8px 4px 16px; }
 .panel-head h2 { flex: 1; margin: 0; font-size: 16px; }
 .panel-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; }
-.panel-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; font-size: 14px; }
-.panel-tabs button[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: transparent; }
+.panel-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; font-size: 14px; }
+.panel-tabs button[aria-selected="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-strong); font-weight: 600; }
 .panel-tabs .count { font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; }
 .panel-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 6px 12px; }
 .panel-filters .search { flex: 1 1 160px; height: 36px; }
