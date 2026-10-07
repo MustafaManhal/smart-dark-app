@@ -62,9 +62,38 @@ export function arrowHead(x1: number, y1: number, x2: number, y2: number, length
   return [x2 + Math.cos(a) * length, y2 + Math.sin(a) * length, x2, y2, x2 + Math.cos(b) * length, y2 + Math.sin(b) * length];
 }
 
+/** What separates the strokes of a signature in its list of points. */
+export const SIGN_BREAK = [-1, -1, -1];
+
+/** The strokes of a pen drawing or a signature, each as its own list of x, y, pressure. */
+export function strokesOf(points: number[]): number[][] {
+  const strokes: number[][] = [[]];
+  for (let i = 0; i < points.length; i += 3) {
+    if (points[i] === -1 && points[i + 1] === -1) strokes.push([]);
+    else strokes.at(-1)!.push(points[i], points[i + 1], points[i + 2]);
+  }
+  return strokes.filter((s) => s.length);
+}
+
+/**
+ * A signature written in a box 3 wide and 1 high, placed on a page: `width`
+ * wide (a share of the page's width) with its middle at (cx, cy). `aspect` is
+ * the page's width divided by its height. `turn` puts each point on the page as
+ * the PDF has it.
+ */
+export function placeSignature(signature: number[], cx: number, cy: number, width: number, aspect: number, onPage: (x: number, y: number) => [number, number]): number[] {
+  const height = (width * aspect) / 3;
+  const out: number[] = [];
+  for (let i = 0; i < signature.length; i += 3) {
+    if (signature[i] === -1) out.push(...SIGN_BREAK);
+    else out.push(...onPage(cx + (signature[i] - 0.5) * width, cy + (signature[i + 1] - 0.5) * height), signature[i + 2]);
+  }
+  return out;
+}
+
 /** Whether a drawing is worth keeping: a dot of the pen is, a shape with no size is not. */
 export function worthKeeping(d: Pick<Drawing, "tool" | "points" | "text">): boolean {
-  if (d.tool === "pen") return d.points.length >= 3;
+  if (d.tool === "pen" || d.tool === "sign") return d.points.length >= 3;
   if (d.tool === "text") return !!d.text?.trim();
   return Math.hypot(d.points[2] - d.points[0], d.points[3] - d.points[1]) > 0.008;
 }

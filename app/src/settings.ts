@@ -28,7 +28,8 @@ const defaults = {
   spreadRtl: false, // two-page view with the first page on the right, for books read right to left
   libraryView: "grid" as "grid" | "list",
   // The drawing tool as it was last used.
-  drawTool: "pen" as "pen" | "line" | "arrow" | "rect" | "ellipse" | "text",
+  drawTool: "pen" as "pen" | "line" | "arrow" | "rect" | "ellipse" | "text" | "sign",
+  signature: [] as number[], // the reader's signature: strokes in a box 1 by 1 (see draw/SignaturePad.tsx)
   drawColor: "red" as "ink" | "red" | "blue" | "green" | "orange",
   drawSize: 0.004,
   reviewNewPerDay: 10, // marks that enter the daily review each day; 0 turns the review off

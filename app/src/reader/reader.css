@@ -432,3 +432,20 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 .tour-count i.is-on { background: var(--accent); }
 .tour .btn { height: 34px; padding: 0 14px; }
 .icon-btn.tour-target { outline: 2px solid var(--accent); outline-offset: 1px; background: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* A PDF form: its fields as inputs over the page (Renderer.buildForm; pdf.js places and sizes them). */
+.annotationLayer { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; transform-origin: 0 0; --form-ink: #111; --form-fill: rgb(67 83 216 / 0.1); --form-edge: rgb(67 83 216 / 0.55); }
+.reader[data-style="dark"] .annotationLayer { --form-ink: #ececef; --form-fill: rgb(154 165 255 / 0.14); --form-edge: rgb(154 165 255 / 0.6); }
+.reader[data-style="sepia"] .annotationLayer { --form-ink: #3d2f22; --form-fill: rgb(138 90 43 / 0.12); --form-edge: rgb(138 90 43 / 0.55); }
+.annotationLayer section { position: absolute; box-sizing: border-box; margin: 0; text-align: initial; pointer-events: auto; transform-origin: 0 0; }
+/* (pdf.js gives each field the colors the PDF asks for, white on black print; on a dark page they follow the page.) */
+.annotationLayer :is(input, textarea, select) { box-sizing: border-box; width: 100%; height: 100%; margin: 0; padding: 0 3px; border: 1px solid var(--form-edge) !important; border-radius: 2px; background: var(--form-fill) !important; color: var(--form-ink) !important; font: calc(9px * var(--total-scale-factor)) var(--font); vertical-align: top; }
+.annotationLayer textarea { resize: none; padding-top: 2px; }
+.annotationLayer :is(input, textarea, select):focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input { appearance: none; -webkit-appearance: none; padding: 0; cursor: pointer; }
+.annotationLayer .buttonWidgetAnnotation.radioButton input { border-radius: 50%; }
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked { background: var(--form-edge) center / 80% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") !important; }
+.annotationLayer .buttonWidgetAnnotation.radioButton input:checked { background: radial-gradient(circle, var(--form-edge) 45%, var(--form-fill) 50%) !important; }
+.annotationLayer [hidden] { display: none; }
+/* While a tool is on, the fields are out of its way. */
+.reader-scroll:is(.is-placing, .is-erasing, .is-highlighting, .is-drawing) .annotationLayer section { pointer-events: none; }

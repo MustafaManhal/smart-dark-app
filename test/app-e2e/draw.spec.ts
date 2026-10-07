@@ -37,6 +37,7 @@ test("the pen draws where the pointer goes, in the chosen color, and Undo takes 
   const to = { x: paper.x + paper.width * 0.7, y: 470 };
   await drag(page, isMobile, from, to);
   await expect(shapes(page)).toHaveCount(1);
+  await expect(shapes(page)).not.toHaveAttribute("data-draw", "live"); // saved, no longer the stroke in the making
   const stroke = shapes(page).locator("path").first();
   await expect(stroke).toHaveAttribute("stroke", "#1c7ed6");
   const box = (await stroke.boundingBox())!;
@@ -141,12 +142,73 @@ test("drawings turn with the page", async ({ page, isMobile }) => {
   await hint(page).getByRole("button", { name: "Done" }).click();
   await page.keyboard.press("r");
   await expect(page.locator('.page[data-page="1"] .page-face')).toHaveAttribute("style", /rotate\(90deg\)/);
-  const turned = (await page.locator(".textLayer span", { hasText: "colored words keep their hue" }).first().boundingBox())!;
-  const shape = (await page.locator('.page[data-page="1"] .draw-svg rect:not(.draw-hit)').boundingBox())!;
+  // (the page is laid out again after the turn: wait for its words and the box to be back)
+  const wordsNow = page.locator(".textLayer span", { hasText: "colored words keep their hue" }).first();
+  const boxNow = page.locator('.page[data-page="1"] .draw-svg rect:not(.draw-hit)');
+  await expect.poll(async () => !!(await wordsNow.boundingBox()) && !!(await boxNow.boundingBox())).toBe(true);
+  await page.waitForTimeout(200);
+  const turned = (await wordsNow.boundingBox())!;
+  const shape = (await boxNow.boundingBox())!;
   // Still around the same words, now a column.
   expect(shape.height).toBeGreaterThan(shape.width);
   expect(shape.x).toBeLessThan(turned.x + 2);
   expect(shape.x + shape.width).toBeGreaterThan(turned.x + turned.width - 2);
   expect(shape.y).toBeLessThan(turned.y + 2);
   expect(shape.y + shape.height).toBeGreaterThan(turned.y + turned.height - 2);
+});
+
+test("a signature is written once and then placed on a page with a tap", async ({ page, isMobile }) => {
+  await openSample(page);
+  await page.getByRole("button", { name: "Draw" }).click();
+  await hint(page).getByRole("radio", { name: "Signature" }).click();
+  // No signature yet: the box to write one opens.
+  const pad = page.getByRole("dialog", { name: "Your signature" });
+  await expect(pad).toBeVisible();
+  await expect(pad.getByRole("button", { name: "Use this signature" })).toBeDisabled();
+  const area = (await pad.getByRole("img", { name: "Signature box" }).boundingBox())!;
+  const stroke = async (points: [number, number][]) => {
+    const at = (p: [number, number]) => ({ x: area.x + area.width * p[0], y: area.y + area.height * p[1] });
+    if (isMobile) {
+      const fire = (type: string, p: [number, number]) => pad.getByRole("img", { name: "Signature box" }).dispatchEvent(type, {
+        clientX: at(p).x, clientY: at(p).y, pointerId: 3, pointerType: "touch", isPrimary: true, button: 0, bubbles: true,
+      });
+      await fire("pointerdown", points[0]);
+      for (const p of points.slice(1)) await fire("pointermove", p);
+      await fire("pointerup", points.at(-1)!);
+    } else {
+      await page.mouse.move(at(points[0]).x, at(points[0]).y);
+      await page.mouse.down();
+      for (const p of points.slice(1)) await page.mouse.move(at(p).x, at(p).y, { steps: 3 });
+      await page.mouse.up();
+    }
+  };
+  await stroke([[0.15, 0.6], [0.3, 0.3], [0.4, 0.7], [0.55, 0.4]]);
+  await stroke([[0.6, 0.7], [0.85, 0.65]]);
+  await expect(pad.locator(".sign-pad path")).toHaveCount(2);
+  await page.screenshot({ path: `test/output/signature-pad-${test.info().project.name}.png` });
+  await pad.getByRole("button", { name: "Use this signature" }).click();
+  await expect(pad).toBeHidden();
+
+  // A tap puts it on the page, about 30% of the page wide, around the tap.
+  const paper = (await page.locator('.page[data-page="1"]').boundingBox())!;
+  const tap = { x: paper.x + paper.width * 0.5, y: 500 };
+  await page.mouse.click(tap.x, tap.y);
+  await expect(shapes(page)).toHaveCount(1);
+  await expect(shapes(page).locator("path:not(.draw-hit)")).toHaveCount(2); // both strokes
+  const first = (await shapes(page).locator("path:not(.draw-hit)").first().boundingBox())!;
+  expect(first.x).toBeGreaterThan(tap.x - paper.width * 0.16);
+  expect(first.x + first.width).toBeLessThan(tap.x + paper.width * 0.16);
+  expect(Math.abs(first.y + first.height / 2 - tap.y)).toBeLessThan(paper.width * 0.06);
+  // A second tap places it again; the signature is remembered after a reload.
+  await page.mouse.click(tap.x, tap.y + 90);
+  await expect(shapes(page)).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await expect(shapes(page)).toHaveCount(2);
+  await page.getByRole("button", { name: "Draw" }).click();
+  await expect(hint(page).getByRole("radio", { name: "Signature" })).toBeChecked();
+  await expect(page.getByRole("dialog", { name: "Your signature" })).toHaveCount(0); // it has one now
+  await expect(hint(page)).toBeInViewport({ ratio: 1 });
+  await hint(page).getByRole("button", { name: "New signature" }).click();
+  await expect(page.getByRole("dialog", { name: "Your signature" })).toBeVisible();
 });

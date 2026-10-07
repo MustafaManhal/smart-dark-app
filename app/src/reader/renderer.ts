@@ -50,6 +50,8 @@ class PageSlot {
   searchLayer = document.createElement("div");
   linkLayer = document.createElement("div");
   drawLayer = document.createElement("div");
+  /** The fields of a PDF form on this page, as real inputs (made once, when the book has a form). */
+  formLayer: HTMLDivElement | null = null;
   linksBuilt = false;
   /** The page as the PDF has it: canvas, text, marks and links. Turned as a whole when the reader rotates the book. */
   face = document.createElement("div");
@@ -161,6 +163,10 @@ export class Renderer {
   onProgress: (fraction: number) => void = () => {};
   /** The text of a page has been laid out (again after each zoom). */
   onTextRendered: (page: number) => void = () => {};
+  /** The book has a form to fill. Set before `init`. */
+  forms = false;
+  /** Something was typed or chosen in a form field. */
+  onFormChange: () => void = () => {};
   /** Text recognized on a scanned page (OCR), if there is any. */
   recognized: (page: number) => OcrPage | undefined = () => undefined;
   /** The accessible name of a link into the book. */
@@ -636,6 +642,8 @@ export class Renderer {
       viewport,
       transform: out !== 1 ? [out, 0, 0, out, 0, 0] : undefined,
       recordImages: mapper !== null,
+      // The fields of a form are real inputs over the page (buildForm); the picture leaves them out.
+      ...(this.forms ? { annotationMode: pdfjs.AnnotationMode.ENABLE_FORMS } : {}),
     });
     await slot.task.promise;
     slot.task = null;
@@ -659,6 +667,7 @@ export class Renderer {
     slot.canvas = canvas;
     slot.key = key;
     if (!slot.linksBuilt) this.buildLinks(slot).catch(() => {});
+    if (this.forms && !slot.formLayer) this.buildForm(slot).catch(() => {});
     if (slot.layerScale !== this.scale) await this.renderText(slot, viewport);
   }
 
@@ -700,6 +709,27 @@ export class Renderer {
       }
       slot.linkLayer.append(link);
     }
+  }
+
+  /**
+   * The fields of a PDF form on a page, as inputs the reader can fill. pdf.js
+   * builds them and keeps what is typed in the document's annotation storage,
+   * from which a filled copy is saved. Scripts inside the PDF are not run.
+   */
+  private async buildForm(slot: PageSlot) {
+    const layer = (slot.formLayer = document.createElement("div"));
+    layer.className = "annotationLayer";
+    const page = slot.page!;
+    const widgets = (await page.getAnnotations({ intent: "display" })).filter((a) => a.subtype === "Widget");
+    if (!widgets.length) return;
+    const viewport = page.getViewport({ scale: 1 }).clone({ dontFlip: true });
+    // The form's fields link to nothing; this stands in for the link service pdf.js expects.
+    const linkService = { externalLinkEnabled: false, getDestinationHash: () => "#", getAnchorUrl: () => "#", addLinkAttributes() {}, goToDestination() {}, executeNamedAction() {}, isPageVisible: () => true, isPageCached: () => true };
+    const common = { div: layer, page, viewport, linkService: linkService as never, annotationStorage: this.doc.annotationStorage };
+    const built = new pdfjs.AnnotationLayer({ ...common, accessibilityManager: null as never, annotationCanvasMap: null as never, annotationEditorUIManager: null as never, structTreeLayer: null as never, commentManager: null as never });
+    await built.render({ ...common, annotations: widgets, renderForms: true, imageResourcesPath: "", enableScripting: false, hasJSActions: false, fieldObjects: null });
+    for (const type of ["input", "change"]) layer.addEventListener(type, () => this.onFormChange());
+    slot.face.append(layer);
   }
 
   /** Lays the text of a page out again, after its text was recognized. */

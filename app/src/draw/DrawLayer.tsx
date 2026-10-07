@@ -1,5 +1,5 @@
 import type { Drawing } from "../db/drawings";
-import { arrowHead, DRAW_HEX, penPaths, TEXT_SIZE } from "./shapes";
+import { arrowHead, DRAW_HEX, penPaths, strokesOf, TEXT_SIZE } from "./shapes";
 
 const colorOf = (d: Drawing) => (d.color === "ink" ? "var(--draw-ink)" : DRAW_HEX[d.color]);
 
@@ -10,7 +10,9 @@ function Shape({ d, w, h }: { d: Drawing; w: number; h: number }) {
   const common = { fill: "none", stroke, "stroke-width": width, "stroke-linecap": "round" as const, "stroke-linejoin": "round" as const };
   const [x1, y1, x2, y2] = [d.points[0] * w, d.points[1] * h, d.points[2] * w, d.points[3] * h];
   let body;
-  if (d.tool === "pen") body = penPaths(d.points, d.size, w, h).map((p) => <path d={p.d} {...common} stroke-width={p.width} />);
+  if (d.tool === "pen" || d.tool === "sign") {
+    body = strokesOf(d.points).flatMap((stroke) => penPaths(stroke, d.size, w, h)).map((p) => <path d={p.d} {...common} stroke-width={p.width} />);
+  }
   else if (d.tool === "line") body = <path d={`M${x1} ${y1}L${x2} ${y2}`} {...common} />;
   else if (d.tool === "arrow") {
     const [ax, ay, tx, ty, bx, by] = arrowHead(x1, y1, x2, y2, Math.max(width * 4, w * 0.018));
@@ -19,8 +21,8 @@ function Shape({ d, w, h }: { d: Drawing; w: number; h: number }) {
   else body = <ellipse cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} rx={Math.abs(x2 - x1) / 2} ry={Math.abs(y2 - y1) / 2} {...common} />;
   // An unseen, wider copy of the line: what the eraser's tap has to hit.
   const reach = Math.max(width * 2, w * 0.022);
-  const hit = d.tool === "pen"
-    ? <path class="draw-hit" d={`M${Array.from({ length: d.points.length / 3 }, (_, i) => `${d.points[i * 3] * w} ${d.points[i * 3 + 1] * h}`).join("L")}l0.01 0`} />
+  const hit = d.tool === "pen" || d.tool === "sign"
+    ? <path class="draw-hit" d={strokesOf(d.points).map((s) => `M${Array.from({ length: s.length / 3 }, (_, i) => `${s[i * 3] * w} ${s[i * 3 + 1] * h}`).join("L")}l0.01 0`).join("")} />
     : d.tool === "rect" ? <rect class="draw-hit" x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} />
     : d.tool === "ellipse" ? <ellipse class="draw-hit" cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} rx={Math.abs(x2 - x1) / 2} ry={Math.abs(y2 - y1) / 2} />
     : <path class="draw-hit" d={`M${x1} ${y1}L${x2} ${y2}`} />;

@@ -1,6 +1,6 @@
 import { request, transaction } from "./idb";
 
-export const DRAW_TOOLS = ["pen", "line", "arrow", "rect", "ellipse", "text"] as const;
+export const DRAW_TOOLS = ["pen", "line", "arrow", "rect", "ellipse", "text", "sign"] as const;
 export type DrawTool = (typeof DRAW_TOOLS)[number];
 /** "ink" is the color of the page's own text: dark on paper, light on a dark page. */
 export const DRAW_COLORS = ["ink", "red", "blue", "green", "orange"] as const;
@@ -14,7 +14,10 @@ export type Drawing = {
   id: string; bookId: string; page: number; tool: DrawTool; color: DrawColor;
   /** Thickness of the line (for text: height of the letters) as a share of the page's width. */
   size: number;
-  /** pen: x, y, pressure for each point. line, arrow, rect, ellipse: x1, y1, x2, y2. text: x, y of its top left corner. */
+  /**
+   * pen: x, y, pressure for each point. line, arrow, rect, ellipse: x1, y1, x2, y2. text: x, y of its top left corner.
+   * sign (a signature): as pen, with -1, -1, -1 between its strokes.
+   */
   points: number[];
   text?: string;
   createdAt: number; updatedAt: number;

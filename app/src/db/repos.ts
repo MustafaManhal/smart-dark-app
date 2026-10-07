@@ -23,6 +23,8 @@ export type Book = {
   tags?: string[];
   /** Quarter turns the reader gave this book's pages, clockwise, in degrees. */
   rotation?: 0 | 90 | 180 | 270;
+  /** What the reader filled into the PDF's form fields (pdf.js annotation storage, by field id). */
+  formValues?: Record<string, unknown>;
   /** Crop margins for this book: whether it is on, and the measured cut (null: nothing to cut). */
   crop?: { on: boolean; box: Crop | null };
   /** For a protected PDF: kept on this device so the book opens without asking again. Never put in backups. */

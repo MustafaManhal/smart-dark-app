@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { arrowHead, penPaths, thin, worthKeeping } from "../../app/src/draw/shapes";
+import { arrowHead, penPaths, placeSignature, SIGN_BREAK, strokesOf, thin, worthKeeping } from "../../app/src/draw/shapes";
 
 test("points that add nothing are dropped, the first and the last are kept", () => {
   const points = [0.1, 0.1, 0.5, 0.1001, 0.1, 0.5, 0.1002, 0.1, 0.5, 0.2, 0.1, 0.5, 0.2001, 0.1, 0.5];
@@ -34,4 +34,16 @@ test("a dot of the pen is kept, a shape with no size and an empty text box are n
   expect(worthKeeping({ tool: "arrow", points: [0.2, 0.2, 0.4, 0.3] })).toBe(true);
   expect(worthKeeping({ tool: "text", points: [0.1, 0.1], text: "  " })).toBe(false);
   expect(worthKeeping({ tool: "text", points: [0.1, 0.1], text: "note" })).toBe(true);
+});
+
+test("a signature keeps its strokes apart and lands upright where it is placed", () => {
+  const signature = [0, 0, 0.5, 1, 1, 0.5, ...SIGN_BREAK, 0.5, 0.5, 0.5];
+  expect(strokesOf(signature)).toEqual([[0, 0, 0.5, 1, 1, 0.5], [0.5, 0.5, 0.5]]);
+  // 30% of the page wide, on a page three quarters as wide as it is high: 7.5% of the page high.
+  const placed = placeSignature(signature, 0.5, 0.5, 0.3, 0.75, (x, y) => [x, y]);
+  expect(placed.slice(0, 3).map((v) => +v.toFixed(4))).toEqual([0.35, 0.4625, 0.5]);
+  expect(placed.slice(3, 6).map((v) => +v.toFixed(4))).toEqual([0.65, 0.5375, 0.5]);
+  expect(placed.slice(6, 9)).toEqual(SIGN_BREAK);
+  expect(placed.slice(9).map((v) => +v.toFixed(4))).toEqual([0.5, 0.5, 0.5]);
+  expect(worthKeeping({ tool: "sign", points: placed })).toBe(true);
 });

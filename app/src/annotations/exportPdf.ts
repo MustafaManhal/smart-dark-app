@@ -1,7 +1,7 @@
 import type { BookAnnotations, HighlightColor, NormRect } from "../db/annotations";
 import { COLOR_HEX } from "./colors";
 import type { DrawColor, Drawing } from "../db/drawings";
-import { arrowHead, DRAW_HEX, TEXT_SIZE } from "../draw/shapes";
+import { arrowHead, DRAW_HEX, strokesOf, TEXT_SIZE } from "../draw/shapes";
 import { fromViewPoint, fromViewRect, type Turn } from "./geometry";
 
 /**
@@ -97,11 +97,13 @@ export async function exportAnnotatedPdf(bytes: Uint8Array, data: BookAnnotation
       const pen = `${color.join(" ")} RG ${width} w 1 J 1 j`;
       const padded = (xs: number[], ys: number[], by = width) => [n(Math.min(...xs) - by), n(Math.min(...ys) - by), n(Math.max(...xs) + by), n(Math.max(...ys) + by)];
       const base = { Type: "Annot", C: color, F: 4, M: stamp, T: text("Reader343"), BS: { W: width } };
-      if (d.tool === "pen") {
-        const pts = Array.from({ length: d.points.length / 3 }, (_, i) => spot(d.points[i * 3], d.points[i * 3 + 1]));
+      if (d.tool === "pen" || d.tool === "sign") {
+        // One ink list for each stroke (a signature has several).
+        const strokes = strokesOf(d.points).map((s) => Array.from({ length: s.length / 3 }, (_, i) => spot(s[i * 3], s[i * 3 + 1])));
+        const pts = strokes.flat();
         const rect = padded(pts.map((p) => p[0]), pts.map((p) => p[1]));
-        const path = pts.map(([x, y], i) => `${x} ${y} ${i ? "l" : "m"}`).join(" ") + (pts.length === 1 ? ` ${pts[0][0] + 0.01} ${pts[0][1]} l` : "");
-        add({ ...base, Subtype: "Ink", Rect: rect, InkList: [pts.flat()], AP: { N: drawing(rect, `${pen} ${path} S`) } });
+        const path = strokes.map((s) => s.map(([x, y], i) => `${x} ${y} ${i ? "l" : "m"}`).join(" ") + (s.length === 1 ? ` ${s[0][0] + 0.01} ${s[0][1]} l` : "")).join(" ");
+        add({ ...base, Subtype: "Ink", Rect: rect, InkList: strokes.map((s) => s.flat()), AP: { N: drawing(rect, `${pen} ${path} S`) } });
       } else if (d.tool === "text") {
         const [x, top] = spot(d.points[0], d.points[1]);
         const size = n(TEXT_SIZE * viewWidth * (d.size / 0.004) ** 0.5);

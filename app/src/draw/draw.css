@@ -30,3 +30,11 @@
   .mode-hint.is-draw .mode-done { order: 3; }
   .draw-tools button, .draw-sizes button { width: 29px; height: 30px; }
 }
+
+/* The signature tool and the box a signature is written in. */
+.reader-scroll.is-drawing.is-sign-tool .page { cursor: copy; }
+.sign-again { font-size: var(--text-sm); }
+.sign-note { margin: 0 0 12px; color: var(--muted); }
+.sign-pad { display: block; width: 100%; aspect-ratio: 3 / 1; border: 1px dashed var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); touch-action: none; cursor: crosshair; }
+.sign-rule { stroke: var(--border-strong); stroke-width: 1; }
+@media (max-width: 400px) { .mode-hint.is-draw .sign-again { order: 4; } .draw-tools button { width: 27px; } }

@@ -32,7 +32,8 @@ import { Tour } from "./Tour";
 import { render } from "preact";
 import { DRAW_COLORS, DRAW_TOOLS, type Drawing, type DrawTool } from "../db/drawings";
 import { DrawLayer } from "../draw/DrawLayer";
-import { DRAW_HEX, DRAW_LABEL, DRAW_SIZES, thin, worthKeeping } from "../draw/shapes";
+import { DRAW_HEX, DRAW_LABEL, DRAW_SIZES, placeSignature, thin, worthKeeping } from "../draw/shapes";
+import { SignaturePad } from "../draw/SignaturePad";
 import "../draw/draw.css";
 import { recognizeBook, type OcrLang } from "../ocr/ocr";
 import type { OcrPage } from "../ocr/text";
@@ -84,8 +85,8 @@ const inRects = (rects: NormRect[], x: number, y: number) =>
   rects.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y - 0.004 && y <= r.y + r.h + 0.004);
 
 const ZOOM_STEP = 1.2;
-const DRAW_TOOL_LABEL: Record<DrawTool, string> = { pen: "Pen", line: "Line", arrow: "Arrow", rect: "Box", ellipse: "Oval", text: "Text box" };
-const DRAW_TOOL_ICON: Record<DrawTool, IconName> = { pen: "draw", line: "line", arrow: "arrowLine", rect: "square", ellipse: "circle", text: "textBox" };
+const DRAW_TOOL_LABEL: Record<DrawTool, string> = { pen: "Pen", line: "Line", arrow: "Arrow", rect: "Box", ellipse: "Oval", text: "Text box", sign: "Signature" };
+const DRAW_TOOL_ICON: Record<DrawTool, IconName> = { pen: "draw", line: "line", arrow: "arrowLine", rect: "square", ellipse: "circle", text: "textBox", sign: "signature" };
 const OCR_LANGS: [OcrLang, string][] = [["eng", "English"], ["ara", "Arabic"], ["eng+ara", "English and Arabic"]];
 const MODE_TEXT: Record<MarkStyle, string> = { highlight: "Select text to highlight", underline: "Select text to underline", strike: "Select text to strike through" };
 const MODE_STYLE: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
@@ -112,6 +113,9 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const pdfDoc = useRef<PDFDocumentProxy | null>(null);
   const fileBlob = useRef<Blob | null>(null);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  // A PDF form in this book, and whether something was filled into it.
+  const [hasForm, setHasForm] = useState(false);
+  const [formFilled, setFormFilled] = useState(false);
   // Text recognition for scanned pages (OCR): what was recognized, and the run that is going on.
   const ocrPages = useRef(new Map<number, OcrPage>());
   const [ocrLang, setOcrLang] = useState<OcrLang>(lang.value === "ar" ? "eng+ara" : "eng");
@@ -176,6 +180,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [live, setLive] = useState<Drawing | null>(null);
   const [editingText, setEditingText] = useState<Drawing | null>(null);
+  const [signing, setSigning] = useState(false);
   const drawTool = settings.drawTool.value;
   const drawColor = settings.drawColor.value;
   const drawSize = settings.drawSize.value;
@@ -217,6 +222,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     let cancelled = false;
     let saveTimer = 0;
     let zoomTimer = 0;
+    let formTimer = 0;
     (async () => {
       const [b, blob, saved] = await Promise.all([repos.books.get(bookId), repos.books.file(bookId), repos.progress.get(bookId)]);
       if (!b || !blob) {
@@ -263,6 +269,17 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         }, 400);
       };
       r.onProgress = setProgress;
+      // A PDF form: its fields become inputs, and what was filled in before is put back.
+      const fields = await doc.getFieldObjects().catch(() => null) as Map<string, unknown> | Record<string, unknown> | null;
+      r.forms = !!fields;
+      setHasForm(r.forms);
+      for (const [key, value] of Object.entries(b.formValues ?? {})) doc.annotationStorage.setValue(key, value as never);
+      setFormFilled(Object.keys(b.formValues ?? {}).length > 0);
+      r.onFormChange = () => {
+        setFormFilled(true);
+        clearTimeout(formTimer);
+        formTimer = window.setTimeout(() => repos.books.update(bookId, { formValues: Object.fromEntries([...doc!.annotationStorage]) as Record<string, unknown> }), 500);
+      };
       r.setView({ layout: settings.viewLayout.value, cover: settings.spreadCover.value, rtl: settings.spreadRtl.value });
       if (b.crop?.on) r.setCrop(b.crop.box);
       if (b.rotation) r.setTurn(b.rotation);
@@ -342,7 +359,10 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (!fileBlob.current || !book) return;
     setMarked({ state: "building" });
     try {
-      const bytes = await exportAnnotatedPdf(new Uint8Array(await fileBlob.current.arrayBuffer()), annotations.data, book.password, drawings);
+      // A filled form is written by pdf.js first; the marks then go into that copy.
+      const filled = formFilled && pdfDoc.current ? await pdfDoc.current.saveDocument().catch(() => null) : null;
+      const source = filled ?? new Uint8Array(await fileBlob.current.arrayBuffer());
+      const bytes = await exportAnnotatedPdf(source, annotations.data, filled ? undefined : book.password, drawings);
       const name = `${safeFileName(book.fileName.replace(/\.pdf$/i, ""))} (${t("with marks")}).pdf`;
       setMarked({ state: "ready", file: new File([bytes as Uint8Array<ArrayBuffer>], name, { type: "application/pdf" }) });
     } catch (error) {
@@ -733,7 +753,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   useLayoutEffect(() => {
     const el = scroller.current;
     const r = renderer.current;
-    if (!el || !r || !drawMode || drawTool === "text") return;
+    if (!el || !r || !drawMode || drawTool === "text" || drawTool === "sign") return;
     let stroke: { pageEl: HTMLElement; drawing: Drawing; id: number } | null = null;
     const place = (e: PointerEvent, pageEl: HTMLElement): [number, number] => {
       const box = pageEl.getBoundingClientRect();
@@ -979,6 +999,18 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     if (preview) setPreview(null);
     if (target.closest("a, button, input, textarea, .sticky")) return;
     if (drawMode) {
+      // With the signature tool a tap puts the signature there, upright as the page is shown.
+      if (drawTool === "sign") {
+        const at = renderer.current?.hitTest(e.clientX, e.clientY);
+        const signature = settings.signature.value;
+        if (!at) return;
+        if (!signature.length) return setSigning(true);
+        const turn = renderer.current!.turnValue;
+        const points = placeSignature(signature, at.vx, at.vy, 0.3, at.box.width / at.box.height, (x, y) => fromViewPoint(Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y)), turn));
+        const saved = await saveDrawing({ bookId, page: at.page, tool: "sign", color: drawColor, size: 0.003, points });
+        record({ undo: () => removeDrawing(saved), redo: () => saveDrawing(saved) });
+        return;
+      }
       // With the text tool a tap writes: on a text box it changes that box, elsewhere it starts a new one.
       if (drawTool !== "text" || editingText) return;
       const box = target.closest<HTMLElement>(".draw-text");
@@ -1242,9 +1274,13 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           <div class="draw-tools" role="radiogroup" aria-label={t("What to draw")}>
             {DRAW_TOOLS.map((tool) => (
               <button type="button" role="radio" aria-checked={drawTool === tool} aria-label={t(DRAW_TOOL_LABEL[tool])} title={t(DRAW_TOOL_LABEL[tool])}
-                onClick={() => saveSetting("drawTool", tool)}><Icon name={DRAW_TOOL_ICON[tool]} size={18} /></button>
+                onClick={() => { saveSetting("drawTool", tool); if (tool === "sign" && !settings.signature.value.length) setSigning(true); }}>
+                <Icon name={DRAW_TOOL_ICON[tool]} size={18} /></button>
             ))}
           </div>
+          {drawTool === "sign" && (
+            <button type="button" class="mode-done sign-again" onClick={() => setSigning(true)}>{t("New signature")}</button>
+          )}
           <div class="mode-colors" role="radiogroup" aria-label={t("Color")}>
             {DRAW_COLORS.map((c) => (
               <button type="button" role="radio" aria-checked={drawColor === c} aria-label={t(DRAW_LABEL[c])} title={t(DRAW_LABEL[c])}
@@ -1278,7 +1314,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {error
         ? <p class="reader-error" role="alert">{t(error)}</p>
-        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""} ${highlightMode && areaMode ? "is-area" : ""} ${drawMode ? "is-drawing" : ""} ${drawMode && drawTool === "text" ? "is-text-tool" : ""}`}
+        : <div class={`reader-scroll ${placing ? "is-placing" : ""} ${erasing ? "is-erasing" : ""} ${highlightMode ? "is-highlighting" : ""} ${highlightMode && areaMode ? "is-area" : ""} ${drawMode ? "is-drawing" : ""} ${drawMode && drawTool === "text" ? "is-text-tool" : ""} ${drawMode && drawTool === "sign" ? "is-sign-tool" : ""}`}
             ref={scroller} tabIndex={0} aria-label={t("Pages")} onClick={onPageTap} {...linkPointer} />}
 
       {preview && renderer.current && (
@@ -1413,16 +1449,18 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
               {marked?.state === "ready" ? (
                 <button type="button" class="is-ready" onClick={async () => { if (await saveFile(marked.file)) closeMenu(); }}>
                   <Icon name="download" />
-                  <span><strong>{t("Save the PDF with your marks")}</strong><small>{t("Ready: {n} marks and notes inside.", { n: exportCount(annotations.data, drawings) })}</small></span>
+                  <span><strong>{t("Save the PDF with your marks")}</strong><small>{formFilled && exportCount(annotations.data, drawings) === 0
+                    ? t("Ready: the filled form is inside.") : t("Ready: {n} marks and notes inside.", { n: exportCount(annotations.data, drawings) })}</small></span>
                 </button>
               ) : (
-                <button type="button" disabled={marked?.state === "building" || exportCount(annotations.data, drawings) === 0} onClick={buildMarked}>
+                <button type="button" disabled={marked?.state === "building" || (exportCount(annotations.data, drawings) === 0 && !formFilled)} onClick={buildMarked}>
                   <Icon name="highlighter" />
                   <span>
-                    <strong>{t("Save a copy with your marks")}</strong>
+                    <strong>{t(hasForm ? "Save a copy with the form and your marks" : "Save a copy with your marks")}</strong>
                     <small role="status">{t(marked?.state === "building" ? "Putting your marks into the PDF…"
                       : marked?.state === "failed" ? "This PDF could not be written. Its marks are still in the app."
-                      : exportCount(annotations.data, drawings) === 0 ? "This book has no marks or notes yet."
+                      : exportCount(annotations.data, drawings) === 0 && !formFilled ? (hasForm ? "Fill in the form on the page first." : "This book has no marks or notes yet.")
+                      : hasForm ? "What you filled in and marked becomes part of the PDF."
                       : "Highlights and notes become part of the PDF, for other apps to show.")}</small>
                   </span>
                 </button>
@@ -1448,6 +1486,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       </Sheet>
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      <SignaturePad open={signing} onClose={() => setSigning(false)} onSave={(points) => { saveSetting("signature", points); setSigning(false); }} />
       <Sheet open={sheet === "ocr"} title={t("Recognize text")} onClose={() => setSheet(null)}>
         <div class="ocr-sheet">
           <p>{t("Pages that are pictures (scans, photographs of a book) have no text to select or search. This reads the words off those pages. It runs on this device: the pages are not sent anywhere.")}</p>

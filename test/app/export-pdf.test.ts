@@ -80,7 +80,12 @@ test("drawings are exported as ink, lines, squares, circles and free text", asyn
     { ...base, id: "r", tool: "rect", points: [0.2, 0.5, 0.6, 0.6] },
     { ...base, id: "e", tool: "ellipse", color: "ink", points: [0.2, 0.7, 0.6, 0.8] },
     { ...base, id: "t", tool: "text", points: [0.1, 0.9], text: "Check this ملاحظة" },
+    { ...base, id: "s", page: 2, tool: "sign", color: "ink", points: [0.4, 0.5, 0.5, 0.5, 0.52, 0.5, -1, -1, -1, 0.55, 0.5, 0.5, 0.6, 0.51, 0.5] },
   ]);
+  // A signature is ink with one list for each of its strokes.
+  const signed = (await (await (await openPdf(out.slice())).getPage(2)).getAnnotations()).filter((a) => a.subtype === "Ink");
+  expect(signed).toHaveLength(1);
+  expect(signed[0].inkLists.map((list: number[]) => list.length)).toEqual([4, 4]);
   const doc = await openPdf(out);
   const annots = (await (await doc.getPage(1)).getAnnotations()).filter((a) => a.subtype !== "Link");
   expect(annots.map((a) => a.subtype).sort()).toEqual(["Circle", "FreeText", "Ink", "Line", "Line", "Square"]);
