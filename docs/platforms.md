@@ -12,7 +12,7 @@ program: the dark viewer only.
 |---|---|---|
 | Web app | https://smart-dark-app.vercel.app | every push to `main` |
 | Installed web app (Chrome, Edge, iPhone Home Screen, Android) | the same site, in its own window | the same push; its offline copy takes over on the visit after |
-| Desktop app (Windows, Mac, Linux) | Electron around the built web app | **a new release** (tag `v<version>`); 2.0.0 was made on 2026-10-07 |
+| Desktop app (Windows, Mac, Linux) | Electron around the built web app | a release, which the workflow "Desktop app" makes by itself on every push to `main` that touches the app; the app's update check then offers it |
 | Google Play package | a Trusted Web Activity: Chrome showing the site | the same push as the site |
 | App Store project | Capacitor around the built web app | a new upload to Apple |
 | Extension (Chrome, Edge, Firefox) | `src/`, its own viewer | a new upload to each store |
@@ -56,7 +56,7 @@ program: the dark viewer only.
 |---|---|---|
 | Chrome | `npm run app:e2e`, project chromium-desktop: every feature has tests | the browser's real model (tests use a stand-in) |
 | Safari's engine, iPhone size | the same suite, project webkit-iphone | a real iPhone (`docs/iphone-checklist.md`) |
-| Firefox | workflow "Web app in Firefox" (the main journeys) | everything outside those journeys |
+| Firefox | workflow "Web app in Firefox": 68 tests of the main journeys passed on 2026-10-07 (library, reader, marks, drawing, forms, search, e-books, PDF tools, notebook, backup, settings, the shell) | what those 13 test files do not cover: read aloud, text recognition, word lookup, stats |
 | Desktop app | `npm run desktop:e2e`: opening PDFs and EPUBs from the system, the shell, the toolbar, PDF tools, text recognition, natural voices, folder sync, the update check | Windows and Linux builds are made by CI and not started by a test |
 | Android | none: it is the site in Chrome | an Android phone |
 | App Store project | workflow "iPhone app": builds, starts in a simulator, picture of the first screen | every feature inside the shell; saving and sharing files there is the likeliest gap |

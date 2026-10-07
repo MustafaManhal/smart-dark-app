@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "!app/public/about/**" # the public pages are not part of the desktop app's use
       - "desktop/**"
       - "vendor/**"
       - "src/viewer/smart-invert.js"
