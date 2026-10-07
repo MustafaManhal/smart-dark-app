@@ -170,6 +170,7 @@ export const AR: Record<string, string> = {
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Book menu": "قائمة الكتاب",
+  "Continue": "متابعة",
   "Parts of the book": "أجزاء الكتاب",
   "This book has no table of contents.": "لا يحتوي هذا الكتاب على فهرس.",
   "Search books, tags and notes": "ابحث في الكتب والوسوم والملاحظات",

@@ -21,8 +21,8 @@
 .stats-head h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
-.card, .today-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
-.card h2 { margin: 0 0 14px; font-size: 16px; }
+.stats .card, .today-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.stats .card h2 { margin: 0 0 14px; font-size: 16px; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .link { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; }
 .today-card { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }

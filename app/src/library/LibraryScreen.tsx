@@ -229,10 +229,11 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
                     <span class="resume-cover">{cover ? <img src={cover} alt="" /> : <Icon name="book" size={24} />}</span>
                     <span class="resume-text">
                       <strong>{book.title}</strong>
-                      <span>{t("Page {page} of {total}", { page: at.page, total: book.pageCount })}</span>
+                      {book.author && <span class="resume-author">{book.author}</span>}
+                      <span class="resume-at">{t("Page {page} of {total}", { page: at.page, total: book.pageCount })}<b dir="ltr">{pct}%</b></span>
                       <span class="bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
                     </span>
-                    <Icon name="chevronRight" size={18} />
+                    <span class="resume-go">{t("Continue")}<Icon name="chevronRight" size={16} /></span>
                   </button>
                 </li>
               );
@@ -291,12 +292,12 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
                 <div class="cover">
                   {cover ? <img src={cover} alt="" loading="lazy" /> : <Icon name="book" size={32} />}
                 </div>
-                <span class="card-title">{book.title}</span>
-                {book.author && <span class="card-author">{book.author}</span>}
-                {!!book.tags?.length && <span class="card-tags">{book.tags.join(" · ")}</span>}
                 <span class="bar" role="progressbar" aria-label={t("{n}% read", { n: pct })} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
                   <span style={{ width: `${pct}%` }} />
                 </span>
+                <span class="card-title">{book.title}</span>
+                {book.author && <span class="card-author">{book.author}</span>}
+                {!!book.tags?.length && <span class="card-tags">{book.tags.join(" · ")}</span>}
               </button>
               <div class={`card-actions ${book.favorite ? "has-star" : ""}`}>
                 <IconButton label={t(book.favorite ? "Remove {title} from favorites" : "Add {title} to favorites", { title: book.title })}
