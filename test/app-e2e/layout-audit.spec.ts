@@ -44,6 +44,8 @@ async function check(page: Page, where: string, findings: Finding[]) {
       }
       if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
       if (inPage) continue;
+      // A control whose middle is under the fold of a sheet is reached by scrolling the sheet.
+      if (el.closest(".sheet") && r.top + r.height / 2 > vh - 1) continue;
       const cx = Math.min(vw - 1, Math.max(0, r.left + r.width / 2)), cy = Math.min(vh - 1, Math.max(0, r.top + r.height / 2));
       const top = document.elementFromPoint(cx, cy);
       if (!top) continue;
@@ -225,6 +227,18 @@ for (const lang of ["en", "ar"] as const) {
       await check(page, `${tag}-16-appearance`, findings);
       await page.locator(".sheet").evaluate((s) => s.scrollTo(0, s.scrollHeight));
       await check(page, `${tag}-17-appearance-end`, findings);
+      await page.locator(".sheet-head .icon-btn").click();
+
+      // Crop margins: the page fills the width, nothing sticks out.
+      await page.locator(".tools .icon-btn").nth(7).click();
+      await page.locator(".sheet .toggle input").last().click();
+      await expect(page.locator('.page[data-page="1"]')).toHaveClass(/is-cropped/);
+      await check(page, `${tag}-17b-crop-sheet`, findings);
+      await page.locator(".sheet-head .icon-btn").click();
+      await check(page, `${tag}-17c-cropped`, findings);
+      await page.locator(".tools .icon-btn").nth(7).click();
+      await page.locator(".sheet .toggle input").last().click();
+      await expect(page.locator('.page[data-page="1"]')).not.toHaveClass(/is-cropped/);
       await page.locator(".sheet-head .icon-btn").click();
 
       await page.locator(".tools .icon-btn").nth(6).click(); // contents

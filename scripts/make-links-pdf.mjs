@@ -69,3 +69,29 @@ for (const o of offsets) out += `${String(o).padStart(10, "0")} 00000 n \n`;
 out += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R /Info ${info} 0 R >>\nstartxref\n${start}\n%%EOF\n`;
 writeFileSync(new URL("links.pdf", OUT), out, "latin1");
 console.log(`links.pdf: ${out.length} bytes`);
+
+// ---- full-bleed.pdf: two pages painted to their edges, for "nothing to crop".
+{
+  const objs = [];
+  const put = (body) => objs.push(body) && objs.length;
+  const cat = put(null);
+  const kids = put(null);
+  const paint = put(stream(`0.2 0.4 0.6 rg 0 0 ${W} ${H} re f\n0.9 0.8 0.3 rg 40 40 ${W - 80} ${H - 80} re f\n`));
+  const p1 = put(`<< /Type /Page /Parent ${kids} 0 R /MediaBox [0 0 ${W} ${H}] /Contents ${paint} 0 R >>`);
+  const p2 = put(`<< /Type /Page /Parent ${kids} 0 R /MediaBox [0 0 ${W} ${H}] /Contents ${paint} 0 R >>`);
+  objs[kids - 1] = `<< /Type /Pages /Kids [${p1} 0 R ${p2} 0 R] /Count 2 >>`;
+  objs[cat - 1] = `<< /Type /Catalog /Pages ${kids} 0 R >>`;
+  const meta = put("<< /Title (Full bleed) >>");
+  let pdf = "%PDF-1.7\n";
+  const at = [];
+  objs.forEach((body, i) => {
+    at.push(pdf.length);
+    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  for (const o of at) pdf += `${String(o).padStart(10, "0")} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root ${cat} 0 R /Info ${meta} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  writeFileSync(new URL("full-bleed.pdf", OUT), pdf, "latin1");
+  console.log(`full-bleed.pdf: ${pdf.length} bytes`);
+}

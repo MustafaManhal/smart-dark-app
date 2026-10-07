@@ -24,6 +24,7 @@ import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, PasswordError, type OutlineItem, type PDFDocumentProxy, type Target } from "./pdf";
 import { LinkPreview } from "./LinkPreview";
+import { measureCrop } from "./crop";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
 import { saveFile } from "../platform/saveFile";
@@ -83,6 +84,10 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const pdfDoc = useRef<PDFDocumentProxy | null>(null);
   const fileBlob = useRef<Blob | null>(null);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  // Crop margins belongs to the book: its margins are measured once and kept with it.
+  const [crop, setCrop] = useState<Book["crop"]>(undefined);
+  const [measuring, setMeasuring] = useState<number | null>(null);
+  const cropStop = useRef({ now: false });
   const printStop = useRef({ now: false });
   const [zoom, setZoom] = useState<{ scale: number; mode: "fit" | "page" | "manual" }>({ scale: 1, mode: "fit" });
   const [zoomMenu, setZoomMenu] = useState(false);
@@ -134,6 +139,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         return;
       }
       setBook(b);
+      setCrop(b.crop);
       repos.books.update(bookId, { lastOpenedAt: Date.now() });
       try {
         doc = await openPdf(new Uint8Array(await blob.arrayBuffer()), attempt?.password ?? b.password);
@@ -168,6 +174,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       };
       r.onProgress = setProgress;
       r.setView({ layout: settings.viewLayout.value, cover: settings.spreadCover.value, rtl: settings.spreadRtl.value });
+      if (b.crop?.on) r.setCrop(b.crop.box);
       await r.init({ mode: settings.zoomMode.value, scale: settings.zoomScale.value });
       if (startPage) r.scrollToPage(startPage);
       else if (saved) r.scrollToPage(saved.page, saved.offset);
@@ -192,6 +199,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       renderer.current = null;
       setBookSearch(null);
       printStop.current.now = true;
+      cropStop.current.now = true;
+      setMeasuring(null);
       pdfDoc.current = null;
       fileBlob.current = null;
       closePdf(doc);
@@ -209,6 +218,25 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       if (!stop.now) setToast({ text: t("This book could not be printed.") });
     }
     setPrinting(null);
+  };
+  const toggleCrop = async (on: boolean) => {
+    const r = renderer.current;
+    const doc = pdfDoc.current;
+    if (!r || !doc) return;
+    let box = crop?.box ?? null;
+    if (on && !crop) {
+      const stop = (cropStop.current = { now: false });
+      setMeasuring(0);
+      box = await measureCrop(doc, (done, total) => setMeasuring(Math.round((done / total) * 100)), stop);
+      if (stop.now) return;
+      setMeasuring(null);
+    }
+    const next = { on: on && !!box, box };
+    setCrop(next);
+    repos.books.update(bookId, { crop: next });
+    r.setCrop(next.on ? box : null);
+    // The point is larger text: a zoom set by hand goes back to the width of the screen.
+    if (next.on && r.zoomMode === "manual") r.fitWidth();
   };
   const saveCopy = async () => {
     if (!fileBlob.current || !book) return;
@@ -975,6 +1003,16 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
             </label>
           </>
         )}
+        <label class="toggle">
+          <input type="checkbox" checked={!!crop?.on} disabled={!ready || measuring !== null}
+            onChange={(e) => toggleCrop(e.currentTarget.checked)} />
+          {t("Crop margins")}
+        </label>
+        <p class="toggle-note" role="status">
+          {measuring !== null ? t("Measuring the margins… {n}%", { n: measuring })
+            : crop && !crop.box ? t("This book has no margins to cut.")
+            : t("Larger text: the empty border of the pages is cut away. For this book only.")}
+        </p>
         {canFullscreen && (
           <Button onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())}>
             {t(fullscreen ? "Leave full screen" : "Full screen")}

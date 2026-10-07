@@ -84,7 +84,8 @@ export function StickyNote({ note, epoch, autoFocus, onChange, onDelete }: Props
     el.addEventListener("pointercancel", end);
   }
 
-  const style = { left: `${pos.x * 100}%`, top: `${pos.y * 100}%`, "--note": COLOR_HEX[note.color] };
+  // --x and --y repeat the place for the stylesheet: with cropped margins it keeps the note on what is shown.
+  const style = { left: `${pos.x * 100}%`, top: `${pos.y * 100}%`, "--x": pos.x, "--y": pos.y, "--note": COLOR_HEX[note.color] };
 
   if (note.collapsed) {
     return (

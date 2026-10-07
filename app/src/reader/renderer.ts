@@ -5,6 +5,7 @@ import {
   imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle, ViewLayout } from "../settings";
+import { cutFor, NO_CUT, type Crop } from "./crop";
 import { resolveDest, type Target } from "./pdf";
 
 export type Adjust = { brightness: number; contrast: number; sepia: number; grayscale: number };
@@ -47,6 +48,8 @@ class PageSlot {
   searchLayer = document.createElement("div");
   linkLayer = document.createElement("div");
   linksBuilt = false;
+  /** Share of each side that crop margins cuts away (all 0 when it is off). */
+  cut = NO_CUT;
   textReady: Promise<void>;
   private markTextReady!: () => void;
 
@@ -67,9 +70,26 @@ class PageSlot {
   }
 
   size(scale: number) {
-    this.div.style.width = `${Math.floor(this.w * scale)}px`;
-    this.div.style.height = `${Math.floor(this.h * scale)}px`;
+    const w = Math.floor(this.w * scale);
+    const h = Math.floor(this.h * scale);
+    this.div.style.width = `${w}px`;
+    this.div.style.height = `${h}px`;
     this.div.style.setProperty("--scale-factor", String(scale));
+    // Cut margins: the page keeps its full size, so everything on it keeps its place. What is cut is clipped
+    // away (see .page.is-cropped) and the page is pulled in by the same amount.
+    const { l, r, t, b } = this.cut;
+    const cropped = l + r + t + b > 0;
+    this.div.classList.toggle("is-cropped", cropped);
+    this.div.style.margin = cropped ? `${-t * h}px ${-r * w}px ${-b * h}px ${-l * w}px` : "";
+    for (const [name, px] of [["l", l * w], ["r", r * w], ["t", t * h], ["b", b * h]] as const) {
+      if (cropped) this.div.style.setProperty(`--crop-${name}`, `${px}px`);
+      else this.div.style.removeProperty(`--crop-${name}`);
+    }
+  }
+
+  /** Top of what is shown of the page, in the scroller. */
+  get top() {
+    return this.div.offsetTop + this.cut.t * this.div.offsetHeight;
   }
 
   release() {
@@ -110,6 +130,7 @@ export class Renderer {
   /** The accessible name of a link into the book. */
   linkLabel: (page: number) => string = (page) => `Page ${page}`;
   private linkDests = new WeakMap<Element, unknown>();
+  private crop: Crop | null = null;
 
   constructor(private container: HTMLElement, private doc: PDFDocumentProxy, private opts: RenderOptions) {
     this.content.className = "pages";
@@ -125,6 +146,10 @@ export class Renderer {
     this.setOptions(opts);
   }
 
+  get zoomMode() {
+    return this.mode;
+  }
+
   get scaleValue() {
     return this.scale;
   }
@@ -138,6 +163,7 @@ export class Renderer {
     const vp = first.getViewport({ scale: 1 });
     for (let i = 1; i <= this.doc.numPages; i++) {
       const slot = new PageSlot(i, vp.width, vp.height);
+      slot.cut = cutFor(this.crop, i);
       if (i === 1) slot.page = first;
       this.slots.push(slot);
       this.content.append(slot.div);
@@ -193,7 +219,11 @@ export class Renderer {
     for (const s of this.slots) {
       const r = s.div.getBoundingClientRect();
       if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
-        return { page: s.number, x: (clientX - r.left) / r.width, y: (clientY - r.top) / r.height, box: r };
+        const x = (clientX - r.left) / r.width;
+        const y = (clientY - r.top) / r.height;
+        // The cut margins of a page lie under its neighbors; a point there belongs to the neighbor.
+        if (x < s.cut.l || x > 1 - s.cut.r || y < s.cut.t || y > 1 - s.cut.b) continue;
+        return { page: s.number, x, y, box: r };
       }
     }
     return null;
@@ -256,8 +286,8 @@ export class Renderer {
   private slotAt(y: number) {
     let found: PageSlot | undefined = this.slots[0];
     for (const s of this.slots) {
-      if (s.div.offsetTop > y) break;
-      if (s.div.offsetTop > found!.div.offsetTop) found = s;
+      if (s.top > y) break;
+      if (s.top > found!.top) found = s;
     }
     return found;
   }
@@ -281,6 +311,31 @@ export class Renderer {
     this.scrollToPage(at.page, at.offset);
   }
 
+  /**
+   * Cuts the margins of every page away (null puts them back). Keeps the
+   * reading position, and a zoom that follows the screen fits the text again.
+   */
+  setCrop(crop: Crop | null) {
+    const at = this.slots.length ? this.position() : null;
+    this.crop = crop;
+    this.content.classList.toggle("is-cropped", !!crop);
+    for (const s of this.slots) s.cut = cutFor(crop, s.number);
+    if (!at) return;
+    this.applyScale(this.mode === "manual" ? this.scale : this.mode === "page" ? this.pageScale() : this.fitScale());
+    this.scrollToPage(at.page, at.offset);
+  }
+
+  /** Width and height of what is shown of a page, in PDF units. */
+  private shown(slot: PageSlot) {
+    return { w: slot.w * (1 - slot.cut.l - slot.cut.r), h: slot.h * (1 - slot.cut.t - slot.cut.b) };
+  }
+
+  /** Width of one row of pages (one page, or the two of a spread), in PDF units. */
+  private rowWidth() {
+    const first = this.shown(this.slots[0]).w;
+    return this.across() === 2 ? first + this.shown(this.slots[1]).w : first;
+  }
+
   /** Pages side by side: 2 in two-page view. */
   private across() {
     return this.view.layout === "spread" && this.slots.length > 1 ? 2 : 1;
@@ -290,7 +345,7 @@ export class Renderer {
   fitScale() {
     const n = this.across();
     const width = this.container.clientWidth - 24 - (n - 1) * SPREAD_GAP;
-    return this.slots.length && width > 0 ? clampScale(width / (this.slots[0].w * n)) : 1;
+    return this.slots.length && width > 0 ? clampScale(width / this.rowWidth()) : 1;
   }
 
   private pageScale() {
@@ -298,7 +353,7 @@ export class Renderer {
     const n = this.across();
     const width = this.container.clientWidth - 24 - (n - 1) * SPREAD_GAP;
     const height = this.container.clientHeight - this.inset() - this.gap() - 12;
-    return s ? clampScale(Math.min(width / (s.w * n), height / s.h)) : 1;
+    return s ? clampScale(Math.min(width / this.rowWidth(), height / this.shown(s).h)) : 1;
   }
 
   private fit() {
@@ -428,7 +483,9 @@ export class Renderer {
   scrollToPage(page: number, offset = 0) {
     const slot = this.slots[Math.min(this.slots.length, Math.max(1, page)) - 1];
     if (!slot) return;
-    this.container.scrollTop = slot.div.offsetTop + offset * slot.div.offsetHeight - (offset ? 0 : this.gap()) - this.inset();
+    // The top of a page is where what is shown of it starts.
+    const at = Math.max(offset, slot.cut.t);
+    this.container.scrollTop = slot.div.offsetTop + at * slot.div.offsetHeight - (offset > slot.cut.t ? 0 : this.gap()) - this.inset();
     this.onScroll();
   }
 

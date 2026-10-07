@@ -1,6 +1,7 @@
 import { request, transaction } from "./idb";
 import { AnnotationsRepo, ANNOTATION_STORES } from "./annotations";
 import { SessionsRepo } from "./sessions";
+import type { Crop } from "../reader/crop";
 
 export type Book = {
   id: string;
@@ -13,6 +14,8 @@ export type Book = {
   addedAt: number;
   lastOpenedAt: number | null;
   finishedAt: number | null;
+  /** Crop margins for this book: whether it is on, and the measured cut (null: nothing to cut). */
+  crop?: { on: boolean; box: Crop | null };
   /** For a protected PDF: kept on this device so the book opens without asking again. Never put in backups. */
   password?: string;
 };
