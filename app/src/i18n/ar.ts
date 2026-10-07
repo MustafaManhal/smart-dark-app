@@ -123,6 +123,8 @@ export const AR: Record<string, string> = {
   "Note": "ملاحظة",
   "Copy": "نسخ",
   "Copy text": "نسخ النص",
+  "of {total}": "من {total}",
+  "Page {page} of {total}": "الصفحة {page} من {total}",
   "Search in book": "البحث في الكتاب",
   "Search this book": "ابحث في هذا الكتاب",
   "Previous match": "النتيجة السابقة",

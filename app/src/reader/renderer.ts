@@ -209,6 +209,49 @@ export class Renderer {
     this.schedule();
   }
 
+  /** Width divided by height of a page (pages are laid out with the size of the first until they load). */
+  aspect(number: number) {
+    const slot = this.slots[number - 1];
+    return slot ? slot.w / slot.h : 0.7;
+  }
+
+  /** A small picture of a page, `width` CSS pixels wide, in the page style being read. */
+  async thumbnail(number: number, width: number): Promise<HTMLCanvasElement> {
+    const page = await this.doc.getPage(number);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: (width * Math.min(2, devicePixelRatio || 1)) / base.width });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    const mapper = this.mapper;
+    await page.render({ canvas, viewport, recordImages: mapper !== null }).promise;
+    if (mapper) {
+      const ctx = canvas.getContext("2d")!;
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const rects = imageRectsFromCoords(page.imageCoordinates, canvas.width, canvas.height);
+      const imageDim = this.opts.pageStyle === "original" ? 1 : undefined;
+      processPage(image, { mapColor: mapper, rects, imageMode: this.opts.imageMode, imageDim });
+      ctx.putImageData(image, 0, 0);
+    }
+    return canvas;
+  }
+
+  /** The page shown when the book is scrolled to `fraction` of its length (0 start, 1 end). */
+  pageAt(fraction: number) {
+    const top = fraction * Math.max(0, this.container.scrollHeight - this.container.clientHeight) + this.inset();
+    let page = 1;
+    for (const s of this.slots) {
+      if (s.div.offsetTop - this.gap() <= top) page = s.number;
+      else break;
+    }
+    return page;
+  }
+
+  scrollToFraction(fraction: number) {
+    this.container.scrollTop = Math.min(1, Math.max(0, fraction)) * Math.max(0, this.container.scrollHeight - this.container.clientHeight);
+    this.onScroll();
+  }
+
   /** Scale at which the page is as wide as the screen. */
   fitScale() {
     const width = this.container.clientWidth - 24;

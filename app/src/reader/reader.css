@@ -142,7 +142,24 @@
 .tools { grid-area: tools; display: flex; align-items: center; gap: 2px; }
 
 /* Whole-book progress along the bottom edge of the top bar, ticks at chapter starts. */
-.book-progress { position: absolute; inset: auto 0 -1px; height: 3px; background: color-mix(in srgb, var(--text) 8%, transparent); }
+.book-progress { position: absolute; inset: auto 0 -1px; height: 3px; background: color-mix(in srgb, var(--text) 8%, transparent); cursor: pointer; touch-action: none; transition: height 0.12s; }
+/* A taller area to grab than the line that is drawn. */
+.book-progress::before { content: ""; position: absolute; inset: -8px 0 -12px; }
+.book-progress:hover, .book-progress.is-scrubbing, .book-progress:focus-visible { height: 6px; }
+.scrub-bubble { position: absolute; top: 14px; translate: -50% 0; display: grid; justify-items: center; gap: 1px; padding: 6px 10px; border-radius: 10px; background: var(--text); color: var(--bg); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow); z-index: 20; }
+[dir="rtl"] .scrub-bubble { translate: 50% 0; }
+.scrub-bubble small { max-width: 220px; overflow: hidden; text-overflow: ellipsis; opacity: 0.75; font-size: 11px; }
+/* Pages as small pictures (under "Go to page"). */
+.page-grid { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px 10px; }
+.thumb { display: grid; gap: 4px; width: 100%; padding: 4px; border: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; }
+.thumb:hover { background: var(--surface-2); }
+.thumb[aria-current="page"] { background: color-mix(in srgb, var(--accent) 22%, transparent); outline: 2px solid var(--accent); }
+.thumb-page { display: block; width: 100%; border-radius: 4px; overflow: hidden; background: var(--page-bg, var(--surface-2)); box-shadow: 0 0 0 1px var(--border); }
+.thumb-page canvas { display: block; width: 100%; height: 100%; }
+.thumb-foot { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.thumb-mark { width: 7px; height: 7px; border-radius: 50%; }
+.thumb-mark.is-bookmark { background: var(--accent); border-radius: 1px 1px 3px 3px; height: 9px; }
+.thumb-mark.is-note { background: #ffd43b; }
 .book-progress-fill { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--accent); }
 .book-progress-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-inline-start: -1px; background: color-mix(in srgb, var(--bg) 70%, transparent); }
 

@@ -7,7 +7,7 @@ test("contents jumps to a chapter and shows chapter progress", async ({ page }) 
   await page.getByRole("dialog", { name: "Contents" }).getByRole("button", { name: /Page two/ }).click();
   await expectPage(page, 2);
   await expect(page.locator(".reader-title span")).toHaveText("Page two");
-  await expect.poll(async () => Number(await page.getByRole("progressbar", { name: "Book progress" }).getAttribute("aria-valuenow"))).toBeGreaterThan(45);
+  await expect.poll(async () => Number(await page.getByRole("slider", { name: "Book progress" }).getAttribute("aria-valuenow"))).toBeGreaterThan(45);
 });
 
 test("keyboard navigation on desktop", async ({ page, isMobile }) => {

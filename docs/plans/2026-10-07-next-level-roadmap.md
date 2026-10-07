@@ -101,7 +101,7 @@ that ship on their own.
 | Slice | What | Size | Notes |
 |---|---|---|---|
 | A1 (done 2026-10-07) | Search in the book: box, match count, next and previous, matches marked on the page, list of results with their page | M | own index from pdf.js text; Arabic and diacritics folded |
-| A2 | Page thumbnails as a grid and as a side strip; drag the progress bar to scrub | M | |
+| A2 (done 2026-10-07) | Page thumbnails as a grid under "Go to page"; drag the progress line to scrub, with a bubble showing page and chapter | M | a side strip was left out: the grid is one tap away and a strip costs reading width |
 | A3 | View modes: continuous, single page, two pages (with a cover page option, and right-to-left order for Arabic books); rotate; full screen | M | |
 | A4 | Crop margins: "fit text" zoom that cuts the white border, per book | S | uses the text and image boxes the color engine already reads |
 | A5 | Links: tap an internal link to jump, a Back button to return, and a preview of the target (figure, footnote, reference) on hover or long press | M | the Sioyek and Zotero favorite |

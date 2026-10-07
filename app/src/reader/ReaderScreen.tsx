@@ -23,6 +23,7 @@ import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, type OutlineItem, type PDFDocumentProxy } from "./pdf";
 import { CSS_UNITS, Renderer } from "./renderer";
+import { PageGrid } from "./PageGrid";
 import { BookSearch } from "./search";
 import { SearchBar, useBookSearch } from "./SearchBar";
 import "./reader.css";
@@ -485,6 +486,17 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   };
 
   const bookmarked = annotations.data.bookmarks.some((b) => b.page === page);
+  const bookmarkedPages = new Set(annotations.data.bookmarks.map((b) => b.page));
+  const notedPages = new Set([...annotations.data.highlights, ...annotations.data.notes, ...annotations.data.stickies].map((x) => x.page));
+
+  // Dragging along the progress line shows where it would land; letting go jumps there.
+  const [scrub, setScrub] = useState<{ fraction: number; page: number } | null>(null);
+  const scrubAt = (e: PointerEvent) => {
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const along = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
+    const fraction = getComputedStyle(e.currentTarget as HTMLElement).direction === "rtl" ? 1 - along : along;
+    return { fraction, page: renderer.current?.pageAt(fraction) ?? 1 };
+  };
 
   const zoomPercent = Math.round((zoom.scale / CSS_UNITS) * 100);
 
@@ -521,10 +533,39 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           <IconButton label={t("Contents")} icon="list" onClick={() => setSheet("toc")} disabled={!outline.length} />
           <IconButton label={t("Appearance")} icon="palette" onClick={() => setSheet("appearance")} />
         </div>
-        <div class="book-progress" role="progressbar" aria-label={t("Book progress")}
-          aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-          <span class="book-progress-fill" style={{ width: `${progress * 100}%` }} />
+        <div class={`book-progress ${scrub ? "is-scrubbing" : ""}`} role="slider" tabIndex={ready ? 0 : -1} aria-label={t("Book progress")}
+          aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}
+          aria-valuetext={t("Page {page} of {total}", { page, total })}
+          onPointerDown={(e) => {
+            if (!ready) return;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            setScrub(scrubAt(e));
+          }}
+          onPointerMove={(e) => scrub && setScrub(scrubAt(e))}
+          onPointerUp={(e) => {
+            if (!scrub) return;
+            renderer.current?.scrollToFraction(scrubAt(e).fraction);
+            setScrub(null);
+          }}
+          onPointerCancel={() => setScrub(null)}
+          onKeyDown={(e) => {
+            const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
+            if (step === undefined) return;
+            e.preventDefault();
+            e.stopPropagation();
+            go(page + step);
+          }}>
+          <span class="book-progress-fill" style={{ width: `${(scrub?.fraction ?? progress) * 100}%` }} />
           {chapterStarts.map((x) => <span class="book-progress-tick" style={{ insetInlineStart: `${x * 100}%` }} />)}
+          {scrub && (
+            <span class="scrub-bubble" style={{ insetInlineStart: `${scrub.fraction * 100}%` }}>
+              {t("Page {page}", { page: scrub.page })}
+              {(() => {
+                const at = currentChapter(outline, scrub.page, total);
+                return at ? <small>{at.item.title}</small> : null;
+              })()}
+            </span>
+          )}
         </div>
       </header>
 
@@ -642,12 +683,16 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
 
       <Sheet open={sheet === "goto"} title={t("Go to page")} onClose={() => setSheet(null)}>
         <form class="goto" onSubmit={(e) => { e.preventDefault(); go(Number(pageInput)); setSheet(null); }}>
-          <input aria-label={t("Page number")} inputMode="numeric" autoFocus value={pageInput}
+          <input aria-label={t("Page number")} inputMode="numeric" autoFocus={!matchMedia("(hover: none)").matches} value={pageInput}
             onFocus={(e) => e.currentTarget.select()}
             onInput={(e) => setPageInput(e.currentTarget.value)} />
-          <span>of {total}</span>
+          <span>{t("of {total}", { total })}</span>
           <Button variant="primary" type="submit">{t("Go")}</Button>
         </form>
+        {renderer.current && sheet === "goto" && (
+          <PageGrid renderer={renderer.current} total={total} current={page} bookmarked={bookmarkedPages} noted={notedPages}
+            onPick={(n) => { go(n); setSheet(null); }} />
+        )}
       </Sheet>
 
       <Sheet open={sheet === "toc"} title={t("Contents")} onClose={() => setSheet(null)}>

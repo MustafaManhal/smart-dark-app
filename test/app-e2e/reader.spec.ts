@@ -124,8 +124,47 @@ test("the zoom is remembered for the next book", async ({ page }) => {
 
 test("book progress follows the reading position through the whole book", async ({ page }) => {
   await openSample(page);
-  const bar = page.getByRole("progressbar", { name: "Book progress" });
+  const bar = page.getByRole("slider", { name: "Book progress" });
   await expect(bar).toHaveAttribute("aria-valuenow", "0");
   await goToPage(page, 2);
   await expect.poll(async () => Number(await bar.getAttribute("aria-valuenow"))).toBeGreaterThan(45);
+});
+
+test("page thumbnails: every page as a small picture, in the page style, one tap to go there", async ({ page }) => {
+  await openSample(page);
+  await page.getByRole("button", { name: "Bookmark this page" }).click();
+  await page.getByRole("button", { name: /Go to page/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Go to page" });
+  const thumbs = sheet.getByRole("list", { name: "Pages" }).getByRole("listitem");
+  await expect(thumbs).toHaveCount(2);
+  await expect(sheet.getByRole("button", { name: "Page 1", exact: true })).toHaveAttribute("aria-current", "page");
+  // Pictures arrive, and they are dark like the pages being read.
+  await expect(sheet.locator(".thumb-page canvas")).toHaveCount(2);
+  const corner = await sheet.locator(".thumb-page canvas").first().evaluate((c: HTMLCanvasElement) =>
+    [...c.getContext("2d")!.getImageData(2, 2, 1, 1).data].slice(0, 3));
+  expect(corner.every((v) => v < 60)).toBe(true);
+  await expect(thumbs.first().locator(".thumb-mark.is-bookmark")).toHaveCount(1);
+  await expect(thumbs.nth(1).locator(".thumb-mark")).toHaveCount(0);
+  await page.screenshot({ path: `test/output/thumbnails-${test.info().project.name}.png` });
+
+  await sheet.getByRole("button", { name: "Page 2", exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expectPage(page, 2);
+});
+
+test("drag along the progress line to move through the book", async ({ page }) => {
+  await openSample(page);
+  const line = page.getByRole("slider", { name: "Book progress" });
+  await expect(line).toHaveAttribute("aria-valuetext", "Page 1 of 2");
+  const box = (await line.boundingBox())!;
+  await page.mouse.move(box.x + 10, box.y + 1);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.9, box.y + 4, { steps: 6 });
+  await expect(page.locator(".scrub-bubble")).toContainText("Page 2");
+  await page.screenshot({ path: `test/output/scrub-${test.info().project.name}.png` });
+  await expectPage(page, 1); // nothing moves until the line is let go
+  await page.mouse.up();
+  await expectPage(page, 2);
+  await expect(page.locator(".scrub-bubble")).toHaveCount(0);
+  await expect.poll(async () => Number(await line.getAttribute("aria-valuenow"))).toBeGreaterThan(70);
 });
