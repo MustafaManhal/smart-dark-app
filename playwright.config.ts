@@ -16,5 +16,7 @@ export default defineConfig({
   projects: [
     { name: "chromium-desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
     { name: "webkit-iphone", use: { ...devices["iPhone 15"] } },
+    // Firefox runs on GitHub only (.github/workflows/web-firefox.yml): FIREFOX=1 adds the project.
+    ...(process.env.FIREFOX ? [{ name: "firefox-desktop", use: { ...devices["Desktop Firefox"], viewport: { width: 1280, height: 800 } } }] : []),
   ],
 });

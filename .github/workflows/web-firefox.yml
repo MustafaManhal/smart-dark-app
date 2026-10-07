@@ -1,0 +1,35 @@
+name: Web app in Firefox
+
+# Runs the main journeys of the web app in Firefox: the library, the reader, e-books, PDF tools, the
+# notebook and the new shell. Chrome and Safari's engine are tested on the developer's machine;
+# Firefox does not start there. Started by hand.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps firefox
+      - name: The app's journeys in Firefox
+        env:
+          FIREFOX: "1"
+        run: >
+          npx playwright test --project=firefox-desktop
+          smoke.spec.ts library.spec.ts reader.spec.ts open-desk.spec.ts ebook.spec.ts tools.spec.ts
+          notebook.spec.ts annotations.spec.ts search.spec.ts settings.spec.ts backup.spec.ts draw.spec.ts forms.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: firefox-failures
+          path: test/output/app-e2e/**/error-context.md
+          if-no-files-found: ignore
