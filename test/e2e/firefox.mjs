@@ -10,7 +10,11 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const extensionPath = `${root}dist-firefox-e2e`;
+// The build that is uploaded, not a test variant: the test presses "Allow access" itself.
+const extensionPath = `${root}dist-firefox`;
+// Firefox gives every installed extension a random address. A fixed one lets the test open its pages.
+const UUID = "5f1a3c9e-7b2d-4e8a-9c41-2d6f0b8e7a13";
+const own = (path) => `moz-extension://${UUID}/${path}`;
 const outDir = `${root}test/output`;
 mkdirSync(outDir, { recursive: true });
 
@@ -60,7 +64,11 @@ const browser = await puppeteer.launch({
   // A fresh profile for each run.
   userDataDir: mkdtempSync(`${realpathSync(tmpdir())}/reader343-firefox-`),
   // Firefox would show its own PDF viewer in the tab; the test must see where the tab ended up either way.
-  extraPrefsFirefox: { "extensions.webextensions.restrictedDomains": "" },
+  extraPrefsFirefox: {
+    "extensions.webextensions.uuids": JSON.stringify({ "reader343@smart-dark-app": UUID }),
+    // The permission question is a window of the browser, which a test cannot press: it is answered with yes.
+    "extensions.webextOptionalPermissionPrompts": false,
+  },
 });
 await browser.installExtension(extensionPath);
 
@@ -82,25 +90,30 @@ async function open(url, wait = (page) => inViewer(page.url())) {
 }
 const rendered = (page) => page.waitForFunction(() => document.querySelectorAll(".page canvas").length >= 1, { timeout: 20000 });
 
-let viewerBase = "";
+let viewerBase = own("viewer/viewer.html");
 
-await check("welcome page opens on install, without the local files step", async () => {
-  let welcome;
-  for (let i = 0; i < 50 && !welcome; i++) {
-    welcome = (await browser.pages()).find((p) => p.url().includes("/welcome/welcome.html"));
-    if (!welcome) await new Promise((r) => setTimeout(r, 100));
-  }
-  assert.ok(welcome, "no welcome tab");
-  await welcome.waitForSelector("#stepAccess");
+await check("the welcome page leaves out the local files step, and Allow access grants it", async () => {
+  const welcome = await browser.newPage();
+  await welcome.goto(own("welcome/welcome.html"), { waitUntil: "domcontentloaded" });
+  await welcome.waitForSelector("#stepAccess", { timeout: 10000 });
   assert.equal(await welcome.$eval("#stepFiles", (el) => el.hidden), true);
-  // Host access is in the test build's manifest, so the page shows it as allowed.
+  assert.equal(await welcome.evaluate(() => chrome.permissions.contains({ origins: ["<all_urls>"] })), false, "access before it was asked for");
+  await welcome.click("#grantAccess");
   await welcome.waitForFunction(() => !document.getElementById("accessDone").hidden, { timeout: 5000 });
+  assert.equal(await welcome.evaluate(() => chrome.permissions.contains({ origins: ["<all_urls>"] })), true);
+  // The background script answers: it is running.
+  assert.equal(await welcome.evaluate(() => chrome.runtime.sendMessage({ type: "bypassOnce", url: "http://127.0.0.1:1/never" })), true);
+});
+
+await check("installing opens the welcome page", async () => {
+  const urls = (await browser.pages()).map((p) => p.url());
+  assert.ok(urls.filter((u) => u.includes("/welcome/welcome.html")).length >= 2, `tabs: ${urls.join(", ")}`);
 });
 
 await check("PDF link (content-type) opens in the viewer and renders dark", async () => {
   const page = await open(`${base}/sample.pdf`);
   assert.ok(inViewer(page.url()), `stayed on ${page.url()}`);
-  viewerBase = page.url().split("?")[0];
+  viewerBase = own("viewer/viewer.html");
   await rendered(page);
   const corner = await page.evaluate(() => {
     const c = document.querySelector(".page canvas");
