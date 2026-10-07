@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
-import { HIGHLIGHT_COLORS, type Highlight, type HighlightColor, type NormRect } from "../db/annotations";
+import { HIGHLIGHT_COLORS, MARK_STYLES, type Highlight, type HighlightColor, type MarkStyle, type NormRect } from "../db/annotations";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Popover } from "../ui/Popover";
@@ -10,10 +10,13 @@ import { COLOR_HEX, COLOR_LABEL } from "./colors";
 type Anchor = { left: number; top: number; right: number; bottom: number };
 
 /** Tap a highlight: recolor, copy, or remove it in one tap. */
-export function HighlightPopover({ highlight, anchor, onColor, onCopy, onRemove, onClose }: {
+const STYLE_LABEL: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
+
+export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, onRemove, onClose }: {
   highlight: Highlight;
   anchor: Anchor;
   onColor: (c: HighlightColor) => void;
+  onStyle: (s: MarkStyle) => void;
   onCopy: () => void;
   onRemove: () => void;
   onClose: () => void;
@@ -45,6 +48,14 @@ export function HighlightPopover({ highlight, anchor, onColor, onCopy, onRemove,
         <button type="button" class="pop-action is-danger" onClick={onRemove}>
           <Icon name="trash" size={18} /> {t("Remove")}
         </button>
+      </div>
+      <div class="pop-styles" role="radiogroup" aria-label={t("Mark style")} style={{ "--hl": COLOR_HEX[highlight.color] }}>
+        {MARK_STYLES.map((s) => (
+          <button type="button" role="radio" class="pop-style" aria-label={t(STYLE_LABEL[s])} title={t(STYLE_LABEL[s])}
+            aria-checked={s === (highlight.style ?? "highlight")} onClick={() => onStyle(s)}>
+            <b class={`as-${s}`} aria-hidden="true">A</b><span>{t(STYLE_LABEL[s])}</span>
+          </button>
+        ))}
       </div>
     </Popover>
   );

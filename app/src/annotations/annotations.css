@@ -21,6 +21,12 @@
 
 .reader-scroll.is-placing .page { cursor: crosshair; }
 .reader-scroll.is-erasing .page, .reader-scroll.is-erasing .textLayer :is(span, br) { cursor: pointer; }
+/* Underline and strikethrough: a line in the mark's color instead of a fill, strong enough for thin lines. */
+.hl:is(.is-underline, .is-strike), .reader[data-style="dark"] .hl:is(.is-underline, .is-strike) { background: none; mix-blend-mode: normal; border-radius: 0; }
+.hl:is(.is-underline, .is-strike)::after { content: ""; position: absolute; inset-inline: 0; height: max(2px, 9%); border-radius: 1px; background: color-mix(in srgb, var(--hl) 80%, #6b5b00); }
+.reader[data-style="dark"] .hl:is(.is-underline, .is-strike)::after { background: var(--hl); }
+.hl.is-underline::after { bottom: 2%; }
+.hl.is-strike::after { top: 50%; }
 .reader-scroll.is-erasing .hl { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 1px; }
 
 /* Short messages: "Copied", or what was removed with a way to undo it. */
@@ -159,6 +165,20 @@
 }
 .pop-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .pop-colors { display: flex; gap: 6px; }
+.pop-styles { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.pop-style { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px; background: none; color: inherit; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.pop-style:hover { background: var(--surface-2); }
+/* A small phone has no room for three words: the letters show the styles by themselves. */
+@media (max-width: 400px) { .pop-style span { display: none; } }
+.pop-style[aria-checked="true"] { border-color: var(--border); background: var(--surface-2); font-weight: 600; }
+:is(.pop-style, .mode-style) b { font-weight: 700; padding: 0 3px; border-radius: 3px; }
+.mode-style { flex: none; width: 30px; height: 30px; padding: 0; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; }
+.mode-style .as-highlight { background: color-mix(in srgb, var(--hl) 55%, transparent); }
+.mode-style .as-underline { text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.mode-style .as-strike { text-decoration: line-through; text-decoration-color: var(--hl); text-decoration-thickness: 2px; }
+.pop-style .as-highlight { background: color-mix(in srgb, var(--hl) 55%, transparent); }
+.pop-style .as-underline { text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.pop-style .as-strike { text-decoration: line-through; text-decoration-color: var(--hl); text-decoration-thickness: 2px; }
 .pop-colors .swatch { width: 26px; height: 26px; }
 .pop-sep { width: 1px; height: 22px; background: var(--border); }
 .pop-action { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; }

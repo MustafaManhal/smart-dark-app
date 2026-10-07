@@ -21,7 +21,8 @@ function Marks({ data, page }: { data: BookAnnotations; page: number }) {
     <>
       {data.highlights.filter((h) => h.page === page).flatMap((h) =>
         h.rects.map((r, i) => (
-          <div key={`${h.id}-${i}`} class="hl" data-id={h.id} style={{ ...rectToCss(r), "--hl": COLOR_HEX[h.color] }} />
+          <div key={`${h.id}-${i}`} class={h.style && h.style !== "highlight" ? `hl is-${h.style}` : "hl"} data-id={h.id}
+            style={{ ...rectToCss(r), "--hl": COLOR_HEX[h.color] }} />
         )))}
       {data.notes.filter((n) => n.page === page).flatMap((n) =>
         n.rects.map((r, i) => <div key={`${n.id}-${i}`} class="pn" data-id={n.id} style={rectToCss(r)} />))}

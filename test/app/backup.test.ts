@@ -73,3 +73,16 @@ test("the password of a protected book stays out of the backup", async () => {
   expect(restored?.title).toBe("Sample");
   expect(restored?.password).toBeUndefined();
 });
+
+test("the style of a mark (underline, strikethrough) travels with the backup", async () => {
+  const source = createRepos(await openDb("backup-style"));
+  await source.books.add(book, new Blob([readFileSync("src/sample/sample.pdf")], { type: "application/pdf" }), null);
+  await source.annotations.putHighlight({ id: "u1", bookId: "b1", page: 1, rects: [], color: "green", text: "underlined", style: "underline" });
+  await source.annotations.putHighlight({ id: "p1", bookId: "b1", page: 1, rects: [], color: "pink", text: "plain" });
+  const zip = await createBackup(source, { now: () => 1000 });
+  const target = createRepos(await openDb("backup-style-dst"));
+  await restoreBackup(target, new Uint8Array(await zip.arrayBuffer()));
+  const marks = (await target.annotations.listForBook("b1")).highlights;
+  expect(marks.find((m) => m.id === "u1")?.style).toBe("underline");
+  expect(marks.find((m) => m.id === "p1")?.style).toBeUndefined();
+});

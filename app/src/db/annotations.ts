@@ -6,9 +6,13 @@ export type NormRect = { x: number; y: number; w: number; h: number };
 export const HIGHLIGHT_COLORS = ["yellow", "green", "blue", "pink", "purple"] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 
+/** How a marked passage is drawn. A mark without a style is a highlight (every mark made before styles existed). */
+export const MARK_STYLES = ["highlight", "underline", "strike"] as const;
+export type MarkStyle = (typeof MARK_STYLES)[number];
+
 export type Highlight = {
   id: string; bookId: string; page: number; rects: NormRect[]; color: HighlightColor;
-  text: string; createdAt: number; updatedAt: number;
+  text: string; style?: MarkStyle; createdAt: number; updatedAt: number;
 };
 /** A note attached to a passage of text (separate from highlights). The title is optional. */
 export type PassageNote = {

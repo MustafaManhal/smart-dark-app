@@ -11,7 +11,7 @@ import { History } from "../annotations/history";
 import { ReadAloudBar } from "../readaloud/ReadAloudBar";
 import { ReadingTracker } from "../stats/tracker";
 import { useReadAloud } from "../readaloud/useReadAloud";
-import { HIGHLIGHT_COLORS, type Bookmark, type Highlight, type HighlightColor, type NormRect, type PassageNote, type Sticky } from "../db/annotations";
+import { HIGHLIGHT_COLORS, MARK_STYLES, type Bookmark, type Highlight, type HighlightColor, type MarkStyle, type NormRect, type PassageNote, type Sticky } from "../db/annotations";
 import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
 import { copyText, tidyCopiedText } from "../platform/clipboard";
@@ -70,6 +70,8 @@ const inRects = (rects: NormRect[], x: number, y: number) =>
   rects.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y - 0.004 && y <= r.y + r.h + 0.004);
 
 const ZOOM_STEP = 1.2;
+const MODE_TEXT: Record<MarkStyle, string> = { highlight: "Select text to highlight", underline: "Select text to underline", strike: "Select text to strike through" };
+const MODE_STYLE: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
 
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
@@ -448,6 +450,11 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     await annotations.saveHighlight({ ...h, color });
     record({ undo: () => annotations.saveHighlight(h), redo: () => annotations.saveHighlight({ ...h, color }) });
   }
+  async function restyleHighlight(h: Highlight, style: MarkStyle) {
+    if (style === (h.style ?? "highlight")) return;
+    await annotations.saveHighlight({ ...h, style });
+    record({ undo: () => annotations.saveHighlight(h), redo: () => annotations.saveHighlight({ ...h, style }) });
+  }
   async function saveNote(draft: Parameters<typeof annotations.saveNote>[0]) {
     const before = draft.id ? annotations.data.notes.find((n) => n.id === draft.id) : undefined;
     const saved = await annotations.saveNote(draft);
@@ -576,13 +583,14 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   }, [highlightMode]);
 
   useEffect(() => {
-    if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor);
+    if (highlightMode && selection && !pointerDown.current) highlightSelection(penColor, settings.markStyle.value);
   }, [selection, highlightMode]);
 
-  async function highlightSelection(color: HighlightColor) {
+  // The bar at a selection always highlights. The highlighter tool draws in its own style (see the tool's hint).
+  async function highlightSelection(color: HighlightColor, style: MarkStyle = "highlight") {
     if (!selection) return;
     const { page: p, rects, text } = selection;
-    const saved = await annotations.saveHighlight({ bookId, page: p, rects, text, color });
+    const saved = await annotations.saveHighlight({ bookId, page: p, rects, text, color, ...(style === "highlight" ? {} : { style }) });
     record({ undo: () => annotations.removeHighlight(saved), redo: () => annotations.saveHighlight(saved) });
     getSelection()?.removeAllRanges();
     setSelection(null);
@@ -737,6 +745,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   };
 
   const zoomPercent = Math.round((zoom.scale / CSS_UNITS) * 100);
+  const markStyle = settings.markStyle.value;
   const touchOnly = matchMedia("(hover: none)").matches;
 
   /** Everything the reader can do, for the command list (Ctrl/Cmd+K). Built when the list opens. */
@@ -854,7 +863,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {highlightMode && (
         <div class="mode-hint" role="status">
-          <span>{t("Select text to highlight")}</span>
+          <span>{t(MODE_TEXT[markStyle])}</span>
+          <button type="button" class="mode-style" aria-label={t("Mark style: {style}", { style: t(MODE_STYLE[markStyle]) })}
+            title={t("Mark style: {style}", { style: t(MODE_STYLE[markStyle]) })} style={{ "--hl": COLOR_HEX[penColor] }}
+            onClick={() => saveSetting("markStyle", MARK_STYLES[(MARK_STYLES.indexOf(markStyle) + 1) % MARK_STYLES.length])}>
+            <b class={`as-${markStyle}`} aria-hidden="true">A</b>
+          </button>
           <div class="mode-colors" role="radiogroup" aria-label={t("Highlight color")}>
             {HIGHLIGHT_COLORS.map((c) => (
               <button type="button" role="radio" aria-checked={penColor === c} aria-label={t(COLOR_LABEL[c])}
@@ -954,6 +968,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         return h && (
           <HighlightPopover highlight={h} anchor={popover.anchor} onClose={() => setPopover(null)}
             onColor={(c) => recolorHighlight(h, c)}
+            onStyle={(s) => restyleHighlight(h, s)}
             onCopy={() => { copy(h.text); setPopover(null); }}
             onRemove={() => { removeHighlight(h); setPopover(null); }} />
         );
