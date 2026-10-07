@@ -43,3 +43,35 @@ export function rectToCss(r: NormRect) {
   const pct = (v: number) => `${+(v * 100).toFixed(4)}%`;
   return { left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) };
 }
+
+/** A quarter turn of the page, clockwise, in degrees. */
+export type Turn = 0 | 90 | 180 | 270;
+
+/**
+ * Everything stored about a page (highlights, notes, links) is measured on the
+ * page as the PDF has it. These two turn a point between that page and the
+ * page as it is shown after the reader rotated it. All in page fractions.
+ */
+export function toViewPoint(x: number, y: number, turn: Turn): [number, number] {
+  return turn === 90 ? [1 - y, x] : turn === 180 ? [1 - x, 1 - y] : turn === 270 ? [y, 1 - x] : [x, y];
+}
+
+export function fromViewPoint(u: number, v: number, turn: Turn): [number, number] {
+  return turn === 90 ? [v, 1 - u] : turn === 180 ? [1 - u, 1 - v] : turn === 270 ? [1 - v, u] : [u, v];
+}
+
+function turnRect(r: NormRect, turn: Turn, point: typeof toViewPoint): NormRect {
+  if (!turn) return r;
+  const [x1, y1] = point(r.x, r.y, turn);
+  const [x2, y2] = point(r.x + r.w, r.y + r.h, turn);
+  return { x: round(Math.min(x1, x2)), y: round(Math.min(y1, y2)), w: round(Math.abs(x2 - x1)), h: round(Math.abs(y2 - y1)) };
+}
+
+export const toViewRect = (r: NormRect, turn: Turn) => turnRect(r, turn, toViewPoint);
+export const fromViewRect = (r: NormRect, turn: Turn) => turnRect(r, turn, fromViewPoint);
+
+/** The four cut margins of a page, as they lie after the page is turned. */
+export function turnCut<T extends { l: number; r: number; t: number; b: number }>(cut: T, turn: Turn) {
+  const { l, r, t, b } = cut;
+  return turn === 90 ? { t: l, r: t, b: r, l: b } : turn === 180 ? { t: b, r: l, b: t, l: r } : turn === 270 ? { t: r, r: b, b: l, l: t } : { l, r, t, b };
+}

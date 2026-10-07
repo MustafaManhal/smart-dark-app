@@ -102,7 +102,7 @@ that ship on their own.
 |---|---|---|---|
 | A1 (done 2026-10-07) | Search in the book: box, match count, next and previous, matches marked on the page, list of results with their page | M | own index from pdf.js text; Arabic and diacritics folded |
 | A2 (done 2026-10-07) | Page thumbnails as a grid under "Go to page"; drag the progress line to scrub, with a bubble showing page and chapter | M | a side strip was left out: the grid is one tap away and a strip costs reading width |
-| A3 (done 2026-10-07, rotate left for later) | View modes: scrolling, page by page, two pages (with a cover page option, and right-to-left order for Arabic books); full screen | M | rotate needs highlights and notes turned with the page; it comes with the markup work in phase C |
+| A3 (done 2026-10-07, rotate included) | View modes: scrolling, page by page, two pages (with a cover page option, and right-to-left order for Arabic books); full screen | M | rotate needs highlights and notes turned with the page; it comes with the markup work in phase C |
 | A4 (done 2026-10-07) | Crop margins: "fit text" zoom that cuts the white border, per book | S | measured by drawing each page small and finding its ink, which also sees charts and rules; kept with the book |
 | A5 (done 2026-10-07) | Links: tap an internal link to jump, a Back button to return, and a preview of the target (figure, footnote, reference) on hover or long press | M | the Sioyek and Zotero favorite |
 | A6 (done 2026-10-07) | Password PDFs, print, save a copy | S | the password stays on the device and out of backups; print uses the book's own colors |

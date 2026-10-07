@@ -27,7 +27,7 @@ export function LinkPreview({ renderer, target, anchor, onGo, onEnter, onLeave }
       canvas.style.width = `${width}px`;
       canvas.style.height = `${shown}px`;
       // Start a little above the spot, and never past the end of the page.
-      const from = Math.min(Math.max(0, shown - HEIGHT), Math.max(0, (target.top ?? 0) * shown - 14));
+      const from = Math.min(Math.max(0, shown - HEIGHT), Math.max(0, (target.top === null ? 0 : renderer.offsetFor(target.top)) * shown - 14));
       canvas.style.translate = `0 ${-from}px`;
       view.current.replaceChildren(canvas);
       setLoading(false);

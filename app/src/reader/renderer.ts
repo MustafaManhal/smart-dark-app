@@ -5,6 +5,7 @@ import {
   imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
 import type { DarkTheme, ImageMode, PageStyle, ViewLayout } from "../settings";
+import { fromViewPoint, turnCut, type Turn } from "../annotations/geometry";
 import { cutFor, NO_CUT, type Crop } from "./crop";
 import { resolveDest, type Target } from "./pdf";
 
@@ -48,8 +49,11 @@ class PageSlot {
   searchLayer = document.createElement("div");
   linkLayer = document.createElement("div");
   linksBuilt = false;
-  /** Share of each side that crop margins cuts away (all 0 when it is off). */
+  /** The page as the PDF has it: canvas, text, marks and links. Turned as a whole when the reader rotates the book. */
+  face = document.createElement("div");
+  /** Share of each side that crop margins cuts away (all 0 when it is off), on the page as the PDF has it. */
   cut = NO_CUT;
+  turn: Turn = 0;
   textReady: Promise<void>;
   private markTextReady!: () => void;
 
@@ -61,7 +65,10 @@ class PageSlot {
     this.speechLayer.className = "speech-layer";
     this.searchLayer.className = "search-layer";
     this.linkLayer.className = "link-layer";
-    this.div.append(this.highlightLayer, this.searchLayer, this.speechLayer, this.linkLayer, this.stickyLayer);
+    this.face.className = "page-face";
+    this.face.append(this.highlightLayer, this.linkLayer);
+    // These three are placed from what is on screen, so they stay upright over a turned page.
+    this.div.append(this.face, this.searchLayer, this.speechLayer, this.stickyLayer);
     this.textReady = new Promise((resolve) => (this.markTextReady = resolve));
   }
 
@@ -69,27 +76,51 @@ class PageSlot {
     this.markTextReady();
   }
 
+  /** Width and height of the page as it is shown (a quarter turn swaps them), in PDF units. */
+  get vw() {
+    return this.turn % 180 ? this.h : this.w;
+  }
+
+  get vh() {
+    return this.turn % 180 ? this.w : this.h;
+  }
+
+  /** The cut margins as they lie on the page as it is shown. */
+  get viewCut() {
+    return turnCut(this.cut, this.turn);
+  }
+
   size(scale: number) {
     const w = Math.floor(this.w * scale);
     const h = Math.floor(this.h * scale);
-    this.div.style.width = `${w}px`;
-    this.div.style.height = `${h}px`;
+    const [vw, vh] = this.turn % 180 ? [h, w] : [w, h];
+    this.div.style.width = `${vw}px`;
+    this.div.style.height = `${vh}px`;
     this.div.style.setProperty("--scale-factor", String(scale));
+    this.face.style.width = `${w}px`;
+    this.face.style.height = `${h}px`;
+    this.face.style.transform = this.turn === 90 ? `translateX(${h}px) rotate(90deg)`
+      : this.turn === 180 ? `translate(${w}px, ${h}px) rotate(180deg)`
+      : this.turn === 270 ? `translateY(${w}px) rotate(270deg)` : "";
     // Cut margins: the page keeps its full size, so everything on it keeps its place. What is cut is clipped
     // away (see .page.is-cropped) and the page is pulled in by the same amount.
-    const { l, r, t, b } = this.cut;
-    const cropped = l + r + t + b > 0;
+    const cropped = this.cut.l + this.cut.r + this.cut.t + this.cut.b > 0;
+    const view = this.viewCut;
     this.div.classList.toggle("is-cropped", cropped);
-    this.div.style.margin = cropped ? `${-t * h}px ${-r * w}px ${-b * h}px ${-l * w}px` : "";
-    for (const [name, px] of [["l", l * w], ["r", r * w], ["t", t * h], ["b", b * h]] as const) {
-      if (cropped) this.div.style.setProperty(`--crop-${name}`, `${px}px`);
-      else this.div.style.removeProperty(`--crop-${name}`);
+    this.div.style.margin = cropped ? `${-view.t * vh}px ${-view.r * vw}px ${-view.b * vh}px ${-view.l * vw}px` : "";
+    const vars: [HTMLElement, string, number][] = [
+      [this.div, "--crop-l", view.l * vw], [this.div, "--crop-r", view.r * vw], [this.div, "--crop-t", view.t * vh], [this.div, "--crop-b", view.b * vh],
+      [this.face, "--cut-l", this.cut.l * w], [this.face, "--cut-r", this.cut.r * w], [this.face, "--cut-t", this.cut.t * h], [this.face, "--cut-b", this.cut.b * h],
+    ];
+    for (const [el, name, px] of vars) {
+      if (cropped) el.style.setProperty(name, `${px}px`);
+      else el.style.removeProperty(name);
     }
   }
 
   /** Top of what is shown of the page, in the scroller. */
   get top() {
-    return this.div.offsetTop + this.cut.t * this.div.offsetHeight;
+    return this.div.offsetTop + this.viewCut.t * this.div.offsetHeight;
   }
 
   release() {
@@ -131,6 +162,7 @@ export class Renderer {
   linkLabel: (page: number) => string = (page) => `Page ${page}`;
   private linkDests = new WeakMap<Element, unknown>();
   private crop: Crop | null = null;
+  private turn: Turn = 0;
 
   constructor(private container: HTMLElement, private doc: PDFDocumentProxy, private opts: RenderOptions) {
     this.content.className = "pages";
@@ -164,6 +196,7 @@ export class Renderer {
     for (let i = 1; i <= this.doc.numPages; i++) {
       const slot = new PageSlot(i, vp.width, vp.height);
       slot.cut = cutFor(this.crop, i);
+      slot.turn = this.turn;
       if (i === 1) slot.page = first;
       this.slots.push(slot);
       this.content.append(slot.div);
@@ -219,11 +252,14 @@ export class Renderer {
     for (const s of this.slots) {
       const r = s.div.getBoundingClientRect();
       if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
-        const x = (clientX - r.left) / r.width;
-        const y = (clientY - r.top) / r.height;
+        const vx = (clientX - r.left) / r.width;
+        const vy = (clientY - r.top) / r.height;
         // The cut margins of a page lie under its neighbors; a point there belongs to the neighbor.
-        if (x < s.cut.l || x > 1 - s.cut.r || y < s.cut.t || y > 1 - s.cut.b) continue;
-        return { page: s.number, x, y, box: r };
+        const cut = s.viewCut;
+        if (vx < cut.l || vx > 1 - cut.r || vy < cut.t || vy > 1 - cut.b) continue;
+        // x and y are on the page as the PDF has it (where marks are kept); vx and vy on the page as shown.
+        const [x, y] = fromViewPoint(vx, vy, s.turn);
+        return { page: s.number, x, y, vx, vy, box: r };
       }
     }
     return null;
@@ -252,14 +288,15 @@ export class Renderer {
   /** Width divided by height of a page (pages are laid out with the size of the first until they load). */
   aspect(number: number) {
     const slot = this.slots[number - 1];
-    return slot ? slot.w / slot.h : 0.7;
+    return slot ? slot.vw / slot.vh : 0.7;
   }
 
   /** A small picture of a page, `width` CSS pixels wide, in the page style being read. */
   async thumbnail(number: number, width: number): Promise<HTMLCanvasElement> {
     const page = await this.doc.getPage(number);
-    const base = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: (width * Math.min(2, devicePixelRatio || 1)) / base.width });
+    const rotation = (page.rotate + this.turn) % 360;
+    const base = page.getViewport({ scale: 1, rotation });
+    const viewport = page.getViewport({ scale: (width * Math.min(2, devicePixelRatio || 1)) / base.width, rotation });
     const canvas = document.createElement("canvas");
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
@@ -327,7 +364,33 @@ export class Renderer {
 
   /** Width and height of what is shown of a page, in PDF units. */
   private shown(slot: PageSlot) {
-    return { w: slot.w * (1 - slot.cut.l - slot.cut.r), h: slot.h * (1 - slot.cut.t - slot.cut.b) };
+    const cut = slot.viewCut;
+    return { w: slot.vw * (1 - cut.l - cut.r), h: slot.vh * (1 - cut.t - cut.b) };
+  }
+
+  get turnValue() {
+    return this.turn;
+  }
+
+  /** Turns every page by quarter turns, clockwise. Marks, notes and links turn with their page. */
+  setTurn(turn: Turn) {
+    const at = this.slots.length ? this.position() : null;
+    this.turn = turn;
+    for (const s of this.slots) s.turn = turn;
+    if (!at) return;
+    this.applyScale(this.mode === "manual" ? this.scale : this.mode === "page" ? this.pageScale() : this.fitScale());
+    this.scrollToPage(at.page);
+    // Search marks and the read-aloud mark are placed from the text on screen: they are drawn again.
+    for (const s of this.slots) if (s.textDiv) this.onTextRendered(s.number);
+  }
+
+  /**
+   * How far down the shown page a height on the page as the PDF has it lies,
+   * for jumps to a link target, a note or a search match. After a quarter turn
+   * that height runs across the screen, so the jump goes to the top of the page.
+   */
+  offsetFor(y: number) {
+    return this.turn === 0 ? y : this.turn === 180 ? 1 - y : 0;
   }
 
   /** Width of one row of pages (one page, or the two of a spread), in PDF units. */
@@ -392,8 +455,8 @@ export class Renderer {
     this.scale = next;
     for (const s of this.slots) s.size(next);
     const slot = this.slots[hit.page - 1].div;
-    this.container.scrollTop = slot.offsetTop + hit.y * slot.offsetHeight - fy;
-    this.container.scrollLeft = slot.offsetLeft + hit.x * slot.offsetWidth - fx;
+    this.container.scrollTop = slot.offsetTop + hit.vy * slot.offsetHeight - fy;
+    this.container.scrollLeft = slot.offsetLeft + hit.vx * slot.offsetWidth - fx;
     this.onScroll();
     this.onScaleChange(next, this.mode);
     this.schedule();
@@ -484,8 +547,9 @@ export class Renderer {
     const slot = this.slots[Math.min(this.slots.length, Math.max(1, page)) - 1];
     if (!slot) return;
     // The top of a page is where what is shown of it starts.
-    const at = Math.max(offset, slot.cut.t);
-    this.container.scrollTop = slot.div.offsetTop + at * slot.div.offsetHeight - (offset > slot.cut.t ? 0 : this.gap()) - this.inset();
+    const cut = slot.viewCut.t;
+    const at = Math.max(offset, cut);
+    this.container.scrollTop = slot.div.offsetTop + at * slot.div.offsetHeight - (offset > cut ? 0 : this.gap()) - this.inset();
     this.onScroll();
   }
 
@@ -585,7 +649,7 @@ export class Renderer {
     }
     // Swap only when ready, so style and zoom changes never flash a blank page.
     if (slot.canvas) slot.canvas.replaceWith(canvas);
-    else slot.div.prepend(canvas);
+    else slot.face.prepend(canvas);
     slot.canvas = canvas;
     slot.key = key;
     if (!slot.linksBuilt) this.buildLinks(slot).catch(() => {});
@@ -643,7 +707,7 @@ export class Renderer {
     slot.textDiv?.remove();
     slot.textDiv = document.createElement("div");
     slot.textDiv.className = "textLayer";
-    slot.div.append(slot.textDiv);
+    slot.face.append(slot.textDiv);
     slot.textLayer = new pdfjs.TextLayer({
       textContentSource: slot.page!.streamTextContent({ includeMarkedContent: true, disableNormalization: true }),
       container: slot.textDiv,

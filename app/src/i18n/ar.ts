@@ -170,6 +170,9 @@ export const AR: Record<string, string> = {
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Book menu": "قائمة الكتاب",
+  "Rotate the pages": "تدوير الصفحات",
+  "Rotate left": "تدوير لليسار",
+  "Rotate right": "تدوير لليمين",
   "Share as a quote": "مشاركة كاقتباس",
   "Share a quote": "مشاركة اقتباس",
   "page {n}": "صفحة {n}",
@@ -496,6 +499,7 @@ export const DYNAMIC_KEYS = [
   "Book details could not be reached. Check your connection.",
   // t(condition ? "a" : "b") calls
   "Paper", "Night", "Ink",
+  "Rotate right", "Rotate left",
   "Underline", "Strikethrough", "Select text to highlight", "Select text to underline", "Select text to strike through",
   "Dark pages, real colors", "Photos and colored text keep their look. Appearance changes the page style and fine-tunes it.",
   "Mark what matters", "Select text to highlight it or to write a note. What you mark is collected under Notes.",

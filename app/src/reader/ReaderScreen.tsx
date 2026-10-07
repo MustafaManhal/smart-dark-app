@@ -5,7 +5,7 @@ import { HighlightPopover, NotePopover, type NoteDraft } from "../annotations/Po
 import type { NoteItem } from "../annotations/noteItems";
 import { clearOverlays, renderOverlays } from "../annotations/Overlays";
 import { SelectionBar } from "../annotations/SelectionBar";
-import { normalizeRects } from "../annotations/geometry";
+import { fromViewPoint, fromViewRect, normalizeRects, toViewRect, type Turn } from "../annotations/geometry";
 import { useAnnotations } from "../annotations/useAnnotations";
 import { History } from "../annotations/history";
 import { ReadAloudBar } from "../readaloud/ReadAloudBar";
@@ -57,8 +57,9 @@ type PopState =
   | { type: "note"; draft: NoteDraft; anchor: Anchor };
 
 /** Screen rectangle covering page-fraction rects on a page element. */
-function anchorFor(pageEl: Element, rects: NormRect[]): Anchor {
+function anchorFor(pageEl: Element, marked: NormRect[], turn: Turn): Anchor {
   const box = pageEl.getBoundingClientRect();
+  const rects = marked.map((r) => toViewRect(r, turn));
   const left = Math.min(...rects.map((r) => r.x));
   const top = Math.min(...rects.map((r) => r.y));
   const right = Math.max(...rects.map((r) => r.x + r.w));
@@ -100,6 +101,14 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   // Crop margins belongs to the book: its margins are measured once and kept with it.
   const [crop, setCrop] = useState<Book["crop"]>(undefined);
   const [measuring, setMeasuring] = useState<number | null>(null);
+  // The book can be turned by quarter turns (a scan that lies on its side). Kept with the book.
+  const [turn, setTurn] = useState<Turn>(0);
+  const rotate = (by: 90 | -90) => {
+    const next = ((turn + by + 360) % 360) as Turn;
+    setTurn(next);
+    renderer.current?.setTurn(next);
+    repos.books.update(bookId, { rotation: next });
+  };
   const cropStop = useRef({ now: false });
   const printStop = useRef({ now: false });
   const [zoom, setZoom] = useState<{ scale: number; mode: "fit" | "page" | "manual" }>({ scale: 1, mode: "fit" });
@@ -153,6 +162,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       }
       setBook(b);
       setCrop(b.crop);
+      setTurn(b.rotation ?? 0);
       repos.books.update(bookId, { lastOpenedAt: Date.now() });
       try {
         doc = await openPdf(new Uint8Array(await blob.arrayBuffer()), attempt?.password ?? b.password);
@@ -188,6 +198,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       r.onProgress = setProgress;
       r.setView({ layout: settings.viewLayout.value, cover: settings.spreadCover.value, rtl: settings.spreadRtl.value });
       if (b.crop?.on) r.setCrop(b.crop.box);
+      if (b.rotation) r.setTurn(b.rotation);
       await r.init({ mode: settings.zoomMode.value, scale: settings.zoomScale.value });
       if (startPage) r.scrollToPage(startPage);
       else if (saved) r.scrollToPage(saved.page, saved.offset);
@@ -331,7 +342,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     clearTimeout(linkTimer.current);
     setPreview(null);
     const target = await renderer.current?.linkTarget(link);
-    if (target) jump(target.page, target.top ? Math.max(0, target.top - 0.03) : 0);
+    if (target) jump(target.page, placeOf(target));
+  };
+  // Where on its page a link target is, as a scroll offset. A turned page is shown from its top.
+  const placeOf = (target: Target) => {
+    const top = target.top ? renderer.current?.offsetFor(target.top) ?? 0 : 0;
+    return top ? Math.max(0, top - 0.03) : 0;
   };
   const showPreview = (link: Element, touch: boolean, delay: number) => {
     clearTimeout(linkTimer.current);
@@ -424,7 +440,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         ? removeNote(n)
         : setPopover({ type: "note", draft: n, anchor: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } })),
     });
-  }, [ready, annotations.data, focusStickyId, erasing, editEpoch]);
+  }, [ready, annotations.data, focusStickyId, erasing, editEpoch, turn]);
 
   // Messages leave by themselves; one with Undo stays a little longer.
   useEffect(() => {
@@ -512,7 +528,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         if (!start || !scroller.current?.contains(start)) return setSelection(null);
         const page = Number(start.dataset.page);
         // A selection that runs onto the next page is kept to its first page.
-        const rects = normalizeRects([...range.getClientRects()], start.getBoundingClientRect());
+        // Marks are kept on the page as the PDF has it, whatever way the book is turned on screen.
+        const rects = normalizeRects([...range.getClientRects()], start.getBoundingClientRect()).map((rect) => fromViewRect(rect, r.turnValue));
         const text = tidyCopiedText(sel.toString());
         const b = range.getBoundingClientRect();
         const anchor = { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
@@ -612,7 +629,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     const y = entry.type === "highlight" || entry.type === "note"
       ? Math.min(...entry.item.rects.map((r) => r.y))
       : entry.type === "sticky" ? entry.item.y : 0;
-    jump(entry.page, Math.max(0, y - 0.04));
+    jump(entry.page, Math.max(0, (renderer.current?.offsetFor(y) ?? y) - 0.04));
     if (matchMedia("(max-width: 959px)").matches) setPanelOpen(false);
   }
 
@@ -672,6 +689,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       a: () => (auto.open ? auto.stop() : startAuto()), A: () => (auto.open ? auto.stop() : startAuto()),
       b: () => toggleBookmark(page), B: () => toggleBookmark(page),
       g: () => setSheet("goto"), G: () => setSheet("goto"),
+      r: () => rotate(90), R: () => rotate(e.shiftKey ? -90 : 90),
       ArrowRight: () => go(page + 1), j: () => go(page + 1),
       ArrowLeft: () => go(page - 1), k: () => go(page - 1),
       Home: () => go(1), End: () => go(total),
@@ -707,11 +725,13 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       if (!hit) return;
       const noteW = 220 / hit.box.width;
       const noteH = 150 / hit.box.height;
-      const created = await annotations.saveSticky({
-        bookId, page: hit.page, color: "yellow", text: "", collapsed: false,
-        x: Math.min(Math.max(0, hit.x - noteW / 2), Math.max(0, 1 - noteW)),
-        y: Math.min(Math.max(0, hit.y - 0.02), Math.max(0, 1 - noteH)),
-      });
+      // The note goes where the tap is on the page as shown; its place is kept on the page as the PDF has it.
+      const [x, y] = fromViewPoint(
+        Math.min(Math.max(0, hit.vx - noteW / 2), Math.max(0, 1 - noteW)),
+        Math.min(Math.max(0, hit.vy - 0.02), Math.max(0, 1 - noteH)),
+        renderer.current!.turnValue,
+      );
+      const created = await annotations.saveSticky({ bookId, page: hit.page, color: "yellow", text: "", collapsed: false, x, y });
       record({ undo: () => annotations.removeSticky(created), redo: () => annotations.saveSticky(created) });
       setFocusStickyId(created.id);
       return;
@@ -726,8 +746,9 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
         else if (n) removeNote(n);
         return;
       }
-      if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects) });
-      if (h) return setPopover({ type: "highlight", id: h.id, anchor: anchorFor(pageEl, h.rects) });
+      const turn = renderer.current!.turnValue;
+      if (n) return setPopover({ type: "note", draft: n, anchor: anchorFor(pageEl, n.rects, turn) });
+      if (h) return setPopover({ type: "highlight", id: h.id, anchor: anchorFor(pageEl, h.rects, turn) });
     }
     // While the pages move by themselves, a tap on the page holds them and lets them go again.
     if (auto.open) return auto.toggle();
@@ -777,6 +798,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       ...LAYOUTS.map(([value, label]): Command => ({ id: `layout-${value}`, title: `${t("Layout")}: ${t(label)}`, run: () => saveSetting("viewLayout", value) })),
       ...STYLES.map(([value, label]): Command => ({ id: `style-${value}`, title: `${t("Page")}: ${t(label)}`, run: () => saveSetting("pageStyle", value) })),
       { id: "crop", title: t("Crop margins"), run: () => toggleCrop(!crop?.on) },
+      { id: "rotate-right", title: t("Rotate right"), icon: "rotateRight", keys: "R", run: () => rotate(90) },
+      { id: "rotate-left", title: t("Rotate left"), icon: "rotateLeft", keys: keys("Shift+R"), run: () => rotate(-90) },
       canFullscreen && { id: "fullscreen", title: t(fullscreen ? "Leave full screen" : "Full screen"),
         run: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()) },
       { id: "undo", title: t("Undo"), icon: "undo", keys: keys("Mod+Z"), run: undo },
@@ -943,7 +966,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
 
       {preview && renderer.current && (
         <LinkPreview renderer={renderer.current} target={preview.target} anchor={preview.anchor}
-          onGo={preview.touch ? () => { const { target } = preview; setPreview(null); jump(target.page, target.top ? Math.max(0, target.top - 0.03) : 0); } : undefined}
+          onGo={preview.touch ? () => { const { target } = preview; setPreview(null); jump(target.page, placeOf(target)); } : undefined}
           onEnter={() => clearTimeout(closeTimer.current)} onLeave={() => !preview.touch && setPreview(null)} />
       )}
 
@@ -1128,6 +1151,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
             </label>
           </>
         )}
+        <div class="rotate-row" role="group" aria-label={t("Rotate the pages")}>
+          <span>{t("Rotate the pages")}</span>
+          <IconButton label={t("Rotate left")} icon="rotateLeft" disabled={!ready} onClick={() => rotate(-90)} />
+          <span class="rotate-now" dir="ltr">{turn}°</span>
+          <IconButton label={t("Rotate right")} icon="rotateRight" disabled={!ready} onClick={() => rotate(90)} />
+        </div>
         <label class="toggle">
           <input type="checkbox" checked={!!crop?.on} disabled={!ready || measuring !== null}
             onChange={(e) => toggleCrop(e.currentTarget.checked)} />

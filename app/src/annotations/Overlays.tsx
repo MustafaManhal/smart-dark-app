@@ -4,7 +4,7 @@ import type { BookAnnotations, PassageNote, Sticky } from "../db/annotations";
 import type { Renderer } from "../reader/renderer";
 import { Icon } from "../ui/Icon";
 import { COLOR_HEX } from "./colors";
-import { rectToCss } from "./geometry";
+import { fromViewPoint, rectToCss, toViewPoint, toViewRect, type Turn } from "./geometry";
 import { StickyNote } from "./StickyNote";
 
 type Handlers = {
@@ -30,9 +30,11 @@ function Marks({ data, page }: { data: BookAnnotations; page: number }) {
   );
 }
 
-function NoteBadge({ note, onOpen }: { note: PassageNote; onOpen: Handlers["onNoteOpen"] }) {
-  const last = note.rects[note.rects.length - 1];
-  if (!last) return null;
+function NoteBadge({ note, turn, onOpen }: { note: PassageNote; turn: Turn; onOpen: Handlers["onNoteOpen"] }) {
+  // The badge is upright on a turned page, at the end of the passage as it is shown.
+  const end = note.rects[note.rects.length - 1];
+  if (!end) return null;
+  const last = toViewRect(end, turn);
   return (
     <button type="button" class="pn-badge" aria-label={t("Open note: {text}", { text: (note.title || note.body).slice(0, 60) })}
       style={{ left: `${(last.x + last.w) * 100}%`, top: `${last.y * 100}%` }}
@@ -49,14 +51,23 @@ export function renderOverlays(renderer: Renderer, data: BookAnnotations, handle
     const layers = renderer.layers(n);
     if (!layers) continue;
     layers.page.classList.toggle("is-bookmarked", bookmarked.has(n));
+    const turn = renderer.turnValue;
     render(<Marks data={data} page={n} />, layers.highlights);
     render(
       <>
-        {data.notes.filter((x) => x.page === n).map((x) => <NoteBadge key={x.id} note={x} onOpen={handlers.onNoteOpen} />)}
-        {data.stickies.filter((s) => s.page === n).map((s) => (
-          <StickyNote key={s.id} note={s} epoch={handlers.epoch} autoFocus={s.id === handlers.focusStickyId}
-            onChange={handlers.onStickyChange} onDelete={handlers.onStickyDelete} />
-        ))}
+        {data.notes.filter((x) => x.page === n).map((x) => <NoteBadge key={x.id} note={x} turn={turn} onOpen={handlers.onNoteOpen} />)}
+        {data.stickies.filter((s) => s.page === n).map((s) => {
+          // A sticky note stays upright: it is handed its place on the page as shown, and gives it back the same way.
+          const [x, y] = toViewPoint(s.x, s.y, turn);
+          const back = (moved: Sticky) => {
+            const [bx, by] = fromViewPoint(moved.x, moved.y, turn);
+            return { ...moved, x: bx, y: by };
+          };
+          return (
+            <StickyNote key={`${s.id}-${turn}`} note={{ ...s, x, y }} epoch={handlers.epoch} autoFocus={s.id === handlers.focusStickyId}
+              onChange={(moved) => handlers.onStickyChange(back(moved))} onDelete={(gone) => handlers.onStickyDelete(back(gone))} />
+          );
+        })}
       </>,
       layers.stickies,
     );

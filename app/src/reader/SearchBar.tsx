@@ -51,7 +51,8 @@ export function useBookSearch(search: BookSearch | null, renderer: { current: Re
   }, [open, query, search]);
 
   function show(match: Match) {
-    renderer.current?.scrollToPage(match.page, Math.max(0, match.y - 0.18));
+    const r = renderer.current;
+    r?.scrollToPage(match.page, Math.max(0, r.offsetFor(match.y) - 0.18));
   }
 
   function go(index: number) {

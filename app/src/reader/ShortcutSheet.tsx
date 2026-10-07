@@ -16,7 +16,7 @@ const GROUPS: [string, [string, string][]][] = [
   ["Marking", [
     ["B", "Bookmark this page"], ["Mod+Z", "Undo"], ["Mod+Shift+Z", "Redo"], ["Delete", "Remove the open highlight"], ["Esc", "Close or cancel"],
   ]],
-  ["Looking", [["Mod++", "Zoom in"], ["Mod+-", "Zoom out"], ["Mod+0", "Fit width"]]],
+  ["Looking", [["Mod++", "Zoom in"], ["Mod+-", "Zoom out"], ["Mod+0", "Fit width"], ["R", "Rotate right"], ["Shift+R", "Rotate left"]]],
 ];
 
 export function ShortcutSheet({ open, onClose }: { open: boolean; onClose: () => void }) {

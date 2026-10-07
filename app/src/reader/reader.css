@@ -34,6 +34,8 @@
 .reader-error { padding: 24px; text-align: center; }
 .page { direction: ltr; position: relative; flex: none; background: var(--page-bg, #fff); border-radius: 4px; box-shadow: var(--shadow); --user-unit: 1; --total-scale-factor: calc(var(--scale-factor) * var(--user-unit)); --scale-round-x: 1px; --scale-round-y: 1px; }
 .page canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 4px; }
+/* The page as the PDF has it. Rotating the book turns this whole layer (PageSlot.size). */
+.page-face { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 .toc { list-style: none; margin: 0; padding: 0; }
 .toc button { display: flex; width: 100%; gap: 12px; justify-content: space-between; padding: 12px 8px; border: 0; border-radius: 10px; background: none; text-align: start; cursor: pointer; }
 .toc button:hover, .toc button[aria-current="true"] { background: var(--surface-2); }
@@ -62,8 +64,9 @@
 .pages.is-cropped { overflow: clip; } /* the cut strips at the outer edges add nothing to scroll over */
 .page.is-cropped { background: none; box-shadow: none; pointer-events: none; }
 .page.is-cropped::before { content: ""; position: absolute; inset: var(--crop-t) var(--crop-r) var(--crop-b) var(--crop-l); border-radius: 4px; background: var(--page-bg, #fff); box-shadow: var(--shadow); }
-.page.is-cropped > :not(.sticky-layer) { clip-path: inset(var(--crop-t) var(--crop-r) var(--crop-b) var(--crop-l) round 4px); }
-.page.is-cropped > :is(canvas, .textLayer) { pointer-events: auto; }
+.page.is-cropped > .page-face > * { clip-path: inset(var(--cut-t) var(--cut-r) var(--cut-b) var(--cut-l) round 4px); }
+.page.is-cropped > :is(.search-layer, .speech-layer) { clip-path: inset(var(--crop-t) var(--crop-r) var(--crop-b) var(--crop-l)); }
+.page.is-cropped > .page-face > :is(canvas, .textLayer) { pointer-events: auto; }
 .page.is-cropped .sticky {
   left: clamp(var(--crop-l), calc(var(--x) * 100%), calc(100% - var(--crop-r) - min(220px, 70%))) !important;
   top: clamp(var(--crop-t), calc(var(--y) * 100%), calc(100% - var(--crop-b) - 44px)) !important;
@@ -236,6 +239,9 @@
 /* Switches inside sheets (the settings screen has its own copy in settings.css). */
 .sheet .toggle { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; }
 .sheet .toggle input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.rotate-row { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.rotate-row > span:first-child { flex: 1; }
+.rotate-now { min-width: 40px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
 .sheet .toggle-note { margin: -4px 0 12px; padding-inline-start: 30px; color: var(--muted); font-size: 13px; }
 
 /* Search in the book: a bar in the place of the page and zoom controls, with the matches under it. */
