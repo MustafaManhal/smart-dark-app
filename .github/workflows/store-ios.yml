@@ -1,0 +1,46 @@
+name: iPhone app
+
+# Builds the iPhone app (the web app inside a Capacitor shell, project in ios/) for the simulator,
+# starts it there and keeps a picture of its first screen. It proves that the project builds and the
+# app starts. The package for the App Store is made in Xcode with the owner's Apple Developer account:
+# see docs/store/app-store.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ios:sync
+      - name: Build for the simulator
+        run: >
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug
+          -sdk iphonesimulator -destination "generic/platform=iOS Simulator"
+          -derivedDataPath build-ios CODE_SIGNING_ALLOWED=NO build | tail -n 40
+      - name: Start the app in a simulator and take a picture
+        run: |
+          app=$(find build-ios/Build/Products -name "App.app" -maxdepth 2 | head -n 1)
+          device=$(xcrun simctl list devices available | grep -m 1 -o "iPhone [^(]*" | sed 's/ *$//')
+          echo "app: $app, device: $device"
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl install booted "$app"
+          xcrun simctl launch booted io.github.mustafamanhal.reader343
+          sleep 25
+          mkdir -p shots
+          xcrun simctl io booted screenshot shots/first-screen.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-first-screen
+          path: shots/
+          if-no-files-found: ignore

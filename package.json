@@ -14,6 +14,7 @@
     "app:build": "npm run app:assets && tsc -p tsconfig.json && vite build",
     "app:test": "vitest run",
     "app:e2e": "playwright test",
+    "ios:sync": "npm run app:build && node scripts/ios-prepare.mjs && cap sync ios",
     "desktop": "npm run app:build && electron .",
     "desktop:e2e": "npm run app:build && playwright test --config playwright.desktop.config.ts",
     "desktop:mac": "npm run app:build && electron-builder --mac --publish never",
@@ -22,6 +23,9 @@
   "license": "MIT",
   "devDependencies": {
     "@cantoo/pdf-lib": "^2.11.1",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@fontsource-variable/inter": "^5.3.0",
     "@huggingface/transformers": "^4.3.1",
     "@playwright/test": "1.63",

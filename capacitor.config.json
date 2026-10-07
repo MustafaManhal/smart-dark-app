@@ -1,0 +1,9 @@
+{
+  "appId": "io.github.mustafamanhal.reader343",
+  "appName": "Reader343",
+  "webDir": "ios-web",
+  "backgroundColor": "#0e0f11",
+  "ios": {
+    "contentInset": "never"
+  }
+}

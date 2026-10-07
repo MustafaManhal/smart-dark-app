@@ -1,7 +1,7 @@
 // Draws the extension icon at every size Chrome needs, with 4x4 supersampling.
 // The page is split: left half light (original), right half dark (smart dark),
 // and the colored lines keep their hue on both sides.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { encodePng } from "./png.mjs";
 
 const OUT = new URL("../src/icons/", import.meta.url);
@@ -94,8 +94,7 @@ writeFileSync(new URL("favicon-32.png", web), encodePng(32, 32, draw(32)));
 
 // Microsoft Store package (MSIX): the tiles Windows shows on Start, in the taskbar and in the Store.
 // The mark sits in the middle of the app's dark tile color; the names are the ones electron-builder looks for.
-function drawTile(width, height, share) {
-  const ss = 4;
+function drawTile(width, height, share, ss = 4) {
   const side = Math.min(width, height) * share;
   const rgba = new Uint8Array(width * height * 4);
   for (let py = 0; py < height; py++) {
@@ -126,6 +125,15 @@ for (const [name, width, height, share] of [
 ]) {
   writeFileSync(new URL(`${name}.png`, appx), encodePng(width, height, drawTile(width, height, share), { alpha: false }));
 }
+// iPhone app (Capacitor project in ios/): the icon, a full square without see-through corners (iOS rounds
+// it itself), and the picture shown while the app starts: the mark, small, on the app's dark color.
+const iosAssets = new URL("../ios/App/App/Assets.xcassets/", import.meta.url);
+if (existsSync(iosAssets)) {
+  writeFileSync(new URL("AppIcon.appiconset/AppIcon-512@2x.png", iosAssets), encodePng(1024, 1024, draw(1024, 0.08, true), { alpha: false }));
+  const splash = encodePng(2732, 2732, drawTile(2732, 2732, 0.14, 1), { alpha: false });
+  for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) writeFileSync(new URL(`Splash.imageset/${name}`, iosAssets), splash);
+}
+
 // Store listings: Edge Add-ons asks for a square logo (300x300), the Microsoft Store takes the same as its app tile.
 mkdirSync(new URL("../store/", import.meta.url), { recursive: true });
 writeFileSync(new URL("../store/logo-300.png", import.meta.url), encodePng(300, 300, draw(300)));

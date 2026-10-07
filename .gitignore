@@ -16,3 +16,4 @@ app/public/licenses/
 app/public/ocr/
 android/upload.keystore
 *.keystore
+ios-web/
