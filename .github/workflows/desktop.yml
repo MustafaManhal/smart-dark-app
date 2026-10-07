@@ -1,18 +1,60 @@
 name: Desktop app
 
-# Builds installers on each platform's own runner. The Windows installer must be
-# built on Windows: cross-building NSIS on Apple Silicon corrupts the uninstaller
-# (electron-builder issue #10258).
+# Builds the installers on each platform's own runner and publishes them as a release, so the download
+# page (which links to releases/latest/download/<file>) always serves the newest ones.
+#
+# - A push to main that touches the app makes release <major>.<minor>.<run number>, by itself.
+# - A tag v<version> makes exactly that version (for a new major or minor number: change package.json first).
+# The Windows installer must be built on Windows: cross-building NSIS on Apple Silicon corrupts the
+# uninstaller (electron-builder issue #10258).
 on:
   push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "desktop/**"
+      - "vendor/**"
+      - "src/viewer/smart-invert.js"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "electron-builder.yml"
+      - "vite.config.ts"
+      - ".github/workflows/desktop.yml"
     tags: ["v*"]
   workflow_dispatch:
+
+# A newer push replaces a build that is still running: only the newest state is released.
+concurrency:
+  group: desktop-release
+  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pick.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pick
+        env:
+          REF: ${{ github.ref }}
+          RUN: ${{ github.run_number }}
+        run: |
+          if [[ "$REF" == refs/tags/v* ]]; then
+            version="${REF#refs/tags/v}"
+          else
+            base=$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')")
+            version="$base.$RUN"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version"
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -25,6 +67,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Set the version of this build
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
       - run: npm run app:test
       - run: npm run app:build
       - name: Build installers
@@ -40,16 +87,34 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.version.outputs.version }}
+      SHA: ${{ github.sha }}
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
-      - name: Draft a GitHub release with the installers
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: artifacts/*
+      - name: Publish the release
+        run: |
+          ls -la artifacts
+          if [[ "$IS_TAG" == "true" ]]; then title="Reader343 $VERSION"; else title="Reader343 $VERSION (automatic)"; fi
+          notes="Installers for Windows, Mac and Linux, built from commit $SHA. How to install, and every other way to get Reader343: https://smart-dark-app.vercel.app/about/download.html"
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            gh release upload "v$VERSION" artifacts/* --clobber
+            gh release edit "v$VERSION" --draft=false --latest --title "$title" --notes "$notes"
+          else
+            gh release create "v$VERSION" artifacts/* --target "$SHA" --title "$title" --notes "$notes" --latest
+          fi
+      - name: Keep the three newest automatic releases
+        run: |
+          gh release list --limit 100 --json tagName,name,createdAt \
+            --jq '[.[] | select(.name | endswith("(automatic)"))] | sort_by(.createdAt) | reverse | .[3:] | .[].tagName' |
+          while read -r tag; do
+            [ -n "$tag" ] && gh release delete "$tag" --yes --cleanup-tag
+          done
