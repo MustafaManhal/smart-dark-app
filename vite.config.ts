@@ -29,6 +29,10 @@ export default defineConfig({
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           { src: "icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
+        // "Open with Reader343" for PDF files once the app is installed (Chrome and Edge on computers).
+        // The file arrives in the window that is already open, through launchQueue (platform/incoming.ts).
+        file_handlers: [{ action: "./", accept: { "application/pdf": [".pdf"] } }],
+        launch_handler: { client_mode: "focus-existing" },
       },
       workbox: {
         // Everything the reader needs offline, including the pdf.js worker,

@@ -122,7 +122,7 @@ After the redesign, so new screens are built once, in the new look.
 | 10 | E2 | Look up a word | opt-in, because the word leaves the device |
 | 11 | E3 | Summarize, explain, translate with the browser's built-in model | Chrome on computers only; hidden elsewhere |
 | 12 | F1 (done 2026-10-07) | Merge, split, reorder, rotate, extract and delete pages; pictures to PDF | same library as C3 |
-| 13 | G5 | "Open with" for the installed web app | manifest `file_handlers` |
+| 13 | G5 (done 2026-10-07; tried with a stand-in queue, not with an installed app) | "Open with" for the installed web app | manifest `file_handlers` |
 | 14 | G6 | Sync through a folder the person chooses | Chrome, Edge and the desktop app |
 | 15 | G2, G3, G4 | Store packages: Microsoft Store (MSIX), Edge Add-ons, Firefox port, Chrome Web Store | built, listed text and pictures ready; **the owner pays the $5 for Chrome and presses submit** |
 | 16 | G7 | Launch texts: Show HN, AlternativeTo, GitHub topics | written and saved; the owner posts them |

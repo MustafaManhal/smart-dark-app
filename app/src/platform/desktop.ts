@@ -1,7 +1,5 @@
 import type { Repos } from "../db/repos";
-import { makeCover } from "../library/cover";
-import { importPdf } from "../library/importer";
-import { navigate } from "../router";
+import { openIncoming } from "./incoming";
 
 type OpenedFile = { name: string; bytes: Uint8Array };
 export type UpdateResult =
@@ -30,15 +28,8 @@ export async function initDesktop(repos: Repos) {
   desktop.onNavigate((hash) => {
     location.hash = hash;
   });
-  const open = async (file: OpenedFile) => {
-    const pdf = new File([file.bytes as Uint8Array<ArrayBuffer>], file.name, { type: "application/pdf" });
-    try {
-      const { book } = await importPdf(pdf, { books: repos.books, makeCover });
-      navigate({ name: "reader", bookId: book.id });
-    } catch (error) {
-      console.error("Could not open", file.name, error);
-    }
-  };
+  const open = (file: OpenedFile) =>
+    openIncoming(repos, [new File([file.bytes as Uint8Array<ArrayBuffer>], file.name, { type: "application/pdf" })]);
   desktop.onOpenFile(open);
   for (const file of await desktop.ready()) await open(file);
 }

@@ -7,6 +7,7 @@ import { createRepos } from "./db/repos";
 import { configurePdfjs } from "./reader/pdf";
 import { loadSettings } from "./settings";
 import { initDesktop } from "./platform/desktop";
+import { initFileLaunch } from "./platform/incoming";
 import { registerServiceWorker } from "./platform/pwa";
 
 configurePdfjs(new URL("./pdfjs/", document.baseURI).href);
@@ -15,4 +16,5 @@ await loadSettings(repos.settings);
 navigator.storage?.persist?.().catch(() => {});
 render(<App repos={repos} />, document.getElementById("root")!);
 initDesktop(repos);
+initFileLaunch(repos);
 registerServiceWorker();

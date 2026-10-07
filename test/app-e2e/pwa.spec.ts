@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { openSample } from "./helpers/reader";
 
@@ -92,4 +93,59 @@ test("iPhone Safari shows how to install, once", async ({ page, isMobile }) => {
 test("settings show how much space the library uses", async ({ page }) => {
   await page.goto("./#/settings");
   await expect(page.getByText(/Using \d+(\.\d)? MB\./)).toBeVisible();
+});
+
+test("the installed app offers itself for PDF files, and opens the file it is handed", async ({ page, request }) => {
+  // The system's side cannot be driven by a test: the queue it fills is replaced by one the test fills.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "launchQueue", { configurable: true, value: { setConsumer(fn: unknown) { (window as never as { launch: unknown }).launch = fn; } } });
+  });
+  await page.goto("./");
+  const manifest = await (await request.get((await page.locator('link[rel="manifest"]').getAttribute("href"))!)).json();
+  expect(manifest.file_handlers).toEqual([{ action: "./", accept: { "application/pdf": [".pdf"] } }]);
+  expect(manifest.launch_handler).toEqual({ client_mode: "focus-existing" });
+
+  // The app takes the queue once its library is open.
+  await page.waitForFunction(() => typeof (window as never as { launch?: unknown }).launch === "function");
+  const hand = (path: string, name: string) => page.evaluate(async ([url, fileName]) => {
+    const bytes = await (await fetch(url)).arrayBuffer();
+    const handle = { getFile: async () => new File([bytes], fileName, { type: "application/pdf" }) };
+    await (window as never as { launch(p: unknown): Promise<void> }).launch({ files: [handle] });
+  }, [path, name]);
+  await hand("sample.pdf", "sample.pdf");
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await expect(page.getByRole("button", { name: /Go to page/ })).toHaveAccessibleName(/of 2/);
+  // The same file again opens the book that is already there, without a second copy.
+  await page.getByRole("button", { name: "Back to library" }).click();
+  await expect(page.getByRole("list", { name: "Books" }).getByRole("listitem")).toHaveCount(1);
+  await hand("sample.pdf", "sample.pdf");
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await page.getByRole("button", { name: "Back to library" }).click();
+  await expect(page.getByRole("list", { name: "Books" }).getByRole("listitem")).toHaveCount(1);
+});
+
+test("a protected PDF handed to the app asks for its password, then opens", async ({ page }) => {
+  const locked = readFileSync("test/fixtures/locked.pdf").toString("base64");
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "launchQueue", { configurable: true, value: { setConsumer(fn: unknown) { (window as never as { launch: unknown }).launch = fn; } } });
+  });
+  await openSample(page); // the file arrives while a book is open
+  await page.evaluate(async (data) => {
+    const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+    const handle = { getFile: async () => new File([bytes], "locked.pdf", { type: "application/pdf" }) };
+    await (window as never as { launch(p: unknown): Promise<void> }).launch({ files: [handle] });
+  }, locked);
+  const ask = page.getByRole("dialog", { name: "Password needed" });
+  await ask.getByLabel("Password").fill("open sesame");
+  await ask.getByRole("button", { name: "Open" }).click();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await page.getByRole("button", { name: "Back to library" }).click();
+  await expect(page.getByRole("list", { name: "Books" }).getByRole("listitem")).toHaveCount(2);
+
+  // Something that is not a PDF is refused with words, in the library.
+  await page.evaluate(async () => {
+    const handle = { getFile: async () => new File(["hello"], "notes.pdf", { type: "application/pdf" }) };
+    await (window as never as { launch(p: unknown): Promise<void> }).launch({ files: [handle] });
+  });
+  await expect(page.getByText("notes.pdf is not a PDF.")).toBeVisible();
 });

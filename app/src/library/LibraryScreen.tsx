@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import type { Book, Progress, Repos } from "../db/repos";
+import { incoming } from "../platform/incoming";
 import { navigate } from "../router";
 import { Button, IconButton } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -81,17 +82,19 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
   }, [books]);
   const [locked, setLocked] = useState<{ name: string; wrong: boolean; answer: (password: string | null) => void } | null>(null);
 
-  async function importFiles(files: FileList | File[]) {
+  async function importFiles(files: FileList | File[], open = false) {
     setBusy(true);
     setMessage("");
     const notes: string[] = [];
+    const added: Book[] = [];
     for (const file of Array.from(files)) {
       // A protected PDF: ask for its password, again if it was wrong, until it opens or the reader gives up.
       let password: string | undefined;
       for (;;) {
         try {
           const { book, duplicate } = await importPdf(file, { books: repos.books, makeCover }, password);
-          if (duplicate) notes.push(t("“{title}” is already in your library.", { title: book.title }));
+          added.push(book);
+          if (duplicate && !open) notes.push(t("“{title}” is already in your library.", { title: book.title }));
         } catch (error) {
           if (error instanceof ImportError && (error.code === "password" || error.code === "wrong-password")) {
             const answer = await new Promise<string | null>((resolve) =>
@@ -114,8 +117,18 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     }
     setBusy(false);
     setMessage(notes.join(" "));
+    // A file opened from outside the app goes straight to its pages.
+    if (open && added.length === 1 && !notes.length) return navigate({ name: "reader", bookId: added[0].id });
     reload();
   }
+
+  // Files the system handed over that need the library: a password to ask for, or a problem to tell.
+  const waiting = incoming.value;
+  useEffect(() => {
+    if (!waiting.length || busy) return;
+    incoming.value = [];
+    importFiles(waiting, true);
+  }, [waiting, busy]);
 
   const visible = useMemo(
     () => (books ? filterBooks(books, progress, { shelf, query, sort, tag }) : []),
