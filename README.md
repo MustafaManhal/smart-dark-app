@@ -84,7 +84,7 @@ offline. Your books and notes stay on the phone.
 
 ```sh
 npm run desktop        # build the app and start it
-npm run desktop:mac    # release/Reader343-<version>-mac-arm64.dmg and -x64.dmg
+npm run desktop:mac    # release/Reader343-mac-arm64.dmg and -x64.dmg
 npm run desktop:win    # Windows zip; the installer is built by .github/workflows/desktop.yml
 npm run desktop:e2e    # Electron end-to-end tests
 ```

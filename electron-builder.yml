@@ -1,6 +1,7 @@
 appId: com.smartdarkreader.app
 productName: Reader343
-artifactName: Reader343-${version}-${os}-${arch}.${ext}
+# No version in the name: the download page links to releases/latest/download/<name>, which must not change.
+artifactName: Reader343-${os}-${arch}.${ext}
 copyright: Copyright © 2026 Mustafa Manhal
 directories:
   output: release

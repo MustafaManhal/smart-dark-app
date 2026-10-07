@@ -14,8 +14,8 @@ SmartScreen warning, which the installer from GitHub does.
    `Package/Properties/PublisherDisplayName`.
 3. On GitHub, open **Actions, Microsoft Store package, Run workflow** and paste the three values.
    The run builds on Windows and takes about ten minutes.
-4. Download the artifact `reader343-microsoft-store`. It holds `Reader343-<version>-win-x64.appx` and
-   `Reader343-<version>-win-arm64.appx`.
+4. Download the artifact `reader343-microsoft-store`. It holds `Reader343-win-x64.appx` and
+   `Reader343-win-arm64.appx`.
 5. Upload both `.appx` files under **Packages** in the submission and fill in the rest from this page.
 6. Try it once before everyone gets it. The package is not signed until the Store signs it, so it
    cannot be installed by double click. Under **Pricing and availability, Visibility**, choose

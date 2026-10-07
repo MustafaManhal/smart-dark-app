@@ -258,7 +258,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
               {SORTS.map(([key, label]) => <option value={key}>{t(label)}</option>)}
             </select>
           </label>
-          <IconButton label={t(view === "grid" ? "Show as a list" : "Show as covers")} icon={view === "grid" ? "rows" : "grid"} class="lib-view"
+          <IconButton label={t(view === "grid" ? "Show as a list" : "Show as covers")} text={t(view === "grid" ? "List" : "Covers")} icon={view === "grid" ? "rows" : "grid"} class="lib-view"
             onClick={() => saveSetting("libraryView", view === "grid" ? "list" : "grid")} />
           {tags.length > 0 && (
             <div class="chips lib-tags" role="group" aria-label={t("Tags")}>

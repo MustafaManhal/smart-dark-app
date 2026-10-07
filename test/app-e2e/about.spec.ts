@@ -70,3 +70,40 @@ test("the privacy policy is a page of its own, linked from the public page", asy
   await page.goto("./about/ar.html");
   await expect(page.locator("footer").getByRole("link", { name: "الخصوصية" })).toHaveAttribute("href", "privacy.html");
 });
+
+test("the download page offers every app, marks the one for this device, and compares them", async ({ page, browser, baseURL, isMobile }) => {
+  await page.goto("./about/");
+  await page.getByRole("navigation", { name: "Page" }).getByRole("link", { name: "Download" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Get Reader343" })).toBeVisible();
+  const files = "https://github.com/MustafaManhal/smart-dark-app/releases/latest/download/";
+  for (const [name, file] of [["Download (.exe)", "Reader343-win-x64.exe"], ["For Windows on ARM (.exe)", "Reader343-win-arm64.exe"], ["Download (Apple silicon)", "Reader343-mac-arm64.dmg"],
+    ["For a Mac with an Intel processor (.dmg)", "Reader343-mac-x64.dmg"], ["Download (AppImage)", "Reader343-linux-x86_64.AppImage"]]) {
+    await expect(page.locator("#all").getByRole("link", { name, exact: true })).toHaveAttribute("href", files + file);
+  }
+  await expect(page.getByRole("heading", { name: "iPhone and iPad" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Android" })).toBeVisible();
+  // The table: six kinds of app, and the things that are not everywhere say where they are.
+  const table = page.getByRole("table");
+  await expect(table.getByRole("columnheader")).toHaveCount(7);
+  await expect(table.getByRole("row", { name: /Sync through a folder you choose/ }).getByRole("cell")).toHaveText(["Yes", "No", "Yes", "No", "No", "No"]);
+  await expect(table.getByRole("row", { name: /Opens PDF links of the web/ }).getByRole("cell").last()).toHaveText("Yes");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  // The phone project is an iPhone: its card is marked and the steps are named.
+  if (isMobile) {
+    await expect(page.locator('article[data-os="ios"]')).toHaveClass(/is-yours/);
+    await expect(page.locator("#best-note")).toContainText("added from Safari");
+  }
+
+  // A visitor on Windows gets the installer on the main button.
+  const windows = await browser.newContext({ baseURL, userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36" });
+  const win = await windows.newPage();
+  await win.goto("./about/download.html");
+  await expect(win.locator("#best")).toHaveAttribute("href", files + "Reader343-win-x64.exe");
+  await expect(win.locator('article[data-os="win"]')).toHaveClass(/is-yours/);
+  await windows.close();
+
+  await page.goto("./about/download-ar.html");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("احصل على Reader343");
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(16);
+});

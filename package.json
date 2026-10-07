@@ -1,6 +1,6 @@
 {
   "name": "reader343",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scripts": {
     "test": "node --test test/unit/*.test.mjs",
     "build": "node scripts/build.mjs",

@@ -234,3 +234,6 @@
   .lib-tiles ul { grid-template-columns: 1fr; gap: 10px; }
   .do-tile { padding: 12px 14px; }
 }
+/* The switch between covers and a list says which one it gives. */
+.lib-view.has-text { height: 38px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-sm); color: var(--muted); }
+.lib-view.has-text:hover { color: var(--text); border-color: var(--border-strong); }

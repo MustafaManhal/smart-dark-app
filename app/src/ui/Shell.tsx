@@ -4,6 +4,7 @@ import { useState } from "preact/hooks";
 import { BackupSheet } from "../backup/BackupSheet";
 import type { Repos } from "../db/repos";
 import { t } from "../i18n/i18n";
+import { desktop } from "../platform/desktop";
 import { navigate, type Route } from "../router";
 import { Brand } from "./Brand";
 import { Icon, type IconName } from "./Icon";
@@ -51,6 +52,13 @@ export function Shell({ repos, current, children }: { repos: Repos; current: Rou
               <Icon name="backup" size={20} />
               <span>{t("Back up and restore")}</span>
             </button>
+            {/* The other apps: only where this is the web app. The desktop app is one of them already. */}
+            {!desktop && (
+              <a class="nav-item" href={`${import.meta.env.BASE_URL}about/download.html`}>
+                <Icon name="download" size={20} />
+                <span>{t("Get the apps")}</span>
+              </a>
+            )}
             <p class="nav-note">{t("Your books and notes stay on this device.")}</p>
           </>
         )}

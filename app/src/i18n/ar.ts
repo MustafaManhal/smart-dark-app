@@ -723,6 +723,9 @@ export const AR: Record<string, string> = {
   "Page style and colors": "نمط الصفحة وألوانها",
   "Dark, sepia or original pages, and brightness and contrast.": "صفحات داكنة أو بنية أو أصلية، مع السطوع والتباين.",
   "Pause": "إيقاف مؤقت",
+  "Get the apps": "احصل على التطبيقات",
+  "List": "قائمة",
+  "Covers": "أغلفة",
   // Open desk: reader toolbar
   "All tools": "كل الأدوات",
   "Erase": "محو",
@@ -791,4 +794,5 @@ export const DYNAMIC_KEYS = [
   "Delete note", "Remove highlight", "Remove bookmark", "Bookmark this page", "Pause reading", "Read aloud", "E-book",
   "Places", "Library", "Stats", "Your books and notes stay on this device.", "What you can do", "Join PDFs", "Several files become one.", "Split and reorder pages", "Take pages out, turn them, change their order.", "Pictures to PDF", "Photos and scans become one PDF.", "All your marks", "Every highlight and note of every book.", "Daily review", "Your highlights come back before you forget them.", "Your reading", "Time, pages, your streak and your goal.", "Sync and backups", "Between your computers, through a folder you choose.", "PDF tools", "Reading stats", "Settings", "Notebook", "Back up and restore",
   "Crop the margins", "Show the margins again", "Pause", "Read aloud",
+  "List", "Covers",
 ];

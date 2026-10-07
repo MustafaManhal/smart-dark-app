@@ -8,7 +8,7 @@ do: open the developer account, pay the fee where there is one, paste the texts,
 | Chrome Web Store | `reader343-extension-<version>.zip` | `npm run package` | Google account, $5 once | [chrome-web-store.md](chrome-web-store.md) |
 | Edge Add-ons | the same zip | `npm run package` | Microsoft Partner Center, free | [edge-addons.md](edge-addons.md) |
 | Firefox Add-ons | `reader343-firefox-<version>.zip` | `npm run package` | Firefox account, free | [firefox-addons.md](firefox-addons.md) |
-| Microsoft Store | `Reader343-<version>-win-x64.appx` and `-arm64.appx` | the "Microsoft Store package" workflow on GitHub | Microsoft Partner Center, free for individuals | [microsoft-store.md](microsoft-store.md) |
+| Microsoft Store | `Reader343-win-x64.appx` and `-arm64.appx` | the "Microsoft Store package" workflow on GitHub | Microsoft Partner Center, free for individuals | [microsoft-store.md](microsoft-store.md) |
 | Google Play | `app-release-bundle.aab` | the "Google Play package" workflow on GitHub | Play Console, $25 once | [google-play.md](google-play.md) |
 | App Store | an archive made in Xcode from `ios/` | the owner, on a Mac | Apple Developer Program, $99 a year | [app-store.md](app-store.md) |
 

@@ -31,7 +31,7 @@ jobs:
         run: npx electron-builder --publish never
       - uses: actions/upload-artifact@v4
         with:
-          name: smart-dark-reader-${{ matrix.os }}
+          name: reader343-${{ matrix.os }}
           path: |
             release/*.dmg
             release/*.zip

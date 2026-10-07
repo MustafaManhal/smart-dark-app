@@ -96,3 +96,22 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
 .prose li { margin-block: 8px; }
 .prose a { color: var(--accent); overflow-wrap: anywhere; }
 .prose code { font-size: 0.92em; padding: 1px 5px; border-radius: 5px; background: var(--surface); border: 1px solid var(--border); }
+
+/* The download page. */
+.dl-hero { padding-bottom: 8px; }
+.dl-fine { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.dl-lead { margin: 0 0 16px; color: var(--muted); max-width: 70ch; }
+.dl-alt { color: var(--accent-strong); font-size: 14px; font-weight: 600; }
+.dl-steps { margin: 0; padding-inline-start: 20px; color: var(--muted); font-size: 15px; display: grid; gap: 4px; }
+.get h2 + .ways { margin-bottom: 36px; }
+.ways article.is-yours { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.dl-table { overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); margin-bottom: 12px; }
+.dl-table table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 14px; }
+.dl-table th, .dl-table td { padding: 11px 12px; text-align: start; border-bottom: 1px solid var(--border); vertical-align: top; }
+.dl-table thead th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--border) 35%, var(--surface)); }
+.dl-table tbody tr:last-child :is(th, td) { border-bottom: 0; }
+.dl-table tbody th { font-weight: 600; min-width: 230px; }
+.dl-table td.y { color: #12805a; font-weight: 600; }
+.dl-table td.n { color: var(--muted); }
+.dl-table td.p { color: var(--accent-strong); font-weight: 600; }
+@media (prefers-color-scheme: dark) { .dl-table td.y { color: #4fd6a5; } }

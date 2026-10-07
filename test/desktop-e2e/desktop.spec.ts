@@ -180,3 +180,34 @@ test("an EPUB opened from the operating system is shown by the e-book reader", a
   await expect(win.locator(".ebook-title small")).toHaveText("One: The Keeper");
   await win.screenshot({ path: "test/output/desktop-ebook.png" });
 });
+
+test("the desktop app has the named places, the named tools, and makes a PDF with its PDF tools", async () => {
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+  const places = win.getByRole("navigation", { name: "Places" });
+  await expect(places.getByRole("button")).toHaveText(["Library", "Notebook", "PDF tools", "Reading stats", "Settings", "Back up and restore"]);
+  // The link to the other apps is for the web app: this is one of them already.
+  await expect(places.getByRole("link", { name: "Get the apps" })).toHaveCount(0);
+
+  await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("test/fixtures/links.pdf"));
+  await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
+  await expect(win.getByRole("toolbar", { name: "Reading tools" }).locator(".btn-text")).toHaveCount(16);
+  // What the browser's own model does is not offered here: the desktop app has no such model.
+  await win.getByRole("button", { name: "All tools" }).click();
+  const all = win.getByRole("dialog", { name: "All tools" });
+  await expect(all.getByRole("button", { name: /^Recognize text/ })).toBeVisible();
+  await expect(all.getByRole("button", { name: /^Summarize/ })).toHaveCount(0);
+  await all.getByRole("button", { name: /^Edit pages/ }).click();
+
+  await expect(win.getByRole("heading", { name: "PDF tools" })).toBeVisible();
+  await expect(win.locator(".tool-page")).toHaveCount(3);
+  await win.locator(".tool-page").nth(1).click();
+  await win.getByRole("button", { name: "Remove pages" }).click();
+  await expect(win.locator(".tool-page")).toHaveCount(2);
+  await win.getByRole("button", { name: "Make PDF" }).click();
+  const sheet = win.getByRole("dialog", { name: "Make PDF" });
+  await sheet.getByRole("button", { name: "Make PDF" }).click();
+  await expect(sheet.getByRole("button", { name: "Save" })).toBeVisible();
+  await sheet.getByRole("button", { name: "Add to library" }).click();
+  await expect(sheet).toContainText("It is in your library now.");
+});

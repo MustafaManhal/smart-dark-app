@@ -1,7 +1,7 @@
 /* The frame around the app's screens: named places, always on screen. */
 .shell { min-height: 100%; }
 .shell-main { min-width: 0; }
-.nav-item { border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; transition: background var(--fast), color var(--fast); }
+.nav-item { border: 0; background: none; text-decoration: none; color: var(--muted); font: inherit; cursor: pointer; transition: background var(--fast), color var(--fast); }
 .nav-item:hover { color: var(--text); }
 .nav-item[aria-current="page"] { color: var(--accent-strong); }
 

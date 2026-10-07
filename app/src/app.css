@@ -258,3 +258,17 @@ input[type="range"] { accent-color: var(--accent); }
 
 /* An icon button that also carries a word (ui/Button.tsx). */
 .icon-btn.has-text { width: auto; min-width: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+
+/* A list to choose from, drawn the same in every browser: its own arrow, with room around it. */
+/* (:not([multiple]) lifts these rules over the screens' own "background" shorthands, which would drop the arrow.) */
+.sort select:not([multiple]), .field select:not([multiple]) {
+  appearance: none; -webkit-appearance: none;
+  padding-inline: 14px 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8fa0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+[dir="rtl"] :is(.sort, .field) select:not([multiple]) { background-position: left 12px center; }
+.sort select:not([multiple]) { height: 38px; font-weight: 600; box-shadow: var(--shadow-sm); }
+.sort select:hover { border-color: var(--border-strong); }
