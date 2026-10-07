@@ -49,6 +49,14 @@
 
 /* Page column: centered when narrower than the screen, scrolls sideways when zoomed in. */
 .pages { display: flex; flex-direction: column; align-items: center; gap: 12px; width: max-content; min-width: 100%; transform-origin: 0 0; }
+/* Two pages side by side, like an open book. With a cover, the first page stands alone. */
+.pages.is-spread { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: start; gap: 12px 6px; }
+.pages.is-spread.has-cover .page:first-child { grid-column: 1 / -1; justify-self: center; }
+.pages.is-spread.is-rtl { direction: rtl; }
+/* Page by page: scrolling stops at the top of each page. */
+.reader-scroll.is-paged { scroll-snap-type: y proximity; }
+/* The scroller's scroll-padding-top already keeps clear of the top bar. */
+.reader-scroll.is-paged .page { scroll-snap-align: start; scroll-margin-top: var(--float-gap, 12px); }
 .reader-scroll { touch-action: pan-x pan-y; }
 
 

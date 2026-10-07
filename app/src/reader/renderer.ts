@@ -4,10 +4,12 @@ import {
   THEMES, TINTS, adjustColor, createAdjusters, createColorMapper, createPlainMapper, createTintMapper,
   imageRectsFromCoords, processPage, textRectsFromItems,
 } from "../../../src/viewer/smart-invert.js";
-import type { DarkTheme, ImageMode, PageStyle } from "../settings";
+import type { DarkTheme, ImageMode, PageStyle, ViewLayout } from "../settings";
 
 export type Adjust = { brightness: number; contrast: number; sepia: number; grayscale: number };
 export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageMode: ImageMode; adjust?: Adjust };
+export type ViewOptions = { layout: ViewLayout; cover: boolean; rtl: boolean };
+const SPREAD_GAP = 6; // px between the two pages of a spread
 
 const MAX_CANVAS_PIXELS = 16_777_216;
 const AHEAD = 1200; // px beyond the viewport to render ahead
@@ -90,6 +92,7 @@ export class Renderer {
   private current = 1;
   private resizeObserver: ResizeObserver;
   private mode: "fit" | "page" | "manual" = "fit";
+  private view: ViewOptions = { layout: "scroll", cover: true, rtl: false };
   private content = document.createElement("div");
   private pointers = new Map<number, { x: number; y: number }>();
   private pinch: { dist: number; scale: number; cx: number; cy: number; k: number } | null = null;
@@ -239,12 +242,17 @@ export class Renderer {
   /** The page shown when the book is scrolled to `fraction` of its length (0 start, 1 end). */
   pageAt(fraction: number) {
     const top = fraction * Math.max(0, this.container.scrollHeight - this.container.clientHeight) + this.inset();
-    let page = 1;
+    return this.slotAt(top + this.gap())?.number ?? 1;
+  }
+
+  /** The last page that starts at or above `y`; of two pages side by side, the first. */
+  private slotAt(y: number) {
+    let found: PageSlot | undefined = this.slots[0];
     for (const s of this.slots) {
-      if (s.div.offsetTop - this.gap() <= top) page = s.number;
-      else break;
+      if (s.div.offsetTop > y) break;
+      if (s.div.offsetTop > found!.div.offsetTop) found = s;
     }
-    return page;
+    return found;
   }
 
   scrollToFraction(fraction: number) {
@@ -252,17 +260,38 @@ export class Renderer {
     this.onScroll();
   }
 
-  /** Scale at which the page is as wide as the screen. */
+  /** How the pages are laid out. Keeps the reading position and refits the zoom. */
+  setView(view: ViewOptions) {
+    const at = this.slots.length ? this.position() : null;
+    this.view = view;
+    this.content.classList.toggle("is-spread", view.layout === "spread");
+    this.content.classList.toggle("has-cover", view.layout === "spread" && view.cover);
+    this.content.classList.toggle("is-rtl", view.layout === "spread" && view.rtl);
+    this.container.classList.toggle("is-paged", view.layout === "paged");
+    if (!at) return;
+    if (this.mode === "manual") this.applyScale(this.scale);
+    else this.applyScale(this.mode === "page" ? this.pageScale() : this.fitScale());
+    this.scrollToPage(at.page, at.offset);
+  }
+
+  /** Pages side by side: 2 in two-page view. */
+  private across() {
+    return this.view.layout === "spread" && this.slots.length > 1 ? 2 : 1;
+  }
+
+  /** Scale at which the page (or the two pages of a spread) is as wide as the screen. */
   fitScale() {
-    const width = this.container.clientWidth - 24;
-    return this.slots.length && width > 0 ? clampScale(width / this.slots[0].w) : 1;
+    const n = this.across();
+    const width = this.container.clientWidth - 24 - (n - 1) * SPREAD_GAP;
+    return this.slots.length && width > 0 ? clampScale(width / (this.slots[0].w * n)) : 1;
   }
 
   private pageScale() {
     const s = this.slots[0];
-    const width = this.container.clientWidth - 24;
+    const n = this.across();
+    const width = this.container.clientWidth - 24 - (n - 1) * SPREAD_GAP;
     const height = this.container.clientHeight - this.inset() - this.gap() - 12;
-    return s ? clampScale(Math.min(width / s.w, height / s.h)) : 1;
+    return s ? clampScale(Math.min(width / (s.w * n), height / s.h)) : 1;
   }
 
   private fit() {
@@ -383,11 +412,7 @@ export class Renderer {
 
   position() {
     const top = this.container.scrollTop + this.inset();
-    let slot = this.slots[0];
-    for (const s of this.slots) {
-      if (s.div.offsetTop - this.gap() <= top) slot = s;
-      else break;
-    }
+    const slot = this.slotAt(top + this.gap());
     if (!slot) return { page: 1, offset: 0 };
     const offset = (top - slot.div.offsetTop) / Math.max(1, slot.div.offsetHeight);
     return { page: slot.number, offset: Math.min(1, Math.max(0, offset)) };
@@ -402,11 +427,7 @@ export class Renderer {
 
   private onScroll = () => {
     const mid = this.container.scrollTop + this.inset() + (this.container.clientHeight - this.inset()) / 3;
-    let page = 1;
-    for (const s of this.slots) {
-      if (s.div.offsetTop <= mid) page = s.number;
-      else break;
-    }
+    const page = this.slotAt(mid)?.number ?? 1;
     if (page !== this.current) {
       this.current = page;
       this.onPageChange(page);

@@ -168,3 +168,50 @@ test("drag along the progress line to move through the book", async ({ page }) =
   await expect(page.locator(".scrub-bubble")).toHaveCount(0);
   await expect.poll(async () => Number(await line.getAttribute("aria-valuenow"))).toBeGreaterThan(70);
 });
+
+test("two-page view puts pages side by side, with a cover option and right-to-left order", async ({ page, isMobile }) => {
+  await openSample(page);
+  const box = (n: number) => page.locator(`.page[data-page="${n}"]`).boundingBox().then((b) => b!);
+  const single = await box(1);
+  await page.getByRole("button", { name: "Appearance" }).click();
+  const sheet = page.getByRole("dialog", { name: "Appearance" });
+  await sheet.getByRole("radio", { name: "Two pages" }).check();
+  // With the cover option the first page stands alone, so page 2 starts below it.
+  await expect(sheet.getByRole("checkbox", { name: "First page alone, like a cover" })).toBeChecked();
+  await expect.poll(async () => (await box(2)).y).toBeGreaterThan((await box(1)).y + 50);
+
+  await sheet.getByRole("checkbox", { name: "First page alone, like a cover" }).uncheck();
+  await expect.poll(async () => Math.abs((await box(2)).y - (await box(1)).y)).toBeLessThan(2);
+  const [left, right] = [await box(1), await box(2)];
+  expect(right.x).toBeGreaterThan(left.x + left.width - 1);
+  expect(left.width).toBeLessThan(single.width * 0.55); // each page takes half the width
+  expect(right.x + right.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await expect(page.locator(".page-now")).toHaveText("1"); // of the two pages on screen, the first counts
+  await page.screenshot({ path: `test/output/spread-${test.info().project.name}.png` });
+
+  await sheet.getByRole("checkbox", { name: "Pages go right to left" }).check();
+  await expect.poll(async () => (await box(1)).x - (await box(2)).x).toBeGreaterThan(50);
+
+  // The choice is kept, and going back to scrolling restores the full width.
+  await page.reload();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await expect.poll(async () => Math.abs((await box(2)).y - (await box(1)).y)).toBeLessThan(2);
+  await page.getByRole("button", { name: "Appearance" }).click();
+  await page.getByRole("dialog", { name: "Appearance" }).getByRole("radio", { name: "Scrolling" }).check();
+  await expect.poll(async () => (await box(1)).width).toBeGreaterThan(single.width - 2);
+  if (!isMobile) await expect(page.getByRole("dialog", { name: "Appearance" }).getByRole("button", { name: "Full screen" })).toBeVisible();
+});
+
+test("page by page: scrolling comes to rest at the top of a page", async ({ page }) => {
+  await openSample(page);
+  await page.getByRole("button", { name: "Appearance" }).click();
+  const sheet = page.getByRole("dialog", { name: "Appearance" });
+  await sheet.getByRole("radio", { name: "Page by page" }).check();
+  await sheet.getByRole("button", { name: "Close" }).click();
+  await expect(page.locator(".reader-scroll")).toHaveClass(/is-paged/);
+  await goToPage(page, 2);
+  // Page 2 sits right under the bars and the floating controls.
+  const top = await page.locator('.page[data-page="2"]').evaluate((p) => p.getBoundingClientRect().top);
+  const expected = await page.locator(".reader-scroll").evaluate((s) => parseFloat(getComputedStyle(s).paddingTop));
+  expect(Math.abs(top - expected)).toBeLessThan(4);
+});

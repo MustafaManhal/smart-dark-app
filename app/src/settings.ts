@@ -6,6 +6,8 @@ export type PageStyle = "original" | "sepia" | "dark";
 export type DarkTheme = "dark" | "dim" | "black" | "warm" | "slate";
 export type ImageMode = "smart" | "keep" | "dim" | "invert";
 export type AppTheme = "system" | "light" | "dark";
+/** scroll: one page under the other. paged: the same, but scrolling stops at each page. spread: two pages side by side. */
+export type ViewLayout = "scroll" | "paged" | "spread";
 
 const defaults = {
   pageStyle: "dark" as PageStyle,
@@ -20,6 +22,9 @@ const defaults = {
   // Last zoom, so a book opens the way the reader left it. Scale is in renderer units.
   zoomMode: "fit" as "fit" | "page" | "manual",
   zoomScale: 1,
+  viewLayout: "scroll" as ViewLayout,
+  spreadCover: true, // in two-page view the first page stands alone, as the cover of a book does
+  spreadRtl: false, // two-page view with the first page on the right, for books read right to left
   readRate: 1,
   readPitch: 1,
   readVoices: {} as Record<string, string>, // language -> voiceURI, or "natural:<id>" for a natural voice

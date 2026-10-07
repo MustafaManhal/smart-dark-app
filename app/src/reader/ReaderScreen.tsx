@@ -16,7 +16,7 @@ import { COLOR_HEX, COLOR_LABEL } from "../annotations/colors";
 import type { Book, Repos } from "../db/repos";
 import { copyText, tidyCopiedText } from "../platform/clipboard";
 import { navigate } from "../router";
-import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle } from "../settings";
+import { adjustValues, saveSetting, settings, type DarkTheme, type ImageMode, type PageStyle, type ViewLayout } from "../settings";
 import { Button, IconButton } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
 import { AdjustControls } from "./AdjustControls";
@@ -35,6 +35,8 @@ import "../library/library.css";
 const STYLES: [PageStyle, string][] = [["original", "Original"], ["sepia", "Sepia"], ["dark", "Smart dark"]];
 const DARK_THEMES: [DarkTheme, string][] = [["dark", "Dark"], ["dim", "Dim"], ["black", "Black"], ["warm", "Warm"], ["slate", "Slate"]];
 const IMAGE_MODES: [ImageMode, string][] = [["smart", "Smart"], ["keep", "Keep"], ["dim", "Dim"], ["invert", "Darken"]];
+const LAYOUTS: [ViewLayout, string][] = [["scroll", "Scrolling"], ["paged", "Page by page"], ["spread", "Two pages"]];
+const canFullscreen = typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
 
 type Anchor = { left: number; top: number; right: number; bottom: number };
 type PendingSelection = { page: number; rects: NormRect[]; text: string; anchor: Anchor };
@@ -143,6 +145,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         }, 400);
       };
       r.onProgress = setProgress;
+      r.setView({ layout: settings.viewLayout.value, cover: settings.spreadCover.value, rtl: settings.spreadRtl.value });
       await r.init({ mode: settings.zoomMode.value, scale: settings.zoomScale.value });
       if (startPage) r.scrollToPage(startPage);
       else if (saved) r.scrollToPage(saved.page, saved.offset);
@@ -177,6 +180,20 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   useEffect(() => {
     renderer.current?.setOptions({ pageStyle, darkTheme, imageMode, adjust });
   }, [pageStyle, darkTheme, imageMode, adjust.brightness, adjust.contrast, adjust.sepia, adjust.grayscale]);
+
+  const viewLayout = settings.viewLayout.value;
+  const spreadCover = settings.spreadCover.value;
+  const spreadRtl = settings.spreadRtl.value;
+  useEffect(() => {
+    renderer.current?.setView({ layout: viewLayout, cover: spreadCover, rtl: spreadRtl });
+  }, [viewLayout, spreadCover, spreadRtl]);
+
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   // Navigation stays off until pages are laid out, so early taps are not lost.
   const total = ready ? book?.pageCount ?? 0 : 0;
@@ -747,6 +764,30 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
               ))}
             </fieldset>
           </>
+        )}
+        <fieldset class="seg">
+          <legend>{t("Layout")}</legend>
+          {LAYOUTS.map(([value, label]) => (
+            <label><input type="radio" name="viewLayout" checked={viewLayout === value}
+              onChange={() => saveSetting("viewLayout", value)} />{t(label)}</label>
+          ))}
+        </fieldset>
+        {viewLayout === "spread" && (
+          <>
+            <label class="toggle">
+              <input type="checkbox" checked={spreadCover} onChange={(e) => saveSetting("spreadCover", e.currentTarget.checked)} />
+              {t("First page alone, like a cover")}
+            </label>
+            <label class="toggle">
+              <input type="checkbox" checked={spreadRtl} onChange={(e) => saveSetting("spreadRtl", e.currentTarget.checked)} />
+              {t("Pages go right to left")}
+            </label>
+          </>
+        )}
+        {canFullscreen && (
+          <Button onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())}>
+            {t(fullscreen ? "Leave full screen" : "Full screen")}
+          </Button>
         )}
         <AdjustControls />
       </Sheet>
