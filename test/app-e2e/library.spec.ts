@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("import a PDF, see it in the library, reject duplicates, remove it", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "Add your first book" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Add PDF" }).click();
   await (await chooser).setFiles("src/sample/sample.pdf");
@@ -22,5 +22,5 @@ test("import a PDF, see it in the library, reject duplicates, remove it", async 
 
   await card.getByRole("button", { name: /Remove/ }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Remove" }).click();
-  await expect(page.getByRole("heading", { name: "Add your first book" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
 });

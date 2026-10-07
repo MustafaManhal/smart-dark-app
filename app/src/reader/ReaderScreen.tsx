@@ -28,6 +28,7 @@ import { measureCrop } from "./crop";
 import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
+import { Tour } from "./Tour";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
 import { saveFile } from "../platform/saveFile";
@@ -73,7 +74,10 @@ const ZOOM_STEP = 1.2;
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
 
-export function ReaderScreen({ repos, bookId, startPage, startFind }: { repos: Repos; bookId: string; startPage?: number; startFind?: string }) {
+export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
+  repos: Repos; bookId: string; startPage?: number; startFind?: string; tour?: boolean;
+}) {
+  const [touring, setTouring] = useState(!!tour);
   const scroller = useRef<HTMLDivElement>(null);
   const renderer = useRef<Renderer | null>(null);
   const [book, setBook] = useState<Book | null>(null);
@@ -1034,6 +1038,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind }: { repos: R
       </Sheet>
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      {touring && ready && !sheet && <Tour onDone={() => setTouring(false)} />}
       {palette && <CommandPalette commands={commands()} pages={total} onGoToPage={jump} onClose={() => setPalette(false)} />}
 
       <PasswordSheet locked={locked && book ? {

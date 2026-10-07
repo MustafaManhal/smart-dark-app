@@ -25,3 +25,9 @@ test("a reader route can carry words to look for", () => {
   expect(parseHash("#/read/x?q=%20%20")).toEqual({ name: "reader", bookId: "x" });
   expect(parseHash("#/read/x?p=abc")).toEqual({ name: "reader", bookId: "x" });
 });
+
+test("a reader route can ask for the tour", () => {
+  expect(hashFor({ name: "reader", bookId: "x", tour: true })).toBe("#/read/x?tour=1");
+  expect(parseHash("#/read/x?tour=1")).toEqual({ name: "reader", bookId: "x", tour: true });
+  expect(parseHash("#/read/x?tour=0")).toEqual({ name: "reader", bookId: "x" });
+});

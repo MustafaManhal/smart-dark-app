@@ -388,3 +388,14 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 .shortcuts dl div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .shortcuts dt, .shortcuts dd { margin: 0; }
 .shortcuts dd { order: -1; }
+
+/* The three-step tour shown with the sample book */
+.tour { position: fixed; z-index: 40; width: min(300px, calc(100vw - 24px)); padding: 14px 16px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+.tour::before { content: ""; position: absolute; top: -7px; left: var(--arrow, 50%); width: 12px; height: 12px; margin-left: -6px; rotate: 45deg; background: var(--surface); border: 1px solid var(--border); border-right: 0; border-bottom: 0; }
+.tour p { margin: 6px 0 12px; color: var(--muted); }
+.tour-foot { display: flex; align-items: center; gap: 8px; }
+.tour-count { display: flex; gap: 5px; margin-inline-end: auto; }
+.tour-count i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.tour-count i.is-on { background: var(--accent); }
+.tour .btn { height: 34px; padding: 0 14px; }
+.icon-btn.tour-target { outline: 2px solid var(--accent); outline-offset: 1px; background: color-mix(in srgb, var(--accent) 18%, transparent); }

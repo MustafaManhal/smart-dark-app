@@ -33,7 +33,7 @@ export default defineConfig({
       workbox: {
         // Everything the reader needs offline, including the pdf.js worker,
         // character maps (.bcmap), standard fonts and image decoders (.wasm).
-        globPatterns: ["**/*.{js,mjs,css,html,png,svg,wasm,bcmap,pfb,ttf,icc,webmanifest}"],
+        globPatterns: ["**/*.{js,mjs,css,html,png,svg,wasm,bcmap,pfb,ttf,icc,webmanifest}", "sample.pdf"],
         // Character maps (~170 small files) are only needed by some CJK PDFs. Precaching
         // them made the first install take ~40 s on a phone, so they are cached on first use.
         // The natural read-aloud voices (tts/, about 58 MB) are optional and for computers

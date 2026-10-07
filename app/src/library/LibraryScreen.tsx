@@ -16,6 +16,7 @@ import type { BookAnnotations } from "../db/annotations";
 import { searchInsideBooks, searchNotes, type BookHits } from "./deepSearch";
 import { importPdf, ImportError } from "./importer";
 import { PasswordSheet } from "./PasswordSheet";
+import { loadSample } from "./sample";
 import "./library.css";
 
 const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"], ["favorites", "Favorites"]];
@@ -148,6 +149,18 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     setBooks((list) => list && list.map((b) => (b.id === book.id ? { ...b, favorite: !book.favorite } : b)));
   }
   const pick = () => fileInput.current?.click();
+  // The sample book opens with a three-step tour of the reader.
+  async function trySample() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const { book } = await importPdf(await loadSample(), { books: repos.books, makeCover });
+      navigate({ name: "reader", bookId: book.id, tour: true });
+    } catch {
+      setMessage(t("The sample book could not be loaded."));
+      setBusy(false);
+    }
+  }
 
   return (
     <div
@@ -243,11 +256,20 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
       {message && <p class="lib-message" role="status">{message}</p>}
 
       {books && books.length === 0 && (
-        <section class="lib-empty">
+        <section class="lib-empty" aria-label={t("Welcome")}>
           <div class="lib-empty-art"><Icon name="book" size={40} /></div>
-          <h2>{t("Add your first book")}</h2>
-          <p>{t("Choose a PDF or drop it here. It stays on this device.")}</p>
-          <Button variant="primary" onClick={pick}>{t("Choose a PDF")}</Button>
+          <h2>{t("Welcome to Reader343")}</h2>
+          <p>{t("A calm place to read PDFs. Your books and notes stay on this device.")}</p>
+          <ul class="welcome-points">
+            <li><Icon name="palette" size={20} /><span>{t("Dark pages that keep photos and colors as they are")}</span></li>
+            <li><Icon name="highlighter" size={20} /><span>{t("Highlights, notes and sticky notes, all in one list")}</span></li>
+            <li><Icon name="headphones" size={20} /><span>{t("Read aloud, with natural voices on a computer")}</span></li>
+          </ul>
+          <div class="welcome-actions">
+            <Button variant="primary" onClick={pick} disabled={busy}>{t("Choose a PDF")}</Button>
+            <Button onClick={trySample} disabled={busy}>{t("Try the sample book")}</Button>
+          </div>
+          <p class="welcome-drop">{t("Or drop a PDF anywhere on this page.")}</p>
         </section>
       )}
 

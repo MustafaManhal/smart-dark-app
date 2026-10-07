@@ -113,7 +113,7 @@ that ship on their own.
 | Slice | What | Size |
 |---|---|---|
 | B1 | Brand: name, icon, color, type, motion rules. One design pass over every screen with the design skills installed in this setup, checked by the layout audit | L |
-| B2 | First run: a short welcome that opens the sample book and shows dark mode, highlighting and read aloud in three steps | S |
+| B2 (done 2026-10-07) | First run: a short welcome that opens the sample book and shows dark mode, highlighting and read aloud in three steps | S |
 | B3 (done 2026-10-07; collections were folded into tags) | Library: "Continue reading" on top, collections and tags, favorites, grid or list, search inside all books and notes | M |
 | B4 | A public page that explains the app, with the app itself one click away | S |
 

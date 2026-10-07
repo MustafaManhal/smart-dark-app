@@ -12,4 +12,6 @@ for (const dir of ["cmaps", "standard_fonts", "iccs"]) {
 }
 cpSync(new URL("wasm/", from), new URL("wasm/", to), { recursive: true, filter: (p) => !/quickjs/i.test(p) });
 cpSync(new URL("LICENSE", from), new URL("LICENSE", to));
+// The sample book that the welcome screen offers.
+cpSync(new URL("../src/sample/sample.pdf", import.meta.url), new URL("../app/public/sample.pdf", import.meta.url));
 console.log("pdf.js assets copied to app/public/pdfjs/");

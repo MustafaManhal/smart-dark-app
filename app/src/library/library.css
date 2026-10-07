@@ -133,3 +133,12 @@
 .lib-found li > .lib-hit + .lib-hit { margin-top: 6px; }
 .lib-hit-status .btn { flex: none; white-space: nowrap; }
 .lib-hit-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+
+/* Welcome: the empty library */
+.lib-empty { max-width: 460px; margin-inline: auto; }
+.welcome-points { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 10px; text-align: start; }
+.welcome-points li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+.welcome-points .icon { flex: none; color: var(--accent); }
+.welcome-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.welcome-drop { margin: 16px 0 0 !important; font-size: 13px; }
+@media (hover: none) { .welcome-drop { display: none; } }

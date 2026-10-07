@@ -115,3 +115,11 @@ test("natural voices speak in the desktop app", async () => {
   expect((await clips())[0].peak).toBeGreaterThan(0.1); // speech, not silence
   await win.screenshot({ path: "test/output/desktop-natural-voices.png" });
 });
+
+test("the welcome screen opens the sample book with its tour", async () => {
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
+  await win.getByRole("button", { name: "Try the sample book" }).click();
+  await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
+  await expect(win.getByRole("dialog", { name: "Quick tour" })).toContainText("Dark pages, real colors");
+});

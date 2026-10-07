@@ -78,14 +78,14 @@ test("iPhone Safari shows how to install, once", async ({ page, isMobile }) => {
   await page.goto("./");
   const hint = page.getByRole("note", { name: "Install the app" });
   if (!isMobile) {
-    await expect(page.getByRole("heading", { name: "Add your first book" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
     await expect(hint).toHaveCount(0);
     return;
   }
   await expect(hint).toContainText("Add to Home Screen");
   await hint.getByRole("button", { name: "Dismiss" }).click();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Add your first book" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to Reader343" })).toBeVisible();
   await expect(hint).toHaveCount(0);
 });
 

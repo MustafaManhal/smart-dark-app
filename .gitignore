@@ -7,5 +7,6 @@ test/output/
 smart-dark-pdf-*/
 app-dist/
 app/public/pdfjs/
+app/public/sample.pdf
 release/
 app/public/tts/
