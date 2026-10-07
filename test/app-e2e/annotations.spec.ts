@@ -297,7 +297,8 @@ test("notes and sticky notes can have a title", async ({ page }) => {
   const note = page.getByRole("group", { name: "Sticky note" });
   await note.getByLabel("Note title").fill("Ask Ana");
   await note.getByLabel("Sticky note text").fill("Which colors for the chart?");
-  await page.waitForTimeout(700); // typing is saved a moment later
+  await page.locator(".reader-title").click(); // leaving the note saves it at once
+  await page.waitForTimeout(500);
   await page.screenshot({ path: `test/output/note-titles-${test.info().project.name}.png` });
 
   await page.reload();

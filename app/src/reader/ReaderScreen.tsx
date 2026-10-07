@@ -23,6 +23,8 @@ import { AdjustControls } from "./AdjustControls";
 import { currentChapter } from "./chapters";
 import { closePdf, flattenOutline, openPdf, type OutlineItem, type PDFDocumentProxy } from "./pdf";
 import { CSS_UNITS, Renderer } from "./renderer";
+import { BookSearch } from "./search";
+import { SearchBar, useBookSearch } from "./SearchBar";
 import "./reader.css";
 import "./textlayer.css";
 import "../annotations/annotations.css";
@@ -74,6 +76,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const [penColor, setPenColor] = useState<HighlightColor>("yellow");
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
+  const [bookSearch, setBookSearch] = useState<BookSearch | null>(null);
   const annotations = useAnnotations(repos, bookId);
   const [selection, setSelection] = useState<PendingSelection | null>(null);
   const [popover, setPopover] = useState<PopState | null>(null);
@@ -114,6 +117,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         adjust: adjustValues(),
       });
       renderer.current = r;
+      setBookSearch(new BookSearch(doc));
       r.onPageChange = (p) => {
         setPage(p);
         setPageInput(String(p));
@@ -150,6 +154,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
       if (renderer.current) clearOverlays(renderer.current);
       renderer.current?.destroy();
       renderer.current = null;
+      setBookSearch(null);
       closePdf(doc);
     };
   }, [bookId]);
@@ -166,6 +171,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const total = ready ? book?.pageCount ?? 0 : 0;
   const [barsHidden, setBarsHidden] = useState(false);
   const readAloud = useReadAloud(renderer, outline, book?.pageCount ?? 0);
+  const search = useBookSearch(bookSearch, renderer, page);
   const chapter = currentChapter(outline, page, total);
   const go = (p: number) => {
     if (Number.isFinite(p)) renderer.current?.scrollToPage(Math.min(total, Math.max(1, Math.round(p))));
@@ -413,6 +419,12 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
         else undo();
         return;
       }
+      // Ctrl/Cmd+F searches the book instead of the browser's own find, which only sees the pages on screen.
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        search.show();
+        return;
+      }
       // Ctrl/Cmd + plus/minus/0 zoom the pages instead of the whole app.
       if ((e.ctrlKey || e.metaKey) && ["=", "+", "-", "0"].includes(e.key)) {
         e.preventDefault();
@@ -434,7 +446,7 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [page, total, sheet, popover, placing, erasing]);
+  }, [page, total, sheet, popover, placing, erasing, search.open]);
 
   // Page clicks: place a sticky note, open a highlight, or (touch) toggle the bars.
   const onPageTap = async (e: MouseEvent) => {
@@ -480,13 +492,15 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
   const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   return (
-    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""}`} data-style={pageStyle}>
+    <div class={`reader ${barsHidden ? "bars-hidden" : ""} ${panelOpen ? "panel-open" : ""} ${readAloud.open ? "reading" : ""} ${search.open ? "searching" : ""}`} data-style={pageStyle}>
       <header class="reader-top">
         <IconButton label={t("Back to library")} icon="back" class="top-back" onClick={() => navigate({ name: "library" })} />
         <div class="reader-title">
           <strong>{book?.title ?? ""}</strong>
           {chapter && <span>{chapter.item.title}</span>}
         </div>
+        <IconButton label={t("Search in book")} icon="search" class={`top-search ${search.open ? "is-on" : ""}`}
+          aria-pressed={search.open} disabled={!ready} onClick={() => (search.open ? search.close() : search.show())} />
         <div class="tools" role="toolbar" aria-label={t("Reading tools")}>
           <IconButton label={t("Highlight text")} icon="highlighter" class={highlightMode ? "is-on" : ""}
             aria-pressed={highlightMode} disabled={!ready}
@@ -513,6 +527,8 @@ export function ReaderScreen({ repos, bookId, startPage }: { repos: Repos; bookI
           {chapterStarts.map((x) => <span class="book-progress-tick" style={{ insetInlineStart: `${x * 100}%` }} />)}
         </div>
       </header>
+
+      <SearchBar search={search} />
 
       {highlightMode && (
         <div class="mode-hint" role="status">

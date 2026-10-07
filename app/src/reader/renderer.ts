@@ -41,6 +41,7 @@ class PageSlot {
   highlightLayer = document.createElement("div");
   stickyLayer = document.createElement("div");
   speechLayer = document.createElement("div");
+  searchLayer = document.createElement("div");
   textReady: Promise<void>;
   private markTextReady!: () => void;
 
@@ -50,7 +51,8 @@ class PageSlot {
     this.highlightLayer.className = "hl-layer";
     this.stickyLayer.className = "sticky-layer";
     this.speechLayer.className = "speech-layer";
-    this.div.append(this.highlightLayer, this.speechLayer, this.stickyLayer);
+    this.searchLayer.className = "search-layer";
+    this.div.append(this.highlightLayer, this.searchLayer, this.speechLayer, this.stickyLayer);
     this.textReady = new Promise((resolve) => (this.markTextReady = resolve));
   }
 
@@ -96,6 +98,8 @@ export class Renderer {
   onScaleChange: (scale: number, mode: "fit" | "page" | "manual") => void = () => {};
   /** Whole-book reading position, 0 at the top of page 1 and 1 at the very end. */
   onProgress: (fraction: number) => void = () => {};
+  /** The text of a page has been laid out (again after each zoom). */
+  onTextRendered: (page: number) => void = () => {};
 
   constructor(private container: HTMLElement, private doc: PDFDocumentProxy, private opts: RenderOptions) {
     this.content.className = "pages";
@@ -137,7 +141,15 @@ export class Renderer {
   /** Overlay containers for page `number` (1-based). */
   layers(number: number) {
     const slot = this.slots[number - 1];
-    return slot ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer, speech: slot.speechLayer } : null;
+    return slot
+      ? { page: slot.div, highlights: slot.highlightLayer, stickies: slot.stickyLayer, speech: slot.speechLayer, search: slot.searchLayer }
+      : null;
+  }
+
+  /** The on-screen elements of a page's text items, in the order pdf.js lists the items; null until laid out. */
+  textSpans(number: number): HTMLElement[] | null {
+    const slot = this.slots[number - 1];
+    return slot?.textDiv && slot.textLayer ? slot.textLayer.textDivs : null;
   }
 
   /**
@@ -465,6 +477,7 @@ export class Renderer {
     });
     await slot.textLayer.render().catch(() => {});
     slot.textIsReady();
+    this.onTextRendered(slot.number);
   }
 
   destroy() {

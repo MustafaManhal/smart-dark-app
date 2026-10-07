@@ -24,7 +24,7 @@
   --accent: #8a5a2b;
   --accent-text: #fffaf0;
 }
-.reader-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "back title tools"; align-items: center; gap: 4px; padding: 6px 8px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 6; }
+.reader-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "back title search tools"; align-items: center; gap: 4px; padding: 6px 8px; background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 6; }
 /* Bars float over the pages so hiding them gives the full screen to reading. */
 .reader-top { position: absolute; inset: 0 0 auto; padding-top: calc(6px + var(--safe-top)); border-bottom: 1px solid var(--border); }
 .reader-title { grid-area: title; min-width: 0; display: grid; text-align: center; padding: 0 6px; }
@@ -138,6 +138,7 @@
 @media (hover: none) { input, textarea, select { font-size: 16px !important; } }
 
 .top-back { grid-area: back; }
+.top-search { grid-area: search; }
 .tools { grid-area: tools; display: flex; align-items: center; gap: 2px; }
 
 /* Whole-book progress along the bottom edge of the top bar, ticks at chapter starts. */
@@ -157,7 +158,7 @@
 }
 @media (max-width: 720px) {
   .reader { --bar-top: calc(97px + var(--safe-top)); }
-  .reader-top { grid-template-columns: auto minmax(0, 1fr) 40px; grid-template-areas: "back title ." "tools tools tools"; row-gap: 2px; }
+  .reader-top { grid-template-columns: auto minmax(0, 1fr) 40px; grid-template-areas: "back title search" "tools tools tools"; row-gap: 2px; }
   .tools { justify-content: space-around; padding-top: 2px; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 }
 
@@ -196,6 +197,43 @@
 /* Switches inside sheets (the settings screen has its own copy in settings.css). */
 .sheet .toggle { display: flex; align-items: center; gap: 10px; margin: 10px 0; cursor: pointer; }
 .sheet .toggle input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+
+/* Search in the book: a bar in the place of the page and zoom controls, with the matches under it. */
+.reader.searching .float-tools { visibility: hidden; }
+.search-bar {
+  position: absolute;
+  top: calc(var(--bar-top) + 8px);
+  inset-inline: 8px;
+  width: min(560px, calc(100% - 16px));
+  margin-inline: auto;
+  z-index: 9;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+@media (min-width: 960px) { .reader.panel-open .search-bar { inset-inline-end: 388px; width: min(560px, calc(100% - 396px)); } }
+.search-row { display: flex; align-items: center; gap: 2px; padding: 4px 4px 4px 12px; }
+.search-row > .icon { flex: none; color: var(--muted); }
+.search-row input { flex: 1; min-width: 0; height: 36px; padding: 0 8px; border: 0; background: none; color: var(--text); font-size: 16px; outline: none; }
+.search-row input::-webkit-search-cancel-button { display: none; }
+.search-row .icon-btn { width: 34px; height: 34px; }
+.search-count { flex: none; padding: 0 4px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.search-results { list-style: none; margin: 0; padding: 4px; max-height: min(46vh, 380px); overflow: auto; border-top: 1px solid var(--border); }
+.search-results button { display: grid; gap: 2px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: none; color: inherit; text-align: start; cursor: pointer; }
+.search-results button:hover, .search-results button[aria-current="true"] { background: var(--surface-2); }
+.search-page { color: var(--muted); font-size: 12px; }
+.search-snippet { font-size: 14px; overflow-wrap: anywhere; }
+.search-snippet mark { background: color-mix(in srgb, #ffd43b 70%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+@media (max-width: 400px) {
+  .search-row { padding-inline-start: 8px; }
+  .search-row > .icon { display: none; }
+  .search-row .icon-btn { width: 30px; height: 34px; }
+}
+/* Matches on the page. */
+.search-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.found { position: absolute; border-radius: 2px; background: color-mix(in srgb, #ffd43b 42%, transparent); }
+.found.is-current { background: color-mix(in srgb, #ff922b 55%, transparent); outline: 2px solid #ff922b; }
 
 /* Read aloud */
 .speed-step { display: inline-flex; align-items: center; }

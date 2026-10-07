@@ -35,9 +35,9 @@ async function check(page: Page, where: string, findings: Finding[]) {
       const style = getComputedStyle(el);
       if (style.visibility === "hidden" || style.pointerEvents === "none") continue;
       // Things inside scrolling areas may be off screen on purpose.
-      const scroller = el.closest(".reader-scroll, .sheet, .notes-panel .panel-body, .voice-list, .zoom-chips, .chips, .heat-scroll, .pop-quote, .panel-tabs, .toc");
+      const scroller = el.closest(".reader-scroll, .sheet, .notes-panel .panel-body, .voice-list, .search-results, .zoom-chips, .chips, .heat-scroll, .pop-quote, .panel-tabs, .toc");
       const inPage = el.closest(".page");
-      if (!scroller || el.closest(".float-tools, .reader-top, .read-bar, .selection-bar, .popover, .toast, .mode-hint, .place-hint")) {
+      if (!scroller || el.closest(".float-tools, .reader-top, .read-bar, .selection-bar, .popover, .toast, .mode-hint, .place-hint, .search-row")) {
         if (r.right > vw + 1 || r.left < -1) res.push({ kind: "outside screen (x)", detail: `${name(el)} ${Math.round(r.left)}..${Math.round(r.right)} of ${vw}` });
         if (!inPage && (r.bottom > vh + 1 || r.top < -1) && getComputedStyle(el.closest(".settings, .library, .stats") ?? document.body).position !== "static")
           res.push({ kind: "outside screen (y)", detail: `${name(el)} ${Math.round(r.top)}..${Math.round(r.bottom)} of ${vh}` });
@@ -137,6 +137,16 @@ for (const lang of ["en", "ar"] as const) {
       await page.locator(".zoom-value").click();
       await check(page, `${tag}-03-zoom-menu`, findings);
       await page.locator(".zoom-value").click();
+
+      // Search: the bar, the marks, the list of matches.
+      await page.locator(".top-search").click();
+      await page.locator(".search-row input").fill("the");
+      await expect(page.locator(".found").first()).toBeVisible();
+      await check(page, `${tag}-03b-search`, findings);
+      await page.locator(".search-row .icon-btn").nth(2).click();
+      await expect(page.locator(".search-results")).toBeVisible();
+      await check(page, `${tag}-03c-search-list`, findings);
+      await page.locator(".search-row .icon-btn").last().click();
 
       await selectText(page, "colored words keep their hue");
       await expect(page.locator(".selection-bar")).toBeVisible();

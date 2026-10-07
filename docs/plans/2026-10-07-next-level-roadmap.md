@@ -1,4 +1,4 @@
-# Next level: research and roadmap (proposal, waiting for the owner)
+# Next level: research and roadmap (approved by the owner 2026-10-07: this order, PDF only, stores later)
 
 Written 2026-10-07. The owner asked for a modern PDF reader that many people use, with every good feature,
 under the name Reader343. This document says what the best readers offer, what this app has and lacks, and
@@ -100,7 +100,7 @@ that ship on their own.
 
 | Slice | What | Size | Notes |
 |---|---|---|---|
-| A1 | Search in the book: box, match count, next and previous, matches marked on the page, list of results with their page | M | own index from pdf.js text; Arabic and diacritics folded |
+| A1 (done 2026-10-07) | Search in the book: box, match count, next and previous, matches marked on the page, list of results with their page | M | own index from pdf.js text; Arabic and diacritics folded |
 | A2 | Page thumbnails as a grid and as a side strip; drag the progress bar to scrub | M | |
 | A3 | View modes: continuous, single page, two pages (with a cover page option, and right-to-left order for Arabic books); rotate; full screen | M | |
 | A4 | Crop margins: "fit text" zoom that cuts the white border, per book | S | uses the text and image boxes the color engine already reads |
