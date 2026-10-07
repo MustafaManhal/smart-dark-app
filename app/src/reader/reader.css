@@ -130,7 +130,7 @@
   min-width: 120px;
   padding: 6px;
   border-radius: 12px;
-  background: var(--surface);
+  background: var(--raised);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   pointer-events: auto;
@@ -351,9 +351,12 @@
 .reader.reading .reader-scroll { padding-bottom: calc(var(--bar-bottom) + 96px); }
 
 /* Book menu: print, save a copy */
-.book-menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.book-menu button { width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
-.book-menu button:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+/* One list with hairlines between its rows. */
+.book-menu { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.book-menu li + li { border-top: 1px solid var(--border); }
+.book-menu button { width: 100%; display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 10px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; transition: background var(--fast); }
+.book-menu button:hover { background: var(--surface-2); }
+.book-menu svg { color: var(--accent); }
 .book-menu svg { flex: none; }
 .book-menu span { display: grid; gap: 2px; min-width: 0; }
 .book-menu small { color: var(--muted); font-size: 13px; }
@@ -376,7 +379,7 @@
 .pdf-link { position: absolute; display: block; padding: 0; border: 0; border-radius: 3px; background: none; cursor: pointer; pointer-events: auto; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .pdf-link:hover, .pdf-link:focus-visible { background: color-mix(in srgb, var(--accent) 20%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 65%, transparent); }
 .reader-scroll:is(.is-placing, .is-erasing, .is-highlighting) .pdf-link { pointer-events: none; }
-.link-preview { position: fixed; z-index: 30; overflow: hidden; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+.link-preview { position: fixed; z-index: 30; overflow: hidden; border-radius: 14px; border: 1px solid var(--border); background: var(--raised); box-shadow: var(--shadow); }
 .link-preview-view { overflow: hidden; background: var(--page-bg, var(--bg)); }
 .link-preview-view canvas { display: block; }
 .link-preview-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; padding: 4px 10px; color: var(--muted); font-size: 13px; }
@@ -388,7 +391,7 @@
 
 /* Command list (Ctrl/Cmd+K) */
 .palette-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center; align-items: start; padding: max(10vh, calc(var(--safe-top) + 12px)) 12px 12px; background: rgb(0 0 0 / 0.35); animation: fade 0.15s; }
-.palette { width: min(560px, 100%); max-height: min(70vh, 520px); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+.palette { width: min(560px, 100%); max-height: min(70vh, 520px); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; border: 1px solid var(--border); background: var(--raised); box-shadow: var(--shadow); }
 .palette-field { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
 .palette-field input { flex: 1; min-width: 0; height: 50px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 16px; }
 .palette-list { list-style: none; margin: 0; padding: 6px; overflow: auto; overscroll-behavior: contain; }
@@ -410,8 +413,8 @@ kbd { flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--
 .shortcuts dd { order: -1; }
 
 /* The three-step tour shown with the sample book */
-.tour { position: fixed; z-index: 40; width: min(300px, calc(100vw - 24px)); padding: 14px 16px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
-.tour::before { content: ""; position: absolute; top: -7px; left: var(--arrow, 50%); width: 12px; height: 12px; margin-left: -6px; rotate: 45deg; background: var(--surface); border: 1px solid var(--border); border-right: 0; border-bottom: 0; }
+.tour { position: fixed; z-index: 40; width: min(300px, calc(100vw - 24px)); padding: 14px 16px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--raised); box-shadow: var(--shadow); }
+.tour::before { content: ""; position: absolute; top: -7px; left: var(--arrow, 50%); width: 12px; height: 12px; margin-left: -6px; rotate: 45deg; background: var(--raised); border: 1px solid var(--border); border-right: 0; border-bottom: 0; }
 .tour.is-over::before { top: auto; bottom: -7px; rotate: 225deg; }
 .tour p { margin: 6px 0 12px; color: var(--muted); }
 .tour-foot { display: flex; align-items: center; gap: 8px; }

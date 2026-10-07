@@ -82,7 +82,7 @@
   padding: 6px 8px;
   max-width: calc(100% - 16px);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--raised);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   animation: fade 0.12s var(--ease);
@@ -157,7 +157,7 @@
   max-width: min(360px, calc(100vw - 16px));
   padding: 8px;
   border-radius: 14px;
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);

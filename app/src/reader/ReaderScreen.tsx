@@ -30,6 +30,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
 import { SidePanel, type PanelSection } from "./SidePanel";
+import { pageColors, Swatch, themeColors } from "./Swatch";
 import { useMedia } from "../ui/useMedia";
 import { QuoteSheet } from "../annotations/QuoteSheet";
 import type { QuoteSource } from "../annotations/quote";
@@ -1139,7 +1140,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           <legend>{t("Page")}</legend>
           {STYLES.map(([value, label]) => (
             <label><input type="radio" name="pageStyle" checked={pageStyle === value}
-              onChange={() => saveSetting("pageStyle", value)} />{t(label)}</label>
+              onChange={() => saveSetting("pageStyle", value)} /><Swatch {...pageColors(value, darkTheme)} />{t(label)}</label>
           ))}
         </fieldset>
         {pageStyle === "dark" && (
@@ -1148,7 +1149,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
               <legend>{t("Dark theme")}</legend>
               {DARK_THEMES.map(([value, label]) => (
                 <label><input type="radio" name="darkTheme" checked={darkTheme === value}
-                  onChange={() => saveSetting("darkTheme", value)} />{t(label)}</label>
+                  onChange={() => saveSetting("darkTheme", value)} /><Swatch {...themeColors(value)} />{t(label)}</label>
               ))}
             </fieldset>
             <fieldset class="seg">

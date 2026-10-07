@@ -12,16 +12,19 @@ import { Icon } from "../ui/Icon";
 import { AdjustControls } from "../reader/AdjustControls";
 import { SpeedStepper } from "../readaloud/VoicePicker";
 import { Brand } from "../ui/Brand";
+import { pageColors, Swatch, themeColors } from "../reader/Swatch";
 import "./settings.css";
 
-function Choice<T extends string | number>({ name, legend, value, options, onPick }: {
+function Choice<T extends string | number>({ name, legend, value, options, onPick, colors }: {
   name: string; legend: string; value: T; options: [T, string][]; onPick: (v: T) => void;
+  /** The paper and ink an option gives, drawn as a tiny page inside it. */
+  colors?: (v: T) => { paper: string; ink: string };
 }) {
   return (
     <fieldset class="seg">
       <legend>{legend}</legend>
       {options.map(([v, label]) => (
-        <label><input type="radio" name={name} checked={value === v} onChange={() => onPick(v)} />{label}</label>
+        <label><input type="radio" name={name} checked={value === v} onChange={() => onPick(v)} />{colors && <Swatch {...colors(v)} />}{label}</label>
       ))}
     </fieldset>
   );
@@ -49,12 +52,12 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
           onPick={(v) => saveSetting("appTheme", v)} />
         <Choice<PageStyle> name="pageStyle" legend={t("Pages")} value={s.pageStyle.value}
           options={[["original", t("Original")], ["sepia", t("Sepia")], ["dark", t("Smart dark")]]}
-          onPick={(v) => saveSetting("pageStyle", v)} />
+          onPick={(v) => saveSetting("pageStyle", v)} colors={(v) => pageColors(v, s.darkTheme.value)} />
         {s.pageStyle.value === "dark" && (
           <>
             <Choice<DarkTheme> name="darkTheme" legend={t("Dark theme")} value={s.darkTheme.value}
               options={[["dark", t("Dark")], ["dim", t("Dim")], ["black", t("Black")], ["warm", t("Warm")], ["slate", t("Slate")]]}
-              onPick={(v) => saveSetting("darkTheme", v)} />
+              onPick={(v) => saveSetting("darkTheme", v)} colors={themeColors} />
             <Choice<ImageMode> name="imageMode" legend={t("Images")} value={s.imageMode.value}
               options={[["smart", t("Smart")], ["keep", t("Keep")], ["dim", t("Dim")], ["invert", t("Darken")]]}
               onPick={(v) => saveSetting("imageMode", v)} />
