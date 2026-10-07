@@ -1,6 +1,7 @@
 import { request, transaction } from "./idb";
 import { AnnotationsRepo, ANNOTATION_STORES } from "./annotations";
 import { SessionsRepo } from "./sessions";
+import { ReviewsRepo } from "./reviews";
 import type { Crop } from "../reader/crop";
 
 export type Book = {
@@ -157,7 +158,7 @@ export class SettingsRepo {
   }
 }
 
-export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo; sessions: SessionsRepo };
+export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo; sessions: SessionsRepo; reviews: ReviewsRepo };
 
 export function createRepos(db: IDBDatabase): Repos {
   return {
@@ -166,5 +167,6 @@ export function createRepos(db: IDBDatabase): Repos {
     settings: new SettingsRepo(db),
     annotations: new AnnotationsRepo(db),
     sessions: new SessionsRepo(db),
+    reviews: new ReviewsRepo(db),
   };
 }

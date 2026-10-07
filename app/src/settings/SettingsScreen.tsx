@@ -31,7 +31,7 @@ function Choice<T extends string | number>({ name, legend, value, options, onPic
 }
 
 const SECTIONS: [string, string][] = [
-  ["appearance", "Appearance"], ["language", "Language"], ["read-aloud", "Read aloud"], ["goals", "Goals and reminders"],
+  ["appearance", "Appearance"], ["language", "Language"], ["read-aloud", "Read aloud"], ["goals", "Goals and reminders"], ["review", "Review"],
   ["book-details", "Book details"], ["your-data", "Your data"], ["about", "About"],
 ];
 
@@ -110,6 +110,14 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <h2>{t("Goals and reminders")}</h2>
         <p class="muted">{t("Set a daily reading goal and a reminder on the stats screen.")}</p>
         <Button onClick={() => navigate({ name: "stats" })}><Icon name="chart" size={18} /> {t("Open reading stats")}</Button>
+      </section>
+
+      <section class="card" id="set-review">
+        <h2>{t("Review")}</h2>
+        <p class="muted small">{t("Your highlights and notes come back as cards, a little later each time you remember them.")}</p>
+        <Choice<number> name="reviewNew" legend={t("New marks each day")} value={s.reviewNewPerDay.value}
+          options={[[0, t("Off")], [5, "5"], [10, "10"], [20, "20"]]}
+          onPick={(v) => saveSetting("reviewNewPerDay", v)} />
       </section>
 
       <section class="card" id="set-book-details">

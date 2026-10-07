@@ -18,6 +18,9 @@ import { importPdf, ImportError } from "./importer";
 import { PasswordSheet } from "./PasswordSheet";
 import { loadSample } from "./sample";
 import { Brand } from "../ui/Brand";
+import { notebookItems } from "../notebook/items";
+import { buildQueue } from "../review/schedule";
+import "../review/review.css";
 import "./library.css";
 
 const SHELVES: [Shelf, string][] = [["all", "All"], ["reading", "Reading"], ["unread", "Not started"], ["finished", "Finished"], ["favorites", "Favorites"]];
@@ -67,6 +70,15 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
     dueReminder(repos).then(setReminder);
   }, []);
 
+  // Marks whose review day has come, and today's share of new ones.
+  const [dueCount, setDueCount] = useState(0);
+  useEffect(() => {
+    if (!books?.length || settings.reviewNewPerDay.value === 0) return setDueCount(0);
+    Promise.all([repos.annotations.all(), repos.reviews.all()]).then(([all, reviews]) => {
+      const queue = buildQueue(notebookItems(all, books), reviews, Date.now(), settings.reviewNewPerDay.value);
+      setDueCount(queue.due.length + queue.fresh.length);
+    });
+  }, [books]);
   const [locked, setLocked] = useState<{ name: string; wrong: boolean; answer: (password: string | null) => void } | null>(null);
 
   async function importFiles(files: FileList | File[]) {
@@ -257,6 +269,12 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
         <div class="lib-reminder" role="status">
           <span>{t("Time to read:")} {reminder}</span>
           <IconButton label={t("Dismiss reminder")} icon="close" onClick={() => setReminder(null)} />
+        </div>
+      )}
+      {dueCount > 0 && (
+        <div class="lib-review" role="status">
+          <span>{t(dueCount === 1 ? "1 mark to review today." : "{n} marks to review today.", { n: dueCount })}</span>
+          <Button variant="primary" onClick={() => navigate({ name: "review" })}>{t("Review")}</Button>
         </div>
       )}
       {message && <p class="lib-message" role="status">{message}</p>}

@@ -1,0 +1,32 @@
+/* The daily review: one card at a time. */
+.review { min-height: 100%; max-width: 680px; margin: 0 auto; padding: calc(12px + var(--safe-top)) 20px calc(40px + var(--safe-bottom)); }
+.review-head { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
+.review-head h1 { flex: 1; min-width: 0; margin: 0; font-size: var(--text-xl); letter-spacing: -0.02em; }
+.review-left { flex: none; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
+.review-card { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--border); border-inline-start: 5px solid var(--c, var(--accent)); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.review-source { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; margin: 0; color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.review .link { padding: 0; border: 0; background: none; color: var(--accent-strong); font: inherit; cursor: pointer; white-space: nowrap; }
+.review-front { margin: 0; font-size: clamp(18px, 2.6vw, 22px); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-card > .btn { justify-self: start; }
+.review-back { display: grid; gap: 6px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); }
+.review-back p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-grades { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.review-grades p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.grade { position: relative; display: grid; gap: 2px; justify-items: center; min-height: 58px; padding: 8px 4px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; transition: background var(--fast), border-color var(--fast); }
+.grade:hover { background: var(--surface-2); }
+.grade small { color: var(--muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.grade kbd { position: absolute; top: 4px; inset-inline-end: 5px; padding: 0 4px; border: 0; background: none; color: var(--faint); font: 11px/1.4 var(--font); }
+@media (hover: none) { .grade kbd { display: none; } }
+.grade.is-again strong { color: var(--danger); }
+.grade.is-good { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-soft); }
+.grade.is-good strong { color: var(--accent-strong); }
+.review-done { max-width: 440px; margin: 10vh auto 0; text-align: center; display: grid; gap: 8px; justify-items: center; }
+.review-done h2 { margin: 12px 0 0; }
+.review-done p { margin: 0; color: var(--muted); }
+.review-done .btn { margin-top: 14px; }
+.review-streak { color: var(--accent-strong) !important; font-weight: 600; }
+.review .lib-empty-art { display: inline-grid; place-items: center; width: 84px; height: 84px; border-radius: 24px; background: var(--surface-2); color: var(--accent); }
+/* The library's line that says marks are due. */
+.lib-review { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 8px 8px 14px; padding-inline: 14px 8px; margin-bottom: 16px; border-radius: var(--radius-sm); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.lib-review span { min-width: 0; }
+.lib-review .btn { flex: none; min-height: 34px; padding: 0 14px; }

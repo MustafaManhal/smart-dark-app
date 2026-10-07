@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n/i18n";
 import { NotesPanel } from "../annotations/NotesPanel";
 import { HighlightPopover, NotePopover, type NoteDraft } from "../annotations/Popovers";
@@ -637,7 +637,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   }, [selection, highlightMode]);
 
   // Area marks: with the highlighter in area mode, a drag on a page draws a rectangle that becomes a mark.
-  useEffect(() => {
+  // A layout effect: the page takes the drag from the moment the mode shows as on.
+  useLayoutEffect(() => {
     const el = scroller.current;
     const r = renderer.current;
     if (!el || !r || !highlightMode || !areaMode) return;

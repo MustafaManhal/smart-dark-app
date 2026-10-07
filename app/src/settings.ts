@@ -27,6 +27,8 @@ const defaults = {
   spreadCover: true, // in two-page view the first page stands alone, as the cover of a book does
   spreadRtl: false, // two-page view with the first page on the right, for books read right to left
   libraryView: "grid" as "grid" | "list",
+  reviewNewPerDay: 10, // marks that enter the daily review each day; 0 turns the review off
+  reviewDays: [] as string[], // days (YYYY-MM-DD) on which something was reviewed, for the review streak
   markStyle: "highlight" as "highlight" | "underline" | "strike", // how the next marked passage is drawn
   autoScrollSpeed: 4, // 1 to 10, see pixelsPerSecond in reader/autoscroll.tsx
   readRate: 1,

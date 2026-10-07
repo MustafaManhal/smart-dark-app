@@ -4,6 +4,7 @@ import { settings } from "./settings";
 import { dir, lang } from "./i18n/i18n";
 import { SettingsScreen } from "./settings/SettingsScreen";
 import { NotebookScreen } from "./notebook/NotebookScreen";
+import { ReviewScreen } from "./review/ReviewScreen";
 import { LibraryScreen } from "./library/LibraryScreen";
 import { ReaderScreen } from "./reader/ReaderScreen";
 import { StatsScreen } from "./stats/StatsScreen";
@@ -40,5 +41,6 @@ export function App({ repos }: { repos: Repos }) {
   if (r.name === "stats") return <StatsScreen repos={repos} />;
   if (r.name === "settings") return <SettingsScreen repos={repos} />;
   if (r.name === "notebook") return <NotebookScreen repos={repos} />;
+  if (r.name === "review") return <ReviewScreen repos={repos} />;
   return <LibraryScreen repos={repos} />;
 }

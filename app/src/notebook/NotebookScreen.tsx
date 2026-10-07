@@ -51,6 +51,7 @@ export function NotebookScreen({ repos }: { repos: Repos }) {
       <header class="notebook-head">
         <IconButton label={t("Back to library")} icon="back" onClick={() => navigate({ name: "library" })} />
         <h1>{t("Notebook")}</h1>
+        <Button onClick={() => navigate({ name: "review" })} disabled={!items.length}>{t("Review")}</Button>
         <Button onClick={() => setExporting(true)} disabled={!shown.length}><Icon name="download" size={18} /> {t("Export")}</Button>
       </header>
 

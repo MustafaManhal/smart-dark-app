@@ -4,6 +4,7 @@ import type { Book, Repos } from "../db/repos";
 import type { Session } from "../db/sessions";
 import { navigate } from "../router";
 import { saveSetting, settings } from "../settings";
+import { reviewStreak } from "../review/schedule";
 import { Button, IconButton } from "../ui/Button";
 import { Sheet } from "../ui/Sheet";
 import { DaysChart, Heatmap } from "./charts";
@@ -40,6 +41,7 @@ export function StatsScreen({ repos }: { repos: Repos }) {
   const pct = goal.value > 0 ? Math.min(1, todayValue / goal.value) : 0;
   const unit = goal.value > 0 ? goal.unit : "minutes";
 
+  const reviewed = reviewStreak(settings.reviewDays.value, Date.now());
   return (
     <div class="stats">
       <header class="stats-head">
@@ -52,6 +54,7 @@ export function StatsScreen({ repos }: { repos: Repos }) {
           <span class="hero">{streak}</span>
           <span class="streak-label">{t("day streak")}</span>
           <span class="muted">{t("Best {n}", { n: best })}</span>
+          {reviewed > 0 && <span class="muted">{t(reviewed === 1 ? "Review streak: 1 day" : "Review streak: {n} days", { n: reviewed })}</span>}
         </div>
         <div class="goal">
           {goal.value > 0 ? (

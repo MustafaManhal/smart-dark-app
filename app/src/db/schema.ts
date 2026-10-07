@@ -1,5 +1,5 @@
 export const DB_NAME = "smart-dark-reader";
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 // Each upgrade step runs once, in order, for users coming from older versions.
 export function upgrade(db: IDBDatabase, oldVersion: number, tx: IDBTransaction) {
@@ -39,5 +39,9 @@ export function upgrade(db: IDBDatabase, oldVersion: number, tx: IDBTransaction)
     const sessions = db.createObjectStore("sessions", { keyPath: "id" });
     sessions.createIndex("bookId", "bookId");
     sessions.createIndex("start", "start");
+  }
+  if (oldVersion < 5) {
+    // Where each mark stands in its review schedule (key: the mark's id).
+    db.createObjectStore("reviews", { keyPath: "id" });
   }
 }
