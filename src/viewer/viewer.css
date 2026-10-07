@@ -12,14 +12,14 @@
   /* page colors follow the active theme; set from viewer.js */
   --page-bg: rgb(30 31 34);
   --page-fg: rgb(226 228 232);
-  --app-bg: #0e0f11;
-  --bar-bg: #16171a;
-  --bar-border: #26272c;
-  --control-bg: #1f2024;
-  --control-hover: #2a2b31;
-  --text: #ececef;
-  --muted: #9c9da6;
-  --accent: #9aa5ff;
+  --app-bg: #0b0c11;
+  --bar-bg: #14161d;
+  --bar-border: #242836;
+  --control-bg: #1d2029;
+  --control-hover: #2a2e3a;
+  --text: #eef0f6;
+  --muted: #a1a6b6;
+  --accent: #a5abff;
   --danger: #ff8a80;
   --radius: 10px;
 }
@@ -381,3 +381,7 @@ button.primary:hover { filter: brightness(1.08); }
 @media (prefers-reduced-motion: reduce) {
   .loading .bar { animation: none; width: 100%; opacity: 0.6; }
 }
+
+/* Every control has a word: the four tools that were icons alone carry their names (hidden only where the bar has no room). */
+.icon-btn.has-text { display: inline-flex; align-items: center; gap: 6px; width: auto; padding: 0 10px; font-weight: 600; }
+@media (max-width: 900px) { .icon-btn.has-text { width: 32px; padding: 0; justify-content: center; } .icon-btn.has-text span { display: none; } }

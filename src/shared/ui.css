@@ -10,14 +10,14 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0e0f11;
-  --surface: #16171a;
-  --border: #26272c;
-  --control: #1f2024;
-  --control-hover: #2a2b31;
-  --text: #ececef;
-  --muted: #9c9da6;
-  --accent: #9aa5ff;
+  --bg: #0b0c11;
+  --surface: #14161d;
+  --border: #242836;
+  --control: #1d2029;
+  --control-hover: #2a2e3a;
+  --text: #eef0f6;
+  --muted: #a1a6b6;
+  --accent: #a5abff;
 }
 
 * { box-sizing: border-box; }
