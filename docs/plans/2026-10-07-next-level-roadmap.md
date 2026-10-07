@@ -141,7 +141,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 
 | Slice | What | Size | Notes |
 |---|---|---|---|
-| E1 | OCR for scanned PDFs: text for search, selection and read aloud | L | [tesseract.js 7](https://github.com/naptha/tesseract.js/releases), Apache-2.0, about 8 MB plus a language file. Arabic output order has open bugs upstream ([#4428](https://github.com/tesseract-ocr/tesseract/issues/4428)); test before promising it |
+| E1 (done 2026-10-07; English and Arabic both read a clean test page correctly) | OCR for scanned PDFs: text for search, selection and read aloud | L | [tesseract.js 7](https://github.com/naptha/tesseract.js/releases), Apache-2.0, about 8 MB plus a language file. Arabic output order has open bugs upstream ([#4428](https://github.com/tesseract-ocr/tesseract/issues/4428)); test before promising it |
 | E2 | Look up a word (Wiktionary, opt-in because the word leaves the device) | S | on iPhone the system menu already offers Look Up and Translate |
 | E3 | Summarize a chapter, explain a passage, translate a selection with the browser's built-in model | M | Chrome on computers only: Summarizer and Translator since Chrome 138, Prompt API for web pages since 148 ([Chrome docs](https://developer.chrome.com/docs/ai/built-in-apis)). Not on phones, Safari, Firefox or the desktop app. Shown only where it works |
 | E4 | Contents generated for PDFs that have none | M | from heading sizes |

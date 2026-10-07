@@ -2,6 +2,7 @@ import { request, transaction } from "./idb";
 import { AnnotationsRepo, ANNOTATION_STORES } from "./annotations";
 import { SessionsRepo } from "./sessions";
 import { ReviewsRepo } from "./reviews";
+import { OcrRepo } from "./ocr";
 import type { Crop } from "../reader/crop";
 
 export type Book = {
@@ -81,10 +82,10 @@ export class BooksRepo {
   }
 
   remove(id: string) {
-    const stores = ["books", "files", "covers", "progress", ...ANNOTATION_STORES];
+    const stores = ["books", "files", "covers", "progress", "ocr", ...ANNOTATION_STORES];
     return transaction(this.db, stores, "readwrite", async (tx) => {
       for (const store of ["books", "files", "covers", "progress"]) await request(tx.objectStore(store).delete(id));
-      for (const store of ANNOTATION_STORES) {
+      for (const store of ["ocr", ...ANNOTATION_STORES]) {
         const keys = await request(tx.objectStore(store).index("bookId").getAllKeys(id));
         for (const key of keys) await request(tx.objectStore(store).delete(key));
       }
@@ -158,7 +159,7 @@ export class SettingsRepo {
   }
 }
 
-export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo; sessions: SessionsRepo; reviews: ReviewsRepo };
+export type Repos = { books: BooksRepo; progress: ProgressRepo; settings: SettingsRepo; annotations: AnnotationsRepo; sessions: SessionsRepo; reviews: ReviewsRepo; ocr: OcrRepo };
 
 export function createRepos(db: IDBDatabase): Repos {
   return {
@@ -168,5 +169,6 @@ export function createRepos(db: IDBDatabase): Repos {
     annotations: new AnnotationsRepo(db),
     sessions: new SessionsRepo(db),
     reviews: new ReviewsRepo(db),
+    ocr: new OcrRepo(db),
   };
 }

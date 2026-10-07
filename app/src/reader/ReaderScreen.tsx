@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { t } from "../i18n/i18n";
+import { lang, t } from "../i18n/i18n";
 import { NotesPanel } from "../annotations/NotesPanel";
 import { HighlightPopover, NotePopover, type NoteDraft } from "../annotations/Popovers";
 import type { NoteItem } from "../annotations/noteItems";
@@ -29,6 +29,8 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { recognizeBook, type OcrLang } from "../ocr/ocr";
+import type { OcrPage } from "../ocr/text";
 import { SidePanel, type PanelSection } from "./SidePanel";
 import { pageColors, Swatch, themeColors } from "./Swatch";
 import { useMedia } from "../ui/useMedia";
@@ -77,6 +79,7 @@ const inRects = (rects: NormRect[], x: number, y: number) =>
   rects.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y - 0.004 && y <= r.y + r.h + 0.004);
 
 const ZOOM_STEP = 1.2;
+const OCR_LANGS: [OcrLang, string][] = [["eng", "English"], ["ara", "Arabic"], ["eng+ara", "English and Arabic"]];
 const MODE_TEXT: Record<MarkStyle, string> = { highlight: "Select text to highlight", underline: "Select text to underline", strike: "Select text to strike through" };
 const MODE_STYLE: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
 
@@ -93,7 +96,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
-  const [sheet, setSheet] = useState<"appearance" | "goto" | "menu" | "shortcuts" | null>(null);
+  const [sheet, setSheet] = useState<"appearance" | "goto" | "menu" | "shortcuts" | "ocr" | null>(null);
   const [palette, setPalette] = useState(false);
   const [quote, setQuote] = useState<{ text: string; source: QuoteSource } | null>(null);
   // A protected book whose password is not stored here (for example after a backup was restored).
@@ -102,6 +105,29 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const pdfDoc = useRef<PDFDocumentProxy | null>(null);
   const fileBlob = useRef<Blob | null>(null);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  // Text recognition for scanned pages (OCR): what was recognized, and the run that is going on.
+  const ocrPages = useRef(new Map<number, OcrPage>());
+  const [ocrLang, setOcrLang] = useState<OcrLang>(lang.value === "ar" ? "eng+ara" : "eng");
+  const [ocr, setOcr] = useState<{ state: "running"; page: number; total: number; found: number; loading: boolean } | { state: "done"; found: number } | { state: "failed" } | null>(null);
+  const ocrStop = useRef({ now: false });
+  const recognize = async () => {
+    const doc = pdfDoc.current;
+    if (!doc || ocr?.state === "running") return;
+    const stop = (ocrStop.current = { now: false });
+    setOcr({ state: "running", page: 0, total: doc.numPages, found: 0, loading: true });
+    try {
+      const found = await recognizeBook(doc, bookId, ocrLang, new Set(ocrPages.current.keys()), async (recognized) => {
+        await repos.ocr.put(recognized);
+        ocrPages.current.set(recognized.page, recognized);
+        bookSearch?.forget(recognized.page);
+        await renderer.current?.refreshText(recognized.page);
+      }, (state) => !stop.now && setOcr({ state: "running", ...state }), stop);
+      if (!stop.now) setOcr({ state: "done", found });
+    } catch (error) {
+      console.error("OCR failed", error);
+      if (!stop.now) setOcr({ state: "failed" });
+    }
+  };
   // Crop margins belongs to the book: its margins are measured once and kept with it.
   const [crop, setCrop] = useState<Book["crop"]>(undefined);
   const [measuring, setMeasuring] = useState<number | null>(null);
@@ -194,7 +220,10 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       });
       renderer.current = r;
       r.linkLabel = (n) => t("Link to page {n}", { n });
-      setBookSearch(new BookSearch(doc));
+      // Text recognized on scanned pages before (OCR) is their text from the start.
+      ocrPages.current = new Map((await repos.ocr.forBook(bookId)).map((p) => [p.page, p]));
+      r.recognized = (n) => ocrPages.current.get(n);
+      setBookSearch(new BookSearch(doc, r.recognized));
       r.onPageChange = (p) => {
         setPage(p);
         setPageInput(String(p));
@@ -236,6 +265,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       renderer.current = null;
       setBookSearch(null);
       printStop.current.now = true;
+      ocrStop.current.now = true;
       cropStop.current.now = true;
       setMeasuring(null);
       pdfDoc.current = null;
@@ -1218,6 +1248,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
                 </button>
               )}
             </li>
+            <li>
+              <button type="button" onClick={() => { setMarked(null); setSheet("ocr"); }}>
+                <Icon name="scan" />
+                <span><strong>{t("Recognize text")}</strong><small>{t("For scanned pages: makes their words selectable, searchable and readable aloud.")}</small></span>
+              </button>
+            </li>
             {!touchOnly && (
               <li>
                 <button type="button" onClick={() => setSheet("shortcuts")}>
@@ -1232,6 +1268,37 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       </Sheet>
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      <Sheet open={sheet === "ocr"} title={t("Recognize text")} onClose={() => setSheet(null)}>
+        <div class="ocr-sheet">
+          <p>{t("Pages that are pictures (scans, photographs of a book) have no text to select or search. This reads the words off those pages. It runs on this device: the pages are not sent anywhere.")}</p>
+          {ocr?.state === "running" ? (
+            <div class="print-progress" role="status">
+              <p>{ocr.loading ? t("Getting the recognition engine ready…")
+                : t("Reading page {n} of {total}. Text found on {found} so far.", { n: ocr.page, total: ocr.total, found: ocr.found })}</p>
+              <progress value={ocr.page} max={ocr.total} />
+              <Button onClick={() => { ocrStop.current.now = true; setOcr(null); }}>{t("Stop")}</Button>
+            </div>
+          ) : (
+            <>
+              <fieldset class="seg">
+                <legend>{t("Language of the pages")}</legend>
+                {OCR_LANGS.map(([value, label]) => (
+                  <label><input type="radio" name="ocrLang" checked={ocrLang === value} onChange={() => setOcrLang(value)} />{t(label)}</label>
+                ))}
+              </fieldset>
+              {ocr?.state === "done" && (
+                <p class="ocr-result" role="status">{t(ocr.found === 0 ? "No new scanned pages with words were found."
+                  : ocr.found === 1 ? "Text was recognized on 1 page." : "Text was recognized on {n} pages.", { n: ocr.found })}</p>
+              )}
+              {ocr?.state === "failed" && <p class="ocr-result" role="alert">{t("Text recognition could not start. Check the connection and try again.")}</p>}
+              <p class="toggle-note ocr-note">{t("The first time, about 7 MB is loaded for the engine and the language. Pages already read are kept.")}</p>
+              <div class="sheet-actions">
+                <Button variant="primary" onClick={recognize} disabled={!ready}>{t("Start")}</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Sheet>
       <QuoteSheet quote={quote} onClose={() => setQuote(null)} />
       {touring && ready && !sheet && <Tour onDone={() => setTouring(false)} />}
       {palette && <CommandPalette commands={commands()} pages={total} onGoToPage={jump} onClose={() => setPalette(false)} />}

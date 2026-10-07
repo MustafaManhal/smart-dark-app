@@ -123,3 +123,17 @@ test("the welcome screen opens the sample book with its tour", async () => {
   await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
   await expect(win.getByRole("dialog", { name: "Quick tour" })).toContainText("Dark pages, real colors");
 });
+
+test("text recognition runs inside the desktop app", async () => {
+  test.setTimeout(180_000);
+  const win = await app.firstWindow();
+  await expect(win.getByRole("heading", { name: "Your library" })).toBeVisible();
+  await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), resolve("test/fixtures/scan.pdf"));
+  await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
+  await win.getByRole("button", { name: "Book menu" }).click();
+  await win.getByRole("dialog", { name: "Book menu" }).getByRole("button", { name: /^Recognize text/ }).click();
+  const sheet = win.getByRole("dialog", { name: "Recognize text" });
+  await sheet.getByRole("button", { name: "Start" }).click();
+  await expect(sheet.getByRole("status")).toHaveText("Text was recognized on 2 pages.", { timeout: 150_000 });
+  await expect(win.locator('.page[data-page="1"] .textLayer span', { hasText: "Lighthouse" }).first()).toBeVisible();
+});

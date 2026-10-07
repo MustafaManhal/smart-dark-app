@@ -8,6 +8,7 @@ import type { DarkTheme, ImageMode, PageStyle, ViewLayout } from "../settings";
 import { fromViewPoint, turnCut, type Turn } from "../annotations/geometry";
 import { cutFor, NO_CUT, type Crop } from "./crop";
 import { resolveDest, type Target } from "./pdf";
+import { toTextContent, type OcrPage } from "../ocr/text";
 
 export type Adjust = { brightness: number; contrast: number; sepia: number; grayscale: number };
 export type RenderOptions = { pageStyle: PageStyle; darkTheme: DarkTheme; imageMode: ImageMode; adjust?: Adjust };
@@ -158,6 +159,8 @@ export class Renderer {
   onProgress: (fraction: number) => void = () => {};
   /** The text of a page has been laid out (again after each zoom). */
   onTextRendered: (page: number) => void = () => {};
+  /** Text recognized on a scanned page (OCR), if there is any. */
+  recognized: (page: number) => OcrPage | undefined = () => undefined;
   /** The accessible name of a link into the book. */
   linkLabel: (page: number) => string = (page) => `Page ${page}`;
   private linkDests = new WeakMap<Element, unknown>();
@@ -696,6 +699,13 @@ export class Renderer {
     }
   }
 
+  /** Lays the text of a page out again, after its text was recognized. */
+  async refreshText(number: number) {
+    const slot = this.slots[number - 1];
+    if (!slot?.canvas || !slot.page) return;
+    await this.renderText(slot, slot.page.getViewport({ scale: this.scale }));
+  }
+
   /** Where a link into the book leads; null for anything else. */
   async linkTarget(link: Element): Promise<Target | null> {
     return this.linkDests.has(link) ? resolveDest(this.doc, this.linkDests.get(link)) : null;
@@ -708,8 +718,12 @@ export class Renderer {
     slot.textDiv = document.createElement("div");
     slot.textDiv.className = "textLayer";
     slot.face.append(slot.textDiv);
+    // A scanned page has no text of its own; when its text was recognized, that is its text.
+    const recognized = this.recognized(slot.number);
     slot.textLayer = new pdfjs.TextLayer({
-      textContentSource: slot.page!.streamTextContent({ includeMarkedContent: true, disableNormalization: true }),
+      textContentSource: recognized?.lines.length
+        ? (toTextContent(recognized, slot.page!.getViewport({ scale: 1 })) as never)
+        : slot.page!.streamTextContent({ includeMarkedContent: true, disableNormalization: true }),
       container: slot.textDiv,
       viewport,
     });

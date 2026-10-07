@@ -363,6 +363,10 @@
 .book-menu svg { flex: none; }
 .book-menu span { display: grid; gap: 2px; min-width: 0; }
 .book-menu small { color: var(--muted); font-size: 13px; }
+.ocr-sheet { display: grid; gap: 6px; }
+.ocr-sheet > p { margin: 0 0 4px; }
+.ocr-sheet .ocr-note { padding-inline-start: 0; margin: 4px 0 0; }
+.ocr-result { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
 .print-progress { display: grid; gap: 12px; justify-items: start; }
 .print-progress p { margin: 0; }
 .print-progress progress { width: 100%; accent-color: var(--accent); }

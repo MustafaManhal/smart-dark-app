@@ -39,12 +39,18 @@ export default defineConfig({
         // The natural read-aloud voices (tts/, about 58 MB) are optional and for computers
         // only, so they are also cached on first use.
         // The speech model (voices/, 102 MB) is downloaded only when the reader asks for natural voices.
-        globIgnores: ["pdfjs/cmaps/**", "tts/**", "voices/**", "about/**"],
+        globIgnores: ["pdfjs/cmaps/**", "tts/**", "voices/**", "about/**", "ocr/**"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/pdfjs/cmaps/"),
             handler: "CacheFirst",
             options: { cacheName: "pdfjs-cmaps", expiration: { maxEntries: 250 } },
+          },
+          {
+            // Text recognition: the engine and language data are kept once they were used.
+            urlPattern: ({ url }) => url.pathname.includes("/ocr/"),
+            handler: "CacheFirst",
+            options: { cacheName: "ocr-assets", expiration: { maxEntries: 10 } },
           },
           {
             urlPattern: ({ url }) => url.pathname.includes("/tts/"),

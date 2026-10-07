@@ -47,7 +47,7 @@ export type BookHits = { book: Book; count: number; first: (Snippet & { page: nu
  * PDFs are opened only for the time of the search. `stop.now` ends it early.
  */
 export async function searchInsideBooks(
-  repos: Pick<Repos, "books">, books: Book[], query: string,
+  repos: Pick<Repos, "books"> & Partial<Pick<Repos, "ocr">>, books: Book[], query: string,
   onUpdate: (found: BookHits[], done: number, now: Book | null) => void, stop: { now: boolean },
 ): Promise<BookHits[]> {
   const found: BookHits[] = [];
@@ -59,7 +59,9 @@ export async function searchInsideBooks(
     let doc: Awaited<ReturnType<typeof openPdf>> | null = null;
     try {
       doc = await openPdf(new Uint8Array(await file.arrayBuffer()), book.password);
-      const search = new BookSearch(doc);
+      // Scanned pages are searched through the text that was recognized on them.
+      const scanned = new Map((await repos.ocr?.forBook(book.id) ?? []).map((p) => [p.page, p]));
+      const search = new BookSearch(doc, (n) => scanned.get(n));
       const hits: BookHits = { book, count: 0, first: [] };
       for (let n = 1; n <= doc.numPages && !stop.now; n++) {
         const matches = findInPage(await search.page(n), query, n);

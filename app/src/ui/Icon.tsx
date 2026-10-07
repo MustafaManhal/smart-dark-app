@@ -27,6 +27,7 @@ const PATHS = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   notes: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  scan: "M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5",
   area: "M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3",
   rotateRight: "M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5",
   rotateLeft: "M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5",

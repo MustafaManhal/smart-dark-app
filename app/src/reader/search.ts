@@ -1,3 +1,4 @@
+import { toTextContent, type OcrPage } from "../ocr/text";
 import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 /**
@@ -125,7 +126,13 @@ export const MAX_MATCHES = 2000;
 export class BookSearch {
   private pages = new Map<number, Promise<PageIndex>>();
 
-  constructor(private doc: PDFDocumentProxy) {}
+  /** `recognized` gives the text that was recognized on a scanned page, which then counts as the page's text. */
+  constructor(private doc: PDFDocumentProxy, private recognized: (page: number) => OcrPage | undefined = () => undefined) {}
+
+  /** Forget what was read of a page, after its text changed (it was just recognized). */
+  forget(n: number) {
+    this.pages.delete(n);
+  }
 
   /** The searchable text of a page (1-based). */
   page(n: number): Promise<PageIndex> {
@@ -135,7 +142,8 @@ export class BookSearch {
         const page = await this.doc.getPage(n);
         const viewport = page.getViewport({ scale: 1 });
         // Same options as the text layer on screen, so item numbers line up with its elements.
-        const content = await page.getTextContent({ disableNormalization: true });
+        const scanned = this.recognized(n);
+        const content = scanned?.lines.length ? toTextContent(scanned, viewport) : await page.getTextContent({ disableNormalization: true });
         const items = (content.items as TextItem[]).filter((item) => item.str !== undefined);
         return indexPage(items, (item) => {
           if (!item.transform) return 0;
