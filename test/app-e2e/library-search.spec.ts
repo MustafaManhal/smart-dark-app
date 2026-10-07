@@ -13,7 +13,7 @@ async function addBooks(page: Page) {
 
 test("the library search finds a note and opens its book at the page", async ({ page }) => {
   await addBooks(page);
-  await list(page).getByText("Smart Dark PDF sample").click();
+  await list(page).getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await page.locator(".textLayer span", { hasText: "Black body text" }).first().evaluate((span) => {
     const range = document.createRange();
@@ -31,7 +31,7 @@ test("the library search finds a note and opens its book at the page", async ({ 
   await expect(page.getByText("No title, author or tag matches.")).toBeVisible();
   const notes = page.getByRole("region", { name: "In your notes and highlights" });
   await expect(notes.getByRole("button")).toHaveCount(1);
-  await expect(notes.getByRole("button")).toContainText("Smart Dark PDF sample");
+  await expect(notes.getByRole("button")).toContainText("Reader343 sample");
   await expect(notes.getByRole("button")).toContainText("Page 1");
   await expect(notes.locator("mark")).toHaveText("walrus");
   // The passage the note is on is found too.

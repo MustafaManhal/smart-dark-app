@@ -34,7 +34,7 @@ for (const width of WIDTHS) {
     await noHorizontalOverflow(page, "library");
     await page.screenshot({ path: `test/output/responsive/library-${width}.png` });
 
-    await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+    await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
     await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
     await noHorizontalOverflow(page, "reader");
     const tools = ["Back to library", "Search in book", "Book menu", "Highlight text", "Erase highlights and notes", "Add sticky note", "Bookmark this page", "Read aloud", "Notes and highlights", "Contents", "Appearance"];

@@ -12,7 +12,7 @@ test("search in the book: count, marks on the page, next and previous, across pa
   await expect(box).toBeFocused();
 
   await box.fill("dark");
-  // "Smart Dark PDF sample", "a dark page" on page 1; nothing is missed because of capitals.
+  // "Reader343 sample", "a dark page" on page 1; nothing is missed because of capitals.
   await expect(bar.getByRole("status")).toHaveText(/^1 of \d+$/);
   const total = Number((await bar.getByRole("status").innerText()).split(" of ")[1]);
   expect(total).toBeGreaterThanOrEqual(2);

@@ -8,7 +8,7 @@ test("import a PDF, see it in the library, reject duplicates, remove it", async 
   await (await chooser).setFiles("src/sample/sample.pdf");
   const card = page.getByRole("list", { name: "Books" }).getByRole("listitem");
   await expect(card).toHaveCount(1);
-  await expect(card.getByText("Smart Dark PDF sample")).toBeVisible();
+  await expect(card.getByText("Reader343 sample")).toBeVisible();
   await expect(card.locator("img")).toBeVisible();
 
   const again = page.waitForEvent("filechooser");

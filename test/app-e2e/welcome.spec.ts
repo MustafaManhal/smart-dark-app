@@ -36,7 +36,7 @@ test("a new reader is welcomed, tries the sample book and gets a three-step tour
 
   // Back in the library the book is there; opening it again does not repeat the tour.
   await page.getByRole("button", { name: "Back to library" }).click();
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Quick tour" })).toHaveCount(0);
 });

@@ -38,7 +38,7 @@ test("a PDF opened from the operating system goes straight to the reader", async
   // Same path as double-clicking a PDF in Finder (macOS sends "open-file").
   await app.evaluate(({ app: a }, path) => a.emit("open-file", { preventDefault() {} }, path), sample);
   await expect(win.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
-  await expect(win.locator(".reader-title strong")).toHaveText("Smart Dark PDF sample");
+  await expect(win.locator(".reader-title strong")).toHaveText("Reader343 sample");
   const corner = await win.locator('.page[data-page="1"] canvas').evaluate((c: HTMLCanvasElement) =>
     [...c.getContext("2d")!.getImageData(2, 2, 1, 1).data].slice(0, 3));
   expect(corner.every((v) => v < 60)).toBe(true); // smart dark works under the desktop CSP

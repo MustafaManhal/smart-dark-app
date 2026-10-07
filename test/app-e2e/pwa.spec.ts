@@ -68,7 +68,7 @@ test("works offline after the first visit, including opening a book", async ({ p
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.page[data-page="2"] .textLayer span').first()).toBeAttached({ timeout: 20_000 }).catch(() => {});
   await context.setOffline(false);

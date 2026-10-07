@@ -6,7 +6,7 @@ export async function openSample(page: Page) {
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: /Add PDF|Choose a PDF/ }).first().click();
   await (await chooser).setFiles("src/sample/sample.pdf");
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.getByRole("button", { name: /Go to page/ })).toBeEnabled();
 }

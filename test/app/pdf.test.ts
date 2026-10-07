@@ -7,7 +7,7 @@ const sample = () => new Uint8Array(readFileSync("src/sample/sample.pdf"));
 
 test("reads title and page count", async () => {
   const doc = await openPdf(sample());
-  expect(await readBookInfo(doc, "sample.pdf")).toEqual({ title: "Smart Dark PDF sample", author: "", pageCount: 2 });
+  expect(await readBookInfo(doc, "sample.pdf")).toEqual({ title: "Reader343 sample", author: "", pageCount: 2 });
 });
 
 test("flattens the outline with 1-based pages", async () => {

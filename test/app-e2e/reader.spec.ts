@@ -25,7 +25,7 @@ test("remembers the page after leaving and reopening", async ({ page }) => {
   await page.waitForTimeout(800); // progress is saved after scrolling settles
   await page.getByRole("button", { name: "Back to library" }).click();
   await expect(page.getByRole("progressbar", { name: /% read/ })).not.toHaveAttribute("aria-valuenow", "0");
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expectPage(page, 2);
 });
 
@@ -111,7 +111,7 @@ test("the zoom is remembered for the next book", async ({ page }) => {
   await expect(page.locator(".zoom-value")).toHaveText("150%");
   await page.waitForTimeout(700); // saved after the zoom settles
   await page.getByRole("button", { name: "Back to library" }).click();
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.locator(".zoom-value")).toHaveText("150%");
 

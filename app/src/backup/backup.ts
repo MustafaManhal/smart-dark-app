@@ -3,6 +3,7 @@ import { ANNOTATION_STORES, type BookAnnotations } from "../db/annotations";
 import type { Book, Progress, Repos } from "../db/repos";
 import type { Session } from "../db/sessions";
 
+// The app's first name stays in the format id: backups made before the rename must still restore.
 const FORMAT = "smart-dark-reader-backup";
 const VERSION = 1;
 
@@ -42,7 +43,7 @@ export async function createBackup(repos: Repos, { now = Date.now } = {}): Promi
   const manifest: BackupManifest = { format: FORMAT, version: VERSION, exportedAt: now(), books: bookList, progress, annotations, sessions, settings, covers };
   entries["backup.json"] = strToU8(JSON.stringify(manifest));
   const date = new Date(now()).toISOString().slice(0, 10);
-  return new File([zipSync(entries) as Uint8Array<ArrayBuffer>], `smart-dark-reader-backup-${date}.zip`, { type: "application/zip" });
+  return new File([zipSync(entries) as Uint8Array<ArrayBuffer>], `reader343-backup-${date}.zip`, { type: "application/zip" });
 }
 
 export type RestoreSummary = { booksAdded: number; booksAlreadyThere: number; annotationsAdded: number };

@@ -131,7 +131,7 @@ for (const lang of ["en", "ar"] as const) {
       await expect(page.locator(".cover img")).toHaveJSProperty("complete", true);
       await check(page, `${tag}-01-library`, findings);
 
-      await page.getByRole("list").getByText("Smart Dark PDF sample").click();
+      await page.getByRole("list").getByText("Reader343 sample").click();
       await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
       await expect(page.locator(".zoom-chip").first()).toBeEnabled();
       await check(page, `${tag}-02-reader`, findings);
@@ -206,7 +206,7 @@ for (const lang of ["en", "ar"] as const) {
       await page.locator(".sheet-head .icon-btn").click();
       await check(page, `${tag}-15-read-bar-sleep`, findings);
       // Editing while read aloud is on: the selection bar, the highlight menu, the tool hints.
-      await selectText(page, "Smart Dark PDF sample - toggle");
+      await selectText(page, "Reader343 sample - toggle");
       await expect(page.locator(".selection-bar")).toBeVisible();
       await check(page, `${tag}-15b-reading-selection`, findings);
       await page.locator(".selection-bar .swatch").nth(1).click();

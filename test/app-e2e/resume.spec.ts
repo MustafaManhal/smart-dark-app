@@ -4,7 +4,7 @@ test("resume restores the exact scroll position within a page", async ({ page })
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: /Add PDF|Choose a PDF/ }).first().click();
   await (await chooser).setFiles("src/sample/sample.pdf");
-  await page.getByRole("list", { name: "Books" }).getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list", { name: "Books" }).getByText("Reader343 sample").click();
   await expect(page.getByRole("button", { name: /Go to page/ })).toBeEnabled();
   const parentIsScroller = await page.locator('.page[data-page="1"]').evaluate((p: HTMLElement) => !!p.offsetParent?.classList.contains("reader-scroll"));
   expect(parentIsScroller).toBe(true);

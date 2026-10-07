@@ -68,5 +68,5 @@ test("time spent in the reader is counted", async ({ page }) => {
   }
   await page.getByRole("button", { name: "Back to library" }).click();
   await page.getByRole("button", { name: "Reading stats" }).click();
-  await expect(page.getByRole("row", { name: /Smart Dark PDF sample/ })).toContainText("1 min");
+  await expect(page.getByRole("row", { name: /Reader343 sample/ })).toContainText("1 min");
 });

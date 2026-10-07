@@ -65,7 +65,7 @@ test("tags group books, filter the library and are offered again", async ({ page
   await expect(list(page).getByRole("listitem").filter({ hasText: "Links sample" })).toContainText("study · Exam 2026");
 
   // The other book is offered the tags that exist.
-  await page.getByRole("button", { name: "Edit details of Smart Dark PDF sample" }).click({ force: true });
+  await page.getByRole("button", { name: "Edit details of Reader343 sample" }).click({ force: true });
   const sheet = page.getByRole("dialog", { name: "Book details" });
   await sheet.getByRole("group", { name: "Tags you already use" }).getByRole("button", { name: "study" }).click();
   await expect(sheet.getByLabel("Tags, with commas between them")).toHaveValue("study");
@@ -113,7 +113,7 @@ for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 760 });
     await addBooks(page);
     await setTags(page, "Links sample", "study, Exam 2026, a rather long tag name here");
-    await setTags(page, "Smart Dark PDF sample", "study");
+    await setTags(page, "Reader343 sample", "study");
     await page.getByRole("button", { name: "Add Links sample to favorites" }).click({ force: true });
     await list(page).getByText("Links sample").click();
     await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();

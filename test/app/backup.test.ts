@@ -27,7 +27,7 @@ async function seeded(name: string) {
 test("a backup restores everything into an empty library", async () => {
   const source = await seeded("backup-src");
   const zip = await createBackup(source, { now: () => 1000 });
-  expect(zip.name).toMatch(/^smart-dark-reader-backup-.*\.zip$/);
+  expect(zip.name).toMatch(/^reader343-backup-.*\.zip$/);
 
   const target = createRepos(await openDb("backup-dst"));
   const summary = await restoreBackup(target, new Uint8Array(await zip.arrayBuffer()));

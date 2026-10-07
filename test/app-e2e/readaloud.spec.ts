@@ -236,7 +236,7 @@ test("selecting text while reading aloud: the selection bar keeps its size and s
   await page.getByRole("button", { name: "Read aloud", exact: true }).click();
   const readBar = page.getByRole("region", { name: "Read aloud" });
   await expect(readBar).toBeVisible();
-  await page.locator(".textLayer span", { hasText: "Smart Dark PDF sample - toggle" }).first().evaluate((el) => {
+  await page.locator(".textLayer span", { hasText: "Reader343 sample - toggle" }).first().evaluate((el) => {
     const range = document.createRange();
     range.selectNodeContents(el);
     getSelection()!.removeAllRanges();

@@ -64,7 +64,7 @@ function scan(w, h) {
 // ---- page 1 content
 let p1 = "";
 p1 += text(56, 778, 26, "Quarterly Reading Report", { font: "F2", color: [16, 42, 112] });
-p1 += text(56, 756, 11, "Smart Dark PDF sample - toggle with the D key to compare with the original.", { color: [110, 110, 110] });
+p1 += text(56, 756, 11, "Reader343 sample - toggle with the D key to compare with the original.", { color: [110, 110, 110] });
 p1 += line(56, 744, 539, 744, [200, 200, 200]);
 
 p1 += rect(56, 709, 236, 15, [255, 240, 80]); // highlighter
@@ -157,7 +157,7 @@ objects[o1 - 1] = `<< /Title (Quarterly report) /Parent ${outlines} 0 R /Next ${
 objects[o2 - 1] = `<< /Title (Page two) /Parent ${outlines} 0 R /Prev ${o1} 0 R /Dest [${page2} 0 R /Fit] >>`;
 objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R /Outlines ${outlines} 0 R /PageMode /UseOutlines >>`;
 objects[pagesId - 1] = `<< /Type /Pages /Kids [${page1} 0 R ${page2} 0 R] /Count 2 >>`;
-const info = add("<< /Title (Smart Dark PDF sample) /Producer (smart-dark-pdf build script) >>");
+const info = add("<< /Title (Reader343 sample) /Producer (reader343 build script) >>");
 
 const parts = [Buffer.from("%PDF-1.7\n%\xE2\xE3\xCF\xD3\n", "latin1")];
 let offset = parts[0].length;

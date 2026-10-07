@@ -244,7 +244,7 @@ await check("local file opens through the file picker", async () => {
   await input.uploadFile(`${root}src/sample/sample.pdf`);
   await waitRendered(page);
   const title = await page.$eval("#docTitle", (el) => el.textContent);
-  assert.equal(title, "Smart Dark PDF sample");
+  assert.equal(title, "Reader343 sample");
   await page.close();
 });
 

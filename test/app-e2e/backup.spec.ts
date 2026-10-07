@@ -15,7 +15,7 @@ test("back up the library, delete it, and restore it from the file", async ({ pa
   const file = await download;
   const path = test.info().outputPath("backup.zip");
   await file.saveAs(path);
-  expect(file.suggestedFilename()).toMatch(/^smart-dark-reader-backup-\d{4}-\d{2}-\d{2}\.zip$/);
+  expect(file.suggestedFilename()).toMatch(/^reader343-backup-\d{4}-\d{2}-\d{2}\.zip$/);
   await sheet.getByRole("button", { name: "Close" }).click();
 
   const card = page.getByRole("list", { name: "Books" }).getByRole("listitem");
@@ -30,6 +30,6 @@ test("back up the library, delete it, and restore it from the file", async ({ pa
   await expect(sheet.getByRole("status")).toContainText("Restored 1 book and 1 highlight or note");
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(card).toHaveCount(1);
-  await card.getByText("Smart Dark PDF sample").click();
+  await card.getByText("Reader343 sample").click();
   await expect(page.getByRole("button", { name: "Remove bookmark" })).toBeVisible();
 });

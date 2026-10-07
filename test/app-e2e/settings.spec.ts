@@ -15,7 +15,7 @@ test("Arabic switches the whole app to right-to-left", async ({ page }) => {
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: /إضافة PDF|اختر ملف PDF/ }).first().click();
   await (await chooser).setFiles("src/sample/sample.pdf");
-  await page.getByRole("list").getByText("Smart Dark PDF sample").click();
+  await page.getByRole("list").getByText("Reader343 sample").click();
   await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
   await expect(page.getByRole("button", { name: "العودة إلى المكتبة" }).locator("svg")).toHaveClass(/icon-flip/);
   await expect(page.locator(".page-pill")).toHaveText("1/ 2");
@@ -44,7 +44,7 @@ test("app theme can be forced to dark", async ({ page }) => {
 test("edit a book's details by hand", async ({ page }) => {
   await openSample(page);
   await page.getByRole("button", { name: "Back to library" }).click();
-  await page.getByRole("button", { name: "Edit details of Smart Dark PDF sample" }).click();
+  await page.getByRole("button", { name: "Edit details of Reader343 sample" }).click();
   const sheet = page.getByRole("dialog", { name: "Book details" });
   await sheet.getByLabel("Title").fill("Quarterly Report 2026");
   await sheet.getByLabel("Author").fill("Finance team");
@@ -69,7 +69,7 @@ test("find book details online after opting in (network mocked)", async ({ page,
 
   await openSample(page);
   await page.getByRole("button", { name: "Back to library" }).click();
-  await page.getByRole("button", { name: "Edit details of Smart Dark PDF sample" }).click();
+  await page.getByRole("button", { name: "Edit details of Reader343 sample" }).click();
   const sheet = page.getByRole("dialog", { name: "Book details" });
   await expect(sheet.getByText("Only the search text is sent")).toBeVisible();
   expect(requests).toEqual([]); // nothing sent before opting in
