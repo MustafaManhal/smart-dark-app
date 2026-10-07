@@ -2,6 +2,7 @@ node_modules/
 dist/
 dist-e2e/
 dist-firefox/
+dist-firefox-e2e/
 *.zip
 test/output/
 .DS_Store

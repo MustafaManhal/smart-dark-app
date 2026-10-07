@@ -64,16 +64,20 @@ function firefoxManifest(base) {
     },
   };
 }
-function buildFirefox(name) {
+function buildFirefox(name, change = (m) => m) {
   const out = new URL(`${name}/`, root);
   rmSync(out, { recursive: true, force: true });
   cpSync(dist, out, { recursive: true, filter: (src) => !src.endsWith("/background.js") });
   cpSync(new URL("src/background.firefox.js", root), new URL("background.firefox.js", out));
-  writeFileSync(new URL("manifest.json", out), JSON.stringify(firefoxManifest(manifest), null, 2));
+  writeFileSync(new URL("manifest.json", out), JSON.stringify(change(firefoxManifest(manifest)), null, 2));
   console.log(`built ${name}/`);
   return out;
 }
 const firefox = buildFirefox("dist-firefox");
+if (process.argv.includes("--e2e")) {
+  // Test only, like dist-e2e: host access is in the manifest, because a test cannot press the permission prompt.
+  buildFirefox("dist-firefox-e2e", ({ optional_host_permissions, ...m }) => ({ ...m, host_permissions: optional_host_permissions }));
+}
 
 function zip(folder, zipName) {
   const zipPath = new URL(zipName, root);
