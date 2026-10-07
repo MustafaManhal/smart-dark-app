@@ -127,7 +127,7 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | C2 | Pen with pressure and an eraser, shapes, arrows, text boxes | L | own layer, saved like other notes |
 | C3 | Export the PDF with its annotations inside, as standard PDF annotations other apps show | M | [`@cantoo/pdf-lib`](https://www.npmjs.com/package/@cantoo/pdf-lib), MIT, the maintained fork of pdf-lib |
 | C4 | Fill forms and sign | M | pdf.js draws forms and can save them ([Nutrient guide](https://www.nutrient.io/blog/pdfjs-native-annotation-layer-forms/)) |
-| C5 | Share a quote as a picture; copy with the book title and page | S | |
+| C5 (done 2026-10-07) | Share a quote as a picture; copy with the book title and page | S | |
 
 ### Phase D. Study and remember
 

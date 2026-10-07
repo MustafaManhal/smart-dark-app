@@ -29,6 +29,8 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { QuoteSheet } from "../annotations/QuoteSheet";
+import type { QuoteSource } from "../annotations/quote";
 import { printBook } from "./print";
 import { PasswordSheet } from "../library/PasswordSheet";
 import { saveFile } from "../platform/saveFile";
@@ -88,6 +90,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [pageInput, setPageInput] = useState("1");
   const [sheet, setSheet] = useState<"toc" | "appearance" | "goto" | "menu" | "shortcuts" | null>(null);
   const [palette, setPalette] = useState(false);
+  const [quote, setQuote] = useState<{ text: string; source: QuoteSource } | null>(null);
   // A protected book whose password is not stored here (for example after a backup was restored).
   const [locked, setLocked] = useState<{ wrong: boolean } | null>(null);
   const [attempt, setAttempt] = useState<{ password: string } | null>(null);
@@ -969,6 +972,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           <HighlightPopover highlight={h} anchor={popover.anchor} onClose={() => setPopover(null)}
             onColor={(c) => recolorHighlight(h, c)}
             onStyle={(s) => restyleHighlight(h, s)}
+            onShare={() => { setQuote({ text: h.text, source: { title: book?.title ?? "", author: book?.author ?? "", page: h.page } }); setPopover(null); }}
             onCopy={() => { copy(h.text); setPopover(null); }}
             onRemove={() => { removeHighlight(h); setPopover(null); }} />
         );
@@ -1053,6 +1057,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       </Sheet>
 
       <ShortcutSheet open={sheet === "shortcuts"} onClose={() => setSheet(null)} />
+      <QuoteSheet quote={quote} onClose={() => setQuote(null)} />
       {touring && ready && !sheet && <Tour onDone={() => setTouring(false)} />}
       {palette && <CommandPalette commands={commands()} pages={total} onGoToPage={jump} onClose={() => setPalette(false)} />}
 

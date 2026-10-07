@@ -12,11 +12,12 @@ type Anchor = { left: number; top: number; right: number; bottom: number };
 /** Tap a highlight: recolor, copy, or remove it in one tap. */
 const STYLE_LABEL: Record<MarkStyle, string> = { highlight: "Highlight", underline: "Underline", strike: "Strikethrough" };
 
-export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, onRemove, onClose }: {
+export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, onShare, onRemove, onClose }: {
   highlight: Highlight;
   anchor: Anchor;
   onColor: (c: HighlightColor) => void;
   onStyle: (s: MarkStyle) => void;
+  onShare: () => void;
   onCopy: () => void;
   onRemove: () => void;
   onClose: () => void;
@@ -56,6 +57,10 @@ export function HighlightPopover({ highlight, anchor, onColor, onStyle, onCopy, 
             <b class={`as-${s}`} aria-hidden="true">A</b><span>{t(STYLE_LABEL[s])}</span>
           </button>
         ))}
+        <span class="pop-sep" />
+        <button type="button" class="pop-action" aria-label={t("Share as a quote")} title={t("Share as a quote")} onClick={onShare}>
+          <Icon name="share" size={18} />
+        </button>
       </div>
     </Popover>
   );

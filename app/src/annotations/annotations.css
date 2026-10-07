@@ -165,7 +165,7 @@
 }
 .pop-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .pop-colors { display: flex; gap: 6px; }
-.pop-styles { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.pop-styles { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .pop-style { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px; background: none; color: inherit; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .pop-style:hover { background: var(--surface-2); }
 /* A small phone has no room for three words: the letters show the styles by themselves. */
@@ -199,3 +199,10 @@
 .pop-actions { display: flex; gap: 6px; }
 .pop-actions .grow { flex: 1; }
 .pop-actions .btn { min-height: 34px; padding: 0 12px; }
+
+/* Share a quote */
+.quote-sheet { display: grid; gap: 4px; }
+.quote-view { display: grid; place-items: center; max-height: 46vh; overflow: auto; border-radius: 12px; background: var(--surface-2); }
+.quote-view canvas { display: block; width: min(100%, 360px); height: auto; border-radius: 10px; }
+.quote-sheet .sheet-actions { flex-wrap: wrap; }
+.quote-status { min-height: 1.4em; margin: 6px 0 0; color: var(--muted); font-size: 13px; text-align: end; }
