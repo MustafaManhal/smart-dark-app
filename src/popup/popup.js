@@ -8,6 +8,7 @@ import {
 } from "../shared/settings.js";
 
 const $ = (id) => document.getElementById(id);
+const APP_URL = "https://smart-dark-app.vercel.app/about/download.html";
 
 function fillSelect(select, entries) {
   for (const [value, label] of entries) select.add(new Option(label, value));
@@ -46,6 +47,12 @@ async function init() {
   $("grantAccess").addEventListener("click", async () => {
     await requestSiteAccess();
     refreshAccess();
+  });
+
+  // The full reader is a web app of its own. Nothing is passed along: it is only opened.
+  $("openApp").addEventListener("click", () => {
+    chrome.tabs.create({ url: APP_URL });
+    window.close();
   });
 
   $("openViewer").addEventListener("click", () => {

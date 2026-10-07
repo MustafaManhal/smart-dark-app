@@ -137,3 +137,7 @@ body.popup {
 @media (prefers-reduced-motion: reduce) {
   .switch, .switch::after { transition: none; }
 }
+
+/* The way to the full reader, quieter than the popup's own actions. */
+button.quiet { background: none; border: 1px solid var(--border); color: var(--accent); margin-top: 8px; }
+.more { margin: 6px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
