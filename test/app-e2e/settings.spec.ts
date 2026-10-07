@@ -88,3 +88,32 @@ test("find book details online after opting in (network mocked)", async ({ page,
   await expect(card.locator("img")).toHaveJSProperty("naturalWidth", 128);
 });
 });
+
+test("compact spacing puts more books on a screen, and stays", async ({ page }) => {
+  await page.goto("./");
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: /Add PDF|Choose a PDF/ }).first().click();
+  await (await chooser).setFiles(["src/sample/sample.pdf", "test/fixtures/links.pdf"]);
+  const cards = page.getByRole("list", { name: "Books" }).getByRole("listitem");
+  await expect(cards).toHaveCount(2);
+  const roomy = (await cards.first().boundingBox())!.width;
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("radio", { name: "Compact" }).check();
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  await page.getByRole("button", { name: "Back to library" }).click();
+  expect((await cards.first().boundingBox())!.width).toBeLessThan(roomy - 10);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+});
+
+test("on a wide screen the settings have their sections as a list beside them", async ({ page, isMobile }) => {
+  test.skip(isMobile, "wide screens only");
+  await page.goto("./#/settings");
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await expect(nav).toBeVisible();
+  await nav.getByRole("button", { name: "About" }).click();
+  await expect(page.getByRole("heading", { name: "About" })).toBeInViewport();
+  await page.setViewportSize({ width: 700, height: 800 });
+  await expect(nav).toBeHidden();
+});

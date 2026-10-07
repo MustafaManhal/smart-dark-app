@@ -1,21 +1,20 @@
-/* Chart tokens: one blue ramp, its own steps on the dark surface (dataviz palette). */
+/* Chart tokens: one ramp in the accent's hue, with its own steps on the dark surface. */
 .stats {
-  --series-1: #2a78d6;
+  --series-1: var(--accent);
   --heat-0: var(--surface-2);
-  --heat-1: #9ec5f4;
-  --heat-2: #5598e7;
-  --heat-3: #256abf;
-  --heat-4: #104281;
+  --heat-1: #c9cdf6;
+  --heat-2: #979ee9;
+  --heat-3: #5f69dc;
+  --heat-4: #343fa8;
   max-width: 980px;
   margin: 0 auto;
   padding: calc(12px + var(--safe-top)) 20px calc(40px + var(--safe-bottom));
 }
 :root[data-theme="dark"] .stats {
-  --series-1: #3987e5;
-  --heat-1: #104281;
-  --heat-2: #256abf;
-  --heat-3: #3987e5;
-  --heat-4: #86b6ef;
+  --heat-1: #262b63;
+  --heat-2: #3b44a3;
+  --heat-3: #6e79e6;
+  --heat-4: #b3baff;
 }
 .stats-head { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
 .stats-head h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); letter-spacing: -0.02em; }

@@ -17,6 +17,9 @@ function applyTheme() {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
 }
 effect(applyTheme);
+effect(() => {
+  document.documentElement.dataset.density = settings.density.value;
+});
 // Language and reading direction for the whole document (Arabic is right to left).
 effect(() => {
   document.documentElement.lang = lang.value;

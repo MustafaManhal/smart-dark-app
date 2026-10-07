@@ -19,6 +19,7 @@ const defaults = {
   adjSepia: 0,
   adjGrayscale: 0,
   appTheme: "system" as AppTheme,
+  density: "comfortable" as "comfortable" | "compact", // compact: more books and rows on a screen
   // Last zoom, so a book opens the way the reader left it. Scale is in renderer units.
   zoomMode: "fit" as "fit" | "page" | "manual",
   zoomScale: 1,

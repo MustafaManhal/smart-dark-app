@@ -30,6 +30,11 @@ function Choice<T extends string | number>({ name, legend, value, options, onPic
   );
 }
 
+const SECTIONS: [string, string][] = [
+  ["appearance", "Appearance"], ["language", "Language"], ["read-aloud", "Read aloud"], ["goals", "Goals and reminders"],
+  ["book-details", "Book details"], ["your-data", "Your data"], ["about", "About"],
+];
+
 export function SettingsScreen({ repos }: { repos: Repos }) {
   const [backupOpen, setBackupOpen] = useState(false);
   const [update, setUpdate] = useState<UpdateResult | "checking" | "error" | null>(null);
@@ -44,12 +49,21 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <IconButton label={t("Back to library")} icon="back" onClick={() => navigate({ name: "library" })} />
         <h1>{t("Settings")}</h1>
       </header>
+      {/* On wide screens: the sections as a list beside them. */}
+      <nav class="settings-nav" aria-label={t("Sections")}>
+        {SECTIONS.map(([id, label]) => (
+          <button type="button" onClick={() => document.getElementById(`set-${id}`)?.scrollIntoView({ block: "start", behavior: "auto" })}>{t(label)}</button>
+        ))}
+      </nav>
 
-      <section class="card">
+      <section class="card" id="set-appearance">
         <h2>{t("Appearance")}</h2>
         <Choice<AppTheme> name="appTheme" legend={t("App theme")} value={s.appTheme.value}
           options={[["system", t("Match device")], ["light", t("Light")], ["dark", t("Dark")]]}
           onPick={(v) => saveSetting("appTheme", v)} />
+        <Choice<"comfortable" | "compact"> name="density" legend={t("Spacing")} value={s.density.value}
+          options={[["comfortable", t("Comfortable")], ["compact", t("Compact")]]}
+          onPick={(v) => saveSetting("density", v)} />
         <Choice<PageStyle> name="pageStyle" legend={t("Pages")} value={s.pageStyle.value}
           options={[["original", t("Original")], ["sepia", t("Sepia")], ["dark", t("Smart dark")]]}
           onPick={(v) => saveSetting("pageStyle", v)} colors={(v) => pageColors(v, s.darkTheme.value)} />
@@ -68,14 +82,14 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <p class="muted small">{t("Brightness changes the text only. Contrast, sepia and grayscale change the whole page. Photos keep their colors.")}</p>
       </section>
 
-      <section class="card">
+      <section class="card" id="set-language">
         <h2>{t("Language")}</h2>
         <Choice name="language" legend={t("App language")} value={s.language.value}
           options={[["system", t("Match device")], ["en", "English"], ["ar", "العربية"]]}
           onPick={(v) => saveSetting("language", v)} />
       </section>
 
-      <section class="card">
+      <section class="card" id="set-read-aloud">
         <h2>{t("Read aloud")}</h2>
         <div class="read-speed-row">
           <span>{t("Speed")}</span>
@@ -92,13 +106,13 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         </label>
       </section>
 
-      <section class="card">
+      <section class="card" id="set-goals">
         <h2>{t("Goals and reminders")}</h2>
         <p class="muted">{t("Set a daily reading goal and a reminder on the stats screen.")}</p>
         <Button onClick={() => navigate({ name: "stats" })}><Icon name="chart" size={18} /> {t("Open reading stats")}</Button>
       </section>
 
-      <section class="card">
+      <section class="card" id="set-book-details">
         <h2>{t("Book details")}</h2>
         <label class="toggle">
           <input type="checkbox" checked={s.lookupOn.value} onChange={(e) => saveSetting("lookupOn", e.currentTarget.checked)} />
@@ -107,7 +121,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         <p class="muted small">{t("Off by default. When you search, only the text you type is sent to Open Library and Google Books, to find titles, authors and covers. Nothing else leaves this device.")}</p>
       </section>
 
-      <section class="card">
+      <section class="card" id="set-your-data">
         <h2>{t("Your data")}</h2>
         <p class="muted">{t("Books, notes and reading history are stored only on this device.")}</p>
         {storageInfo.value && (
@@ -122,7 +136,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
       </section>
 
       {desktop && (
-        <section class="card">
+        <section class="card" id="set-updates">
           <h2>{t("Updates")}</h2>
           <Button onClick={async () => {
             setUpdate("checking");
@@ -144,7 +158,7 @@ export function SettingsScreen({ repos }: { repos: Repos }) {
         </section>
       )}
 
-      <section class="card about">
+      <section class="card about" id="set-about">
         <h2>{t("About")}</h2>
         <p class="about-name"><Brand size={24} /> <span>{t("version {v}", { v: __APP_VERSION__ })}</span></p>
         <p>{t("Your books, notes and reading history stay on this device. Nothing is sent anywhere unless you turn on online book details.")}</p>

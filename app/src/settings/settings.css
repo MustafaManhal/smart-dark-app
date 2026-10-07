@@ -11,3 +11,16 @@
 .about-name { display: flex; align-items: center; gap: 10px; }
 .about-name .brand { color: var(--text); font-size: var(--text-md); }
 .about-name > span:last-child { color: var(--muted); }
+
+/* Sections as a list beside the cards, when there is room. */
+.settings-nav { display: none; }
+@media (min-width: 1040px) {
+  .settings { max-width: 1000px; display: grid; grid-template-columns: 200px minmax(0, 1fr); column-gap: 28px; align-items: start; }
+  .settings-head { grid-column: 1 / -1; }
+  .settings > :not(.settings-head, .settings-nav) { grid-column: 2; }
+  .settings-nav { display: grid; gap: 2px; grid-column: 1; grid-row: 2 / span 20; position: sticky; top: calc(16px + var(--safe-top)); }
+  .settings-nav button { height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-weight: 500; text-align: start; cursor: pointer; transition: background var(--fast), color var(--fast); }
+  .settings-nav button:hover { background: var(--surface-2); color: var(--text); }
+}
+.settings .card { scroll-margin-top: calc(16px + var(--safe-top)); }
+.settings .card h2 { font-size: var(--text-lg); margin-bottom: 8px; }

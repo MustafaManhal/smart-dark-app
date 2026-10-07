@@ -225,3 +225,14 @@ input[type="range"] { accent-color: var(--accent); }
 /* The app's mark and name (ui/Brand.tsx) */
 .brand { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: var(--text-sm); font-weight: 650; letter-spacing: 0.01em; white-space: nowrap; }
 .brand img { border-radius: 22%; }
+
+/* Compact spacing (Settings): more books and rows on a screen. */
+:root[data-density="compact"] { --text-md: 14px; }
+:root[data-density="compact"] .grid:not(.is-list) { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 22px 16px; }
+:root[data-density="compact"] .grid.is-list { gap: 4px; }
+:root[data-density="compact"] .grid.is-list .card { padding: 5px 8px; }
+:root[data-density="compact"] :is(.note-card, .lib-hit, .resume) { padding-block: 8px; }
+:root[data-density="compact"] :is(.settings .card, .stats .card) { padding: 14px; margin-bottom: 10px; }
+:root[data-density="compact"] .seg { margin: 10px 0; }
+:root[data-density="compact"] .toc button { padding-block: 8px; }
+@media (max-width: 480px) { :root[data-density="compact"] .grid:not(.is-list) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 12px; } }
