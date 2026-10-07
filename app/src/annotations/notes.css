@@ -30,6 +30,7 @@
 .side-tabs button .icon { flex: none; }
 .side-tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
 .notes-panel .toc button { padding: 10px 10px; }
+.toc-made { margin: 0 0 8px; padding: 0 10px; color: var(--muted); font-size: var(--text-sm); }
 .notes-panel .page-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
 @keyframes slide-in { from { opacity: 0; } }
 

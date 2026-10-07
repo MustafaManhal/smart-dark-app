@@ -29,6 +29,7 @@ import { AutoScrollBar, useAutoScroll } from "./autoscroll";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { keys, ShortcutSheet } from "./ShortcutSheet";
 import { Tour } from "./Tour";
+import { makeOutline } from "./autoOutline";
 import { render } from "preact";
 import { DRAW_COLORS, DRAW_TOOLS, type Drawing, type DrawTool } from "../db/drawings";
 import { DrawLayer } from "../draw/DrawLayer";
@@ -115,6 +116,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
   // A PDF form in this book, and whether something was filled into it.
   const [hasForm, setHasForm] = useState(false);
+  // The contents were made from the book's headings (the PDF had none of its own).
+  const [madeOutline, setMadeOutline] = useState(false);
   const [formFilled, setFormFilled] = useState(false);
   // Text recognition for scanned pages (OCR): what was recognized, and the run that is going on.
   const ocrPages = useRef(new Map<number, OcrPage>());
@@ -223,6 +226,8 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
     let saveTimer = 0;
     let zoomTimer = 0;
     let formTimer = 0;
+    const outlineStop = { now: false };
+    setMadeOutline(false);
     (async () => {
       const [b, blob, saved] = await Promise.all([repos.books.get(bookId), repos.books.file(bookId), repos.progress.get(bookId)]);
       if (!b || !blob) {
@@ -296,7 +301,17 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
           if (pos.page === pages) repos.books.update(bookId, { finishedAt: Date.now() });
         }, 400);
       }, { passive: true });
-      setOutline(await flattenOutline(doc).catch(() => []));
+      const own = await flattenOutline(doc).catch(() => []);
+      setOutline(own);
+      if (!own.length) {
+        // The PDF has no contents inside: make them from its headings, once, and keep them with the book.
+        const made = b.madeOutline ?? await makeOutline(doc, outlineStop);
+        if (made && !cancelled) {
+          setOutline(made);
+          setMadeOutline(made.length > 0);
+          if (!b.madeOutline) repos.books.update(bookId, { madeOutline: made });
+        }
+      }
     })().catch(() => setError("This PDF could not be opened."));
     return () => {
       cancelled = true;
@@ -307,6 +322,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       renderer.current = null;
       setBookSearch(null);
       printStop.current.now = true;
+      outlineStop.now = true;
       ocrStop.current.now = true;
       cropStop.current.now = true;
       setMeasuring(null);
@@ -1375,6 +1391,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
             {panel === "contents" && (
               <div class="panel-body">
                 {outline.length === 0 && <p class="panel-empty">{t("This book has no table of contents.")}</p>}
+                {madeOutline && <p class="toc-made">{t("Made from the headings of this book.")}</p>}
                 <ol class="toc">
                   {outline.map((item) => (
                     <li style={{ paddingInlineStart: `${item.depth * 16}px` }}>

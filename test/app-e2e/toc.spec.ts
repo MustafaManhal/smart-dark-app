@@ -30,3 +30,27 @@ test("tapping the page hides and shows the bars on touch screens", async ({ page
   await page.locator('.page[data-page="1"]').tap({ position: { x: 20, y: 300 } });
   await expect(page.locator(".reader")).not.toHaveClass(/bars-hidden/);
 });
+
+test("a book without contents gets them from its headings", async ({ page }) => {
+  await page.goto("./");
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: /Add PDF|Choose a PDF/ }).first().click();
+  await (await chooser).setFiles("test/fixtures/headings.pdf");
+  await page.getByRole("list", { name: "Books" }).getByText("Headings sample").click();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  const contents = page.getByRole("button", { name: "Contents" });
+  await expect(contents).toBeEnabled();
+  await contents.click();
+  const panel = page.getByRole("complementary", { name: "Contents" });
+  await expect(panel.getByText("Made from the headings of this book.")).toBeVisible();
+  await expect(panel.locator(".toc button")).toHaveCount(5);
+  await expect(panel.locator(".toc button").first()).toContainText("1 Why the sea moves");
+  // The chapter shows under the title, and a section jumps to its page.
+  await expect(page.locator(".reader-title span")).toHaveText("1 Why the sea moves");
+  await panel.getByRole("button", { name: /2\.1 High and low water/ }).click();
+  await expectPage(page, 3);
+  // Kept with the book: there at once after a reload.
+  await page.reload();
+  await expect(page.locator('.page[data-page="1"] canvas')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Contents" })).toBeEnabled();
+});

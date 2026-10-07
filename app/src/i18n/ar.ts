@@ -170,6 +170,7 @@ export const AR: Record<string, string> = {
   "Copied": "تم النسخ",
   "Could not copy": "تعذّر النسخ",
   "Book menu": "قائمة الكتاب",
+  "Made from the headings of this book.": "صُنع من عناوين هذا الكتاب.",
   "Signature": "توقيع",
   "New signature": "توقيع جديد",
   "Your signature": "توقيعك",
