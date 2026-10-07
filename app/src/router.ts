@@ -1,7 +1,7 @@
 import { signal } from "@preact/signals";
 
 /** `find`: words to look for when the book opens (from a search across the library). `tour`: show the three-step tour. */
-export type Route = { name: "library" } | { name: "stats" } | { name: "settings" } | { name: "reader"; bookId: string; page?: number; find?: string; tour?: true };
+export type Route = { name: "library" } | { name: "stats" } | { name: "settings" } | { name: "notebook" } | { name: "reader"; bookId: string; page?: number; find?: string; tour?: true };
 
 export function parseHash(hash: string): Route {
   const read = /^#\/read\/([\w-]+)(?:\?(.*))?$/.exec(hash);
@@ -13,6 +13,7 @@ export function parseHash(hash: string): Route {
   }
   if (hash === "#/stats") return { name: "stats" };
   if (hash === "#/settings") return { name: "settings" };
+  if (hash === "#/notes") return { name: "notebook" };
   return { name: "library" };
 }
 
@@ -23,6 +24,7 @@ export function hashFor(to: Route): string {
   }
   if (to.name === "stats") return "#/stats";
   if (to.name === "settings") return "#/settings";
+  if (to.name === "notebook") return "#/notes";
   return "#/";
 }
 

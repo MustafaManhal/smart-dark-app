@@ -3,6 +3,7 @@ import { route } from "./router";
 import { settings } from "./settings";
 import { dir, lang } from "./i18n/i18n";
 import { SettingsScreen } from "./settings/SettingsScreen";
+import { NotebookScreen } from "./notebook/NotebookScreen";
 import { LibraryScreen } from "./library/LibraryScreen";
 import { ReaderScreen } from "./reader/ReaderScreen";
 import { StatsScreen } from "./stats/StatsScreen";
@@ -38,5 +39,6 @@ export function App({ repos }: { repos: Repos }) {
   if (r.name === "reader") return <ReaderScreen key={`${r.bookId}-${r.page ?? ""}-${r.find ?? ""}`} repos={repos} bookId={r.bookId} startPage={r.page} startFind={r.find} tour={r.tour} />;
   if (r.name === "stats") return <StatsScreen repos={repos} />;
   if (r.name === "settings") return <SettingsScreen repos={repos} />;
+  if (r.name === "notebook") return <NotebookScreen repos={repos} />;
   return <LibraryScreen repos={repos} />;
 }

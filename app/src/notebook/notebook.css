@@ -1,0 +1,21 @@
+/* The notebook: every mark of every book. It borrows the library's tools row and the note cards of the reader's panel. */
+.notebook { min-height: 100%; max-width: 860px; margin: 0 auto; padding: calc(12px + var(--safe-top)) 20px calc(40px + var(--safe-bottom)); }
+.notebook-head { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+.notebook-head h1 { flex: 1; min-width: 0; margin: 0; font-size: var(--text-xl); letter-spacing: -0.02em; }
+.notebook-count { margin: -10px 0 14px; color: var(--muted); font-size: var(--text-sm); }
+.notebook-book { margin-bottom: 26px; }
+.notebook-book h2 { margin: 0 0 10px; font-size: var(--text-lg); overflow-wrap: anywhere; }
+.notebook-book h2 span { color: var(--muted); font-weight: 500; }
+.notebook .note-card { background: var(--surface); padding-inline-end: 14px; }
+.notebook .note-meta b { color: var(--text); font-weight: 600; }
+.notebook .sort select { max-width: 200px; }
+.notebook-export-note { margin: 0 0 10px; color: var(--muted); }
+/* The book menu's list look, for the export choices (reader.css is not loaded on this screen). */
+.notebook .book-menu { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.notebook .book-menu li + li { border-top: 1px solid var(--border); }
+.notebook .book-menu button { width: 100%; display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 10px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.notebook .book-menu button:hover { background: var(--surface-2); }
+.notebook .book-menu svg { flex: none; color: var(--accent); }
+.notebook .book-menu span { display: grid; gap: 2px; min-width: 0; }
+.notebook .book-menu small { color: var(--muted); font-size: var(--text-sm); }
+.notebook .book-menu kbd { margin-inline-start: auto; flex: none; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font: 12px/1.5 var(--font); }

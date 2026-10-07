@@ -134,8 +134,8 @@ The rename happens in B1 if section 2 is settled. The desktop data folder is mig
 | Slice | What | Size | Notes |
 |---|---|---|---|
 | D1 | Review: highlights and notes come back as cards on a spaced schedule; a daily review screen; streak joins the reading streak | M | scheduling with the open FSRS algorithm (ts-fsrs); its license is checked when the phase starts |
-| D2 | Notebook: all notes of all books in one place, with tags and filters | M | |
-| D3 | Export to Anki and CSV, besides Markdown | S | |
+| D2 (done 2026-10-07) | Notebook: all notes of all books in one place, with tags and filters | M | |
+| D3 (done 2026-10-07) | Export to Anki and CSV, besides Markdown | S | |
 
 ### Phase E. Smart, still on the device
 

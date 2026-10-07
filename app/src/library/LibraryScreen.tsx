@@ -175,6 +175,7 @@ export function LibraryScreen({ repos }: { repos: Repos }) {
           <Brand />
           <h1>{t("Your library")}</h1>
         </div>
+        <IconButton label={t("Notebook")} icon="notes" onClick={() => navigate({ name: "notebook" })} />
         <IconButton label={t("Reading stats")} icon="chart" onClick={() => navigate({ name: "stats" })} />
         <IconButton label={t("Settings")} icon="settings" onClick={() => navigate({ name: "settings" })} />
         <IconButton label={t("Back up and restore")} icon="backup" class="lib-backup" onClick={() => setBackupOpen(true)} />
