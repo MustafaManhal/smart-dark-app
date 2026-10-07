@@ -60,7 +60,7 @@
 .match-source { font-size: 11px !important; }
 /* Narrow screens: title on its own row, actions below it. */
 @media (max-width: 480px) {
-  .lib-head { flex-wrap: wrap; justify-content: flex-start; row-gap: 8px; } /* icons stay together when the button wraps */
+  .lib-head { flex-wrap: wrap; justify-content: flex-start; gap: 8px 4px; } /* icons stay together when the button wraps */
   .lib-title { flex-basis: 100%; }
   .lib-head .btn { margin-inline-start: auto; }
 }

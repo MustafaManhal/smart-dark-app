@@ -1162,6 +1162,7 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
       { id: "redo", title: t("Redo"), icon: "redo", keys: keys("Mod+Shift+Z"), run: redo },
       { id: "print", title: t("Print"), icon: "print", run: () => { setSheet("menu"); print(); } },
       { id: "save", title: t("Save a copy"), icon: "download", run: saveCopy },
+      { id: "pages", title: t("Edit pages"), icon: "pages", run: () => navigate({ name: "tools", bookId }) },
       !touchOnly && { id: "shortcuts", title: t("Keyboard shortcuts"), icon: "keyboard", keys: "?", run: () => setSheet("shortcuts") },
       { id: "library", title: t("Back to library"), icon: "back", run: () => navigate({ name: "library" }) },
       ...outline.slice(0, 300).map((item, i): Command => ({
@@ -1514,6 +1515,12 @@ export function ReaderScreen({ repos, bookId, startPage, startFind, tour }: {
                   </span>
                 </button>
               )}
+            </li>
+            <li>
+              <button type="button" onClick={() => navigate({ name: "tools", bookId })}>
+                <Icon name="pages" />
+                <span><strong>{t("Edit pages")}</strong><small>{t("Reorder, turn, remove or take out pages, into a new PDF.")}</small></span>
+              </button>
             </li>
             {ai.summarize && (
               <li>

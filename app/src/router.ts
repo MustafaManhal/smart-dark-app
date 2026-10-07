@@ -1,7 +1,7 @@
 import { signal } from "@preact/signals";
 
 /** `find`: words to look for when the book opens (from a search across the library). `tour`: show the three-step tour. */
-export type Route = { name: "library" } | { name: "stats" } | { name: "settings" } | { name: "notebook" } | { name: "review" } | { name: "reader"; bookId: string; page?: number; find?: string; tour?: true };
+export type Route = { name: "library" } | { name: "stats" } | { name: "settings" } | { name: "notebook" } | { name: "review" } | { name: "tools"; bookId?: string } | { name: "reader"; bookId: string; page?: number; find?: string; tour?: true };
 
 export function parseHash(hash: string): Route {
   const read = /^#\/read\/([\w-]+)(?:\?(.*))?$/.exec(hash);
@@ -15,6 +15,8 @@ export function parseHash(hash: string): Route {
   if (hash === "#/settings") return { name: "settings" };
   if (hash === "#/notes") return { name: "notebook" };
   if (hash === "#/review") return { name: "review" };
+  const tools = /^#\/tools(?:\/([\w-]+))?$/.exec(hash);
+  if (tools) return { name: "tools", ...(tools[1] ? { bookId: tools[1] } : {}) };
   return { name: "library" };
 }
 
@@ -27,6 +29,7 @@ export function hashFor(to: Route): string {
   if (to.name === "settings") return "#/settings";
   if (to.name === "notebook") return "#/notes";
   if (to.name === "review") return "#/review";
+  if (to.name === "tools") return to.bookId ? `#/tools/${to.bookId}` : "#/tools";
   return "#/";
 }
 

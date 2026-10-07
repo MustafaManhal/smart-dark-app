@@ -387,6 +387,23 @@ for (const variant of ["en", "ar", "dark"] as const) {
       await page.evaluate(() => window.scrollTo(0, 500));
       await check(page, `${tag}-25-settings-mid`, findings);
 
+      // PDF tools: empty, with pages of the book, the sheet that makes the PDF and the result.
+      await page.locator(".icon-btn").first().click();
+      await page.getByRole("button", { name: T("PDF tools", "أدوات PDF") }).click();
+      await check(page, `${tag}-26-tools-empty`, findings);
+      await page.getByRole("button", { name: T("Add from library", "إضافة من المكتبة") }).click();
+      await check(page, `${tag}-27-tools-library`, findings);
+      await page.locator(".tools-books button").first().click();
+      await expect(page.locator(".tool-thumb img")).toHaveCount(2);
+      await page.locator(".tool-page").first().click();
+      await check(page, `${tag}-28-tools-pages`, findings);
+      await page.locator(".tools-head .btn-primary").click();
+      await page.locator(".tools-make .seg").last().locator("label").last().click();
+      await check(page, `${tag}-29-tools-make`, findings);
+      await page.locator(".tools-make .btn-primary").click();
+      await expect(page.locator(".tools-ready")).toBeVisible();
+      await check(page, `${tag}-30-tools-ready`, findings);
+
       writeFileSync(`${out}/${tag}.json`, JSON.stringify({ errors, findings }, null, 1));
       expect([...new Set(errors)], "console errors").toEqual([]);
       expect(findings.map((f) => `${f.where} | ${f.kind} | ${f.detail}`), "layout problems").toEqual([]);

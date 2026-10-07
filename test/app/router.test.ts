@@ -31,3 +31,10 @@ test("a reader route can ask for the tour", () => {
   expect(parseHash("#/read/x?tour=1")).toEqual({ name: "reader", bookId: "x", tour: true });
   expect(parseHash("#/read/x?tour=0")).toEqual({ name: "reader", bookId: "x" });
 });
+
+test("the PDF tools open empty or with a book", () => {
+  expect(parseHash("#/tools")).toEqual({ name: "tools" });
+  expect(parseHash("#/tools/abc-123")).toEqual({ name: "tools", bookId: "abc-123" });
+  expect(hashFor({ name: "tools" })).toBe("#/tools");
+  expect(hashFor({ name: "tools", bookId: "x" })).toBe("#/tools/x");
+});
