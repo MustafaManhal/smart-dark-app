@@ -27,6 +27,11 @@ cpSync(new URL("wasm/", pdfjs), new URL("wasm/", target), {
   filter: (src) => !/quickjs/i.test(src),
 });
 cpSync(new URL("LICENSE", pdfjs), new URL("LICENSE", target));
+// The Inter typeface (SIL OFL 1.1), with its license, for the viewer, the popup and the welcome page.
+const inter = new URL("node_modules/@fontsource-variable/inter/", root);
+mkdirSync(new URL("lib/fonts/", dist), { recursive: true });
+cpSync(new URL("files/inter-latin-wght-normal.woff2", inter), new URL("lib/fonts/inter-latin-wght-normal.woff2", dist));
+cpSync(new URL("LICENSE", inter), new URL("lib/fonts/Inter-OFL.txt", dist));
 
 const manifest = JSON.parse(readFileSync(new URL("manifest.json", dist), "utf8"));
 console.log(`built dist/ (version ${manifest.version})`);

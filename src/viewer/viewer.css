@@ -1,18 +1,27 @@
+/* Inter comes inside the extension (scripts/build.mjs copies it to lib/fonts/); nothing is fetched. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../lib/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 :root {
   color-scheme: dark;
   /* page colors follow the active theme; set from viewer.js */
   --page-bg: rgb(30 31 34);
   --page-fg: rgb(226 228 232);
-  --app-bg: #141518;
-  --bar-bg: #1c1d21;
-  --bar-border: #2a2c31;
-  --control-bg: #26282d;
-  --control-hover: #30333a;
-  --text: #e4e6ea;
-  --muted: #9aa0aa;
-  --accent: #7aa7ff;
-  --danger: #ff8a7a;
-  --radius: 8px;
+  --app-bg: #0e0f11;
+  --bar-bg: #16171a;
+  --bar-border: #26272c;
+  --control-bg: #1f2024;
+  --control-hover: #2a2b31;
+  --text: #ececef;
+  --muted: #9c9da6;
+  --accent: #9aa5ff;
+  --danger: #ff8a80;
+  --radius: 10px;
 }
 
 :root.original {
@@ -26,7 +35,7 @@
 
 html, body {
   /* Chrome's built-in extension stylesheet sets body { font-size: 75% } */
-  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 13px/1.4 "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   height: 100%;
   margin: 0;
   background: var(--app-bg);

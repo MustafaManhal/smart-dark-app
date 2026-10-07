@@ -1,14 +1,23 @@
-/* Shared styles for the popup and welcome page. */
+/* Shared styles for the popup and welcome page. The colors are the dark theme of the app (app/src/app.css). */
+/* Inter comes inside the extension (scripts/build.mjs copies it to lib/fonts/); nothing is fetched. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../lib/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 :root {
   color-scheme: dark;
-  --bg: #16171a;
-  --surface: #1f2024;
-  --border: #2e3036;
-  --control: #282a30;
-  --control-hover: #32353c;
-  --text: #e6e8ec;
-  --muted: #9ca2ad;
-  --accent: #7aa7ff;
+  --bg: #0e0f11;
+  --surface: #16171a;
+  --border: #26272c;
+  --control: #1f2024;
+  --control-hover: #2a2b31;
+  --text: #ececef;
+  --muted: #9c9da6;
+  --accent: #9aa5ff;
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +26,8 @@
 
 body {
   /* Chrome's built-in extension stylesheet sets body { font-size: 75% } */
-  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 13px/1.5 "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "cv11", "ss03";
   margin: 0;
   background: var(--bg);
   color: var(--text);
@@ -29,9 +39,10 @@ button, select {
   height: 34px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--control);
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 button:hover, select:hover { background: var(--control-hover); }
@@ -44,7 +55,7 @@ button:hover, select:hover { background: var(--control-hover); }
 button.primary {
   border-color: transparent;
   background: var(--accent);
-  color: #0d1220;
+  color: #0b1026;
   font-weight: 600;
 }
 
